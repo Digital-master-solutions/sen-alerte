@@ -30,6 +30,7 @@ const mainItems = [
   { title: "Organisations", url: "/admin/organizations", icon: Building2 },
   { title: "Utilisateurs", url: "/admin/users", icon: Users },
   { title: "Messages", url: "/admin/messages", icon: MessageSquare },
+  { title: "Catégories", url: "/admin/categories", icon: Settings },
 ];
 
 const settingsItems = [

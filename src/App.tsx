@@ -10,6 +10,11 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminReports from "./pages/admin/Reports";
+import AdminOrganizations from "./pages/admin/Organizations";
+import AdminUsers from "./pages/admin/Users";
+import AdminMessages from "./pages/admin/Messages";
+import AdminCategories from "./pages/admin/Categories";
+import AdminSettings from "./pages/admin/Settings";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +36,11 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="reports" element={<AdminReports />} />
+            <Route path="organizations" element={<AdminOrganizations />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="messages" element={<AdminMessages />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="settings" element={<AdminSettings />} />
             <Route index element={<AdminDashboard />} />
           </Route>
           
