@@ -74,10 +74,10 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-72"} collapsible="icon">
-      <SidebarContent className="bg-sidebar-background border-r border-sidebar-border">
+    <Sidebar className={collapsed ? "w-16 overflow-hidden border-r border-sidebar-border" : "w-72 overflow-hidden border-r border-sidebar-border"} collapsible="icon">
+      <SidebarContent className="bg-sidebar-background overflow-y-auto">
         {/* Header moderne */}
-        <SidebarHeader className="p-6 border-b border-sidebar-border bg-gradient-to-r from-sidebar-primary/5 to-sidebar-accent">
+        <SidebarHeader className="sticky top-0 z-10 p-6 border-b border-sidebar-border bg-sidebar-background">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center shadow-lg">
               <Shield className="w-5 h-5 text-sidebar-primary-foreground" />
@@ -115,6 +115,7 @@ export function AdminSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url} 
+                        title={item.title}
                         className={({ isActive }) => `
                           flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200
                           ${isActive 
@@ -145,6 +146,7 @@ export function AdminSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url}
+                        title={item.title}
                         className={({ isActive }) => `
                           flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200
                           ${isActive 
@@ -165,7 +167,7 @@ export function AdminSidebar() {
         </div>
 
         {/* Footer avec déconnexion */}
-        <SidebarFooter className="p-4 border-t border-sidebar-border bg-sidebar-accent/30">
+        <SidebarFooter className="sticky bottom-0 p-4 border-t border-sidebar-border bg-sidebar-accent/30">
           <Button
             onClick={handleLogout}
             variant="ghost"
