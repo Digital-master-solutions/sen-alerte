@@ -100,8 +100,20 @@ export default function AdminOrganizations() {
       filtered = filtered.filter(org => org.status === statusFilter);
     }
 
-    setFilteredOrgs(filtered);
+  setFilteredOrgs(filtered);
 };
+
+useEffect(() => {
+  const channel = supabase
+    .channel('orgs-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'organizations' }, () => {
+      loadOrganizations();
+    })
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrgs.length / pageSize));
   const paginatedOrgs = filteredOrgs.slice((page - 1) * pageSize, page * pageSize);

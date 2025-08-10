@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -57,6 +58,10 @@ export default function AdminMessages() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const [orgDialogOpen, setOrgDialogOpen] = useState(false);
+  const [organizationsList, setOrganizationsList] = useState<any[]>([]);
+  const [orgSearch, setOrgSearch] = useState("");
+
   const [newConversationData, setNewConversationData] = useState({
     recipient_type: "organization",
     recipient_id: "",
@@ -64,9 +69,29 @@ export default function AdminMessages() {
     message: "",
   });
 
-  useEffect(() => {
-    loadConversations();
-  }, []);
+useEffect(() => {
+  loadConversations();
+}, []);
+
+const loadApprovedOrganizations = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("organizations")
+      .select("*")
+      .eq("status", "approved")
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+    if (error) throw error;
+    setOrganizationsList(data || []);
+  } catch (e) {
+    console.error("Error loading organizations for modal:", e);
+  }
+};
+
+const openNewConversationModal = async () => {
+  await loadApprovedOrganizations();
+  setOrgDialogOpen(true);
+};
 
   const loadConversations = async () => {
     try {
@@ -157,42 +182,30 @@ export default function AdminMessages() {
     }
   };
 
-  const startNewConversation = async () => {
+  const startConversationWithOrg = async (org: any) => {
     try {
-      const { error } = await supabase
-        .from("messagerie")
-        .insert({
-          title: newConversationData.title,
-          message: newConversationData.message,
-          sender_name: "Admin",
-          sender_type: "admin",
-          sender_id: "current-admin-id",
-          recipient_type: newConversationData.recipient_type,
-          recipient_id: newConversationData.recipient_id,
-          recipient_name: "Destinataire",
-        });
-
-      if (error) throw error;
-
-      setNewConversationOpen(false);
-      setNewConversationData({
+      const { error } = await supabase.from("messagerie").insert({
+        title: `Conversation avec ${org.name}`,
+        message: "Conversation démarrée",
+        sender_name: "Admin",
+        sender_type: "admin",
+        sender_id: "current-admin-id",
         recipient_type: "organization",
-        recipient_id: "",
-        title: "",
-        message: "",
+        recipient_id: org.id,
+        recipient_name: org.name,
+        is_reply: false,
       });
-      loadConversations();
-      toast({
-        title: "Conversation créée",
-        description: "La nouvelle conversation a été créée avec succès",
-      });
+      if (error) throw error;
+      setOrgDialogOpen(false);
+      await loadConversations();
+      const created = conversations.find(
+        (c) => c.participant_type === "organization" && c.participant_id === org.id
+      );
+      if (created) setSelectedConversation(created);
+      toast({ title: "Conversation créée", description: `Avec ${org.name}` });
     } catch (error) {
       console.error("Error creating conversation:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de créer la conversation",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: "Création de conversation impossible", variant: "destructive" });
     }
   };
 
@@ -210,6 +223,11 @@ export default function AdminMessages() {
   const filteredConversations = conversations.filter(conv =>
     conv.participant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.last_message.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredOrgsList = organizationsList.filter((org) =>
+    (org.name?.toLowerCase() || "").includes(orgSearch.toLowerCase()) ||
+    (org.city?.toLowerCase() || "").includes(orgSearch.toLowerCase())
   );
 
   if (loading) {
@@ -233,11 +251,49 @@ export default function AdminMessages() {
             Communication avec les organisations et utilisateurs
           </p>
         </div>
-        <Button onClick={() => setNewConversationOpen(true)}>
+        <Button onClick={openNewConversationModal}>
           <Plus className="mr-2 h-4 w-4" />
           Nouvelle conversation
         </Button>
       </div>
+
+      {/* Modal: Nouvelle conversation */}
+      <Dialog open={orgDialogOpen} onOpenChange={setOrgDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouvelle conversation</DialogTitle>
+            <DialogDescription>
+              Sélectionnez une organisation approuvée pour démarrer la discussion
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher une organisation..."
+                value={orgSearch}
+                onChange={(e) => setOrgSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <ScrollArea className="max-h-80">
+              {filteredOrgsList.map((org: any) => (
+                <button
+                  key={org.id}
+                  onClick={() => startConversationWithOrg(org)}
+                  className="w-full text-left p-3 border-b hover:bg-muted rounded"
+                >
+                  <div className="font-medium">{org.name}</div>
+                  <div className="text-sm text-muted-foreground">{org.city}</div>
+                </button>
+              ))}
+              {filteredOrgsList.length === 0 && (
+                <div className="text-sm text-muted-foreground p-4">Aucune organisation trouvée</div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -281,14 +337,7 @@ export default function AdminMessages() {
         {/* Conversations List */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Conversations</span>
-              {newConversationOpen && (
-                <Button variant="outline" size="sm" onClick={() => setNewConversationOpen(false)}>
-                  Annuler
-                </Button>
-              )}
-            </CardTitle>
+            <CardTitle>Conversations</CardTitle>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -300,90 +349,50 @@ export default function AdminMessages() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {newConversationOpen ? (
-              <div className="p-4 space-y-4">
-                <Select 
-                  value={newConversationData.recipient_type}
-                  onValueChange={(value) => setNewConversationData({...newConversationData, recipient_type: value})}
+            <ScrollArea className="h-[500px]">
+              {filteredConversations.map((conversation, index) => (
+                <div
+                  key={index}
+                  className={`p-4 border-b cursor-pointer hover:bg-muted/50 ${
+                    selectedConversation === conversation ? "bg-muted" : ""
+                  }`}
+                  onClick={() => setSelectedConversation(conversation)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Type de destinataire" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="organization">Organisation</SelectItem>
-                    <SelectItem value="all_organizations">Toutes les organisations</SelectItem>
-                    <SelectItem value="user">Utilisateur</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Input
-                  placeholder="ID du destinataire"
-                  value={newConversationData.recipient_id}
-                  onChange={(e) => setNewConversationData({...newConversationData, recipient_id: e.target.value})}
-                />
-                
-                <Input
-                  placeholder="Sujet"
-                  value={newConversationData.title}
-                  onChange={(e) => setNewConversationData({...newConversationData, title: e.target.value})}
-                />
-                
-                <Textarea
-                  placeholder="Message..."
-                  value={newConversationData.message}
-                  onChange={(e) => setNewConversationData({...newConversationData, message: e.target.value})}
-                />
-                
-                <Button onClick={startNewConversation} className="w-full">
-                  Envoyer
-                </Button>
-              </div>
-            ) : (
-              <ScrollArea className="h-[500px]">
-                {filteredConversations.map((conversation, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 border-b cursor-pointer hover:bg-muted/50 ${
-                      selectedConversation === conversation ? "bg-muted" : ""
-                    }`}
-                    onClick={() => setSelectedConversation(conversation)}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          {conversation.participant_type === "organization" ? (
-                            <Building2 className="h-4 w-4" />
-                          ) : (
-                            <Users className="h-4 w-4" />
-                          )}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium truncate">{conversation.participant_name}</p>
-                          {conversation.unread_count > 0 && (
-                            <Badge variant="destructive" className="text-xs">
-                              {conversation.unread_count}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conversation.last_message}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(conversation.last_message_time).toLocaleDateString()}
-                        </p>
+                  <div className="flex items-start space-x-3">
+                    <Avatar>
+                      <AvatarFallback>
+                        {conversation.participant_type === "organization" ? (
+                          <Building2 className="h-4 w-4" />
+                        ) : (
+                          <Users className="h-4 w-4" />
+                        )}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium truncate">{conversation.participant_name}</p>
+                        {conversation.unread_count > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {conversation.unread_count}
+                          </Badge>
+                        )}
                       </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {conversation.last_message}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(conversation.last_message_time).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
-                ))}
-                {filteredConversations.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">
-                    Aucune conversation trouvée
-                  </div>
-                )}
-              </ScrollArea>
-            )}
+                </div>
+              ))}
+              {filteredConversations.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">
+                  Aucune conversation trouvée
+                </div>
+              )}
+            </ScrollArea>
           </CardContent>
         </Card>
 
