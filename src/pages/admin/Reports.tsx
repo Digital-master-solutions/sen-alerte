@@ -40,6 +40,7 @@ interface Report {
   assigned_admin_id: string;
   resolution_notes: string;
 }
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 export default function AdminReports() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -51,6 +52,8 @@ export default function AdminReports() {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     loadReports();
@@ -104,34 +107,9 @@ export default function AdminReports() {
     setFilteredReports(filtered);
   };
 
-  const updateReportStatus = async (reportId: string, newStatus: string, notes?: string) => {
-    try {
-      const { error } = await supabase
-        .from("reports")
-        .update({
-          status: newStatus,
-          resolution_notes: notes,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", reportId);
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
+  const paginatedReports = filteredReports.slice((page - 1) * pageSize, page * pageSize);
 
-      if (error) throw error;
-
-      await loadReports();
-      setIsDialogOpen(false);
-      
-      toast({
-        title: "Succès",
-        description: "Statut du signalement mis à jour",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut",
-      });
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -257,7 +235,7 @@ export default function AdminReports() {
 
       {/* Reports List */}
       <div className="space-y-4">
-        {filteredReports.map((report) => (
+        {paginatedReports.map((report) => (
           <Card key={report.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -317,24 +295,7 @@ export default function AdminReports() {
                             </div>
                             <div>
                               <Label>Statut</Label>
-                              <div className="mt-1">
-                                <Select
-                                  value={selectedReport.status}
-                                  onValueChange={(value) =>
-                                    updateReportStatus(selectedReport.id, value)
-                                  }
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="en-attente">En attente</SelectItem>
-                                    <SelectItem value="en-cours">En cours</SelectItem>
-                                    <SelectItem value="resolu">Résolu</SelectItem>
-                                    <SelectItem value="rejete">Rejeté</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                              <div className="mt-1">{getStatusBadge(selectedReport.status)}</div>
                             </div>
                           </div>
                           
@@ -361,14 +322,6 @@ export default function AdminReports() {
                             </div>
                           )}
                           
-                          <div>
-                            <Label>Notes de résolution</Label>
-                            <Textarea
-                              placeholder="Ajoutez des notes..."
-                              defaultValue={selectedReport.resolution_notes || ""}
-                              className="mt-1"
-                            />
-                          </div>
                         </div>
                       )}
                     </DialogContent>
@@ -390,6 +343,18 @@ export default function AdminReports() {
             </CardContent>
           </Card>
         )}
+
+        <div className="mt-4 flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationPrevious onClick={() => setPage((p) => Math.max(1, p - 1))} />
+              <PaginationItem>
+                <span className="px-3 py-2 text-sm">Page {page} / {totalPages}</span>
+              </PaginationItem>
+              <PaginationNext onClick={() => setPage((p) => Math.min(totalPages, p + 1))} />
+            </PaginationContent>
+          </Pagination>
+        </div>
       </div>
     </div>
   );

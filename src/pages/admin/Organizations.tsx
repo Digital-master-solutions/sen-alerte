@@ -411,10 +411,10 @@ export default function AdminOrganizations() {
               
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => updateOrganizationStatus(selectedOrg.id, "approved")}
+                  onClick={() => updateOrganizationStatus(selectedOrg.id, selectedOrg.status === "approved" ? "pending" : "approved")}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  Approuver
+                  {selectedOrg.status === "approved" ? "Annuler l'approbation" : "Approuver"}
                 </Button>
                 <Button 
                   variant="destructive"

@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface Category {
   id: string;
@@ -33,6 +34,8 @@ export default function AdminCategories() {
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const [formData, setFormData] = useState({
     nom: "",
@@ -85,7 +88,10 @@ export default function AdminCategories() {
     }
 
     setFilteredCategories(filtered);
-  };
+};
+
+  const totalPages = Math.max(1, Math.ceil(filteredCategories.length / pageSize));
+  const paginatedCategories = filteredCategories.slice((page - 1) * pageSize, page * pageSize);
 
   const handleCreateCategory = async () => {
     try {
@@ -315,7 +321,7 @@ export default function AdminCategories() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCategories.map((category) => (
+              {paginatedCategories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.nom}</TableCell>
                   <TableCell>
@@ -354,11 +360,23 @@ export default function AdminCategories() {
               ))}
             </TableBody>
           </Table>
-          {filteredCategories.length === 0 && (
+          {filteredCategories.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Aucune catégorie trouvée
             </div>
-          )}
+          ) : null}
+
+          <div className="mt-4 flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationPrevious onClick={() => setPage((p) => Math.max(1, p - 1))} />
+                <PaginationItem>
+                  <span className="px-3 py-2 text-sm">Page {page} / {totalPages}</span>
+                </PaginationItem>
+                <PaginationNext onClick={() => setPage((p) => Math.min(totalPages, p + 1))} />
+              </PaginationContent>
+            </Pagination>
+          </div>
         </CardContent>
       </Card>
 
