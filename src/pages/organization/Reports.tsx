@@ -109,17 +109,40 @@ export default function OrgReports() {
     try {
       if (!org) throw new Error("Organisation non trouvée");
       
+      // Vérifier d'abord que le signalement n'est pas déjà assigné
+      const { data: currentReport, error: fetchError } = await supabase
+        .from("reports")
+        .select("assigned_organization_id")
+        .eq("id", report.id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      if (currentReport.assigned_organization_id) {
+        toast({ 
+          variant: "destructive", 
+          title: "Erreur", 
+          description: "Ce signalement est déjà assigné à une organisation" 
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from("reports")
-        .update({ assigned_organization_id: org.id })
-        .eq("id", report.id);
+        .update({ 
+          assigned_organization_id: org.id,
+          status: 'en-cours'
+        })
+        .eq("id", report.id)
+        .is("assigned_organization_id", null); // Seulement si pas encore assigné
       
       if (error) throw error;
       
       toast({ title: "Signalement pris en charge", description: "Vous gérez maintenant ce signalement" });
       await loadAll();
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Erreur", description: e.message });
+      console.error("Error claiming report:", e);
+      toast({ variant: "destructive", title: "Erreur", description: e.message || "Impossible de prendre en charge ce signalement" });
     }
   };
 

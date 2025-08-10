@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "@/components/ui/use-toast";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageCircle, Send, Clock, User } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  MessageSquare,
+  Send,
+  Search,
+  Users,
+  Building2,
+  Clock,
+  CheckCircle2,
+  PaperclipIcon,
+} from "lucide-react";
 
 interface Message {
   id: string;
@@ -26,46 +36,103 @@ interface Message {
   parent_id: string;
 }
 
-export default function Messages() {
+interface Conversation {
+  participant_name: string;
+  participant_type: string;
+  participant_id: string;
+  last_message: string;
+  last_message_time: string;
+  unread_count: number;
+  messages: Message[];
+}
+
+export default function OrgMessages() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const [organization, setOrganization] = useState<any>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     document.title = "Messages | Espace Organisation";
-    loadMessages();
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('organization_messages')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messagerie' },
-        () => {
-          loadMessages();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    loadOrganization();
   }, []);
 
-  const loadMessages = async () => {
+  const loadOrganization = async () => {
     try {
-      const { data, error } = await supabase
-        .from('messagerie')
-        .select('*')
-        .order('created_at', { ascending: true });
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user?.id) return;
+
+      const { data: org, error } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("supabase_user_id", session.session.user.id)
+        .single();
 
       if (error) throw error;
-      setMessages(data || []);
+      setOrganization(org);
+      loadConversations();
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error("Error loading organization:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les messages",
+        description: "Impossible de charger l'organisation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadConversations = async (selectKey?: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("messagerie")
+        .select("*")
+        .or(`sender_type.eq.organization,recipient_type.eq.organization`)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Group messages by conversation with super admin
+      const conversationMap = new Map<string, Conversation>();
+      data?.forEach((msg: Message) => {
+        const key = "super_admin-admin"; // Always conversation with super admin
+        if (!conversationMap.has(key)) {
+          conversationMap.set(key, {
+            participant_name: "Administration",
+            participant_type: "super_admin",
+            participant_id: "admin",
+            last_message: msg.message,
+            last_message_time: msg.created_at,
+            unread_count: msg.read ? 0 : 1,
+            messages: [],
+          });
+        }
+        const conversation = conversationMap.get(key)!;
+        conversation.messages.push(msg);
+        if (!msg.read && msg.sender_type === "super_admin") {
+          conversation.unread_count++;
+        }
+        if (new Date(msg.created_at) > new Date(conversation.last_message_time)) {
+          conversation.last_message = msg.message;
+          conversation.last_message_time = msg.created_at;
+        }
+      });
+
+      const list = Array.from(conversationMap.values());
+      setConversations(list);
+      
+      // Auto-select the conversation with admin if there is one
+      if (list.length > 0) {
+        setSelectedConversation(list[0]);
+      }
+    } catch (error) {
+      console.error("Error loading conversations:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les conversations",
         variant: "destructive",
       });
     } finally {
@@ -74,58 +141,63 @@ export default function Messages() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !organization) return;
 
-    setSending(true);
     try {
       const { error } = await supabase
-        .from('messagerie')
-        .insert([
-          {
-            title: "Message de l'organisation",
-            message: newMessage.trim(),
-            sender_type: 'organization',
-            sender_name: 'Organisation',
-            sender_id: 'current-org-id',
-            recipient_type: 'super_admin',
-            recipient_name: 'Administration',
-            recipient_id: 'admin',
-            is_reply: false
-          }
-        ]);
+        .from("messagerie")
+        .insert({
+          title: "Message de l'organisation",
+          message: newMessage,
+          sender_name: organization.name,
+          sender_type: "organization",
+          sender_id: organization.id,
+          recipient_name: "Administration",
+          recipient_type: "super_admin",
+          recipient_id: "admin",
+          is_reply: true,
+        });
 
       if (error) throw error;
 
       setNewMessage("");
-      loadMessages();
+      loadConversations();
       toast({
         title: "Message envoyé",
         description: "Votre message a été envoyé avec succès",
       });
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
         title: "Erreur",
         description: "Impossible d'envoyer le message",
         variant: "destructive",
       });
-    } finally {
-      setSending(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  const markAsRead = async (messageId: string) => {
+    try {
+      await supabase
+        .from("messagerie")
+        .update({ read: true })
+        .eq("id", messageId);
+    } catch (error) {
+      console.error("Error marking message as read:", error);
     }
   };
+
+  const filteredConversations = conversations.filter(conv =>
+    conv.participant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    conv.last_message.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
       <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-muted rounded w-64" />
+          <div className="h-96 bg-muted rounded" />
         </div>
       </div>
     );
@@ -133,135 +205,186 @@ export default function Messages() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-2">
-        <MessageCircle className="h-5 w-5" />
-        <h1 className="text-2xl font-bold">Messages</h1>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Messagerie</h1>
+          <p className="text-muted-foreground">
+            Communication avec l'administration
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-6">
-        {/* Messages Thread */}
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Discussion avec l'Administration
-            </CardTitle>
-            <CardDescription>
-              Échangez directement avec les administrateurs
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversations</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Messages List */}
-            <ScrollArea className="h-96 w-full rounded border p-4">
-              <div className="space-y-4">
-                {messages.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Aucun message pour le moment</p>
-                    <p className="text-sm">Commencez une conversation avec l'administration</p>
-                  </div>
-                ) : (
-                  messages.map((message) => (
-                    <div key={message.id} className="space-y-2">
-                      <div className={`flex items-start gap-3 ${
-                        message.sender_type === 'organization' ? 'flex-row-reverse' : ''
-                      }`}>
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src="" />
-                          <AvatarFallback>
-                            {message.sender_type === 'admin' ? 'A' : 'O'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={`flex-1 space-y-1 ${
-                          message.sender_type === 'organization' ? 'text-right' : ''
-                        }`}>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={message.sender_type === 'admin' ? 'default' : 'secondary'}>
-                              {message.sender_type === 'admin' ? 'Administrateur' : 'Organisation'}
-                            </Badge>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {new Date(message.created_at).toLocaleString('fr-FR')}
-                            </div>
-                          </div>
-                          <div className={`rounded-lg p-3 max-w-md ${
-                            message.sender_type === 'organization'
-                              ? 'bg-primary text-primary-foreground ml-auto'
-                              : 'bg-muted'
-                          }`}>
-                            <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <Separator className="my-4" />
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
+          <CardContent>
+            <div className="text-2xl font-bold">{conversations.length}</div>
+          </CardContent>
+        </Card>
 
-            {/* Send Message */}
-            <div className="space-y-2">
-              <Textarea
-                placeholder="Tapez votre message ici..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="min-h-[100px]"
-              />
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-muted-foreground">
-                  Appuyez sur Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne
-                </p>
-                <Button 
-                  onClick={sendMessage} 
-                  disabled={!newMessage.trim() || sending}
-                  className="flex items-center gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  {sending ? "Envoi..." : "Envoyer"}
-                </Button>
-              </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Non lus</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {conversations.reduce((sum, conv) => sum + conv.unread_count, 0)}
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Messages envoyés</CardTitle>
-              <Send className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {messages.filter(m => m.sender_type === 'organization').length}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Messages envoyés</CardTitle>
+            <Send className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {selectedConversation?.messages.filter(m => m.sender_type === 'organization').length || 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Messages Interface */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
+        {/* Conversations List */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Conversations</CardTitle>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[500px]">
+              {filteredConversations.map((conversation, index) => (
+                <div
+                  key={index}
+                  className={`p-4 border-b cursor-pointer hover:bg-muted/50 ${
+                    selectedConversation === conversation ? "bg-muted" : ""
+                  }`}
+                  onClick={() => setSelectedConversation(conversation)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Avatar>
+                      <AvatarFallback>
+                        <Users className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium truncate">{conversation.participant_name}</p>
+                        {conversation.unread_count > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {conversation.unread_count}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {conversation.last_message}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(conversation.last_message_time).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {filteredConversations.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">
+                  Aucune conversation trouvée
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Messages Area */}
+        <Card className="lg:col-span-2">
+          {selectedConversation ? (
+            <>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  {selectedConversation.participant_name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col h-[500px]">
+                <ScrollArea className="flex-1 pr-4">
+                  <div className="space-y-4">
+                    {selectedConversation.messages
+                      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                      .map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.sender_type === "organization" ? "justify-end" : "justify-start"
+                        }`}
+                        onClick={() => !message.read && markAsRead(message.id)}
+                      >
+                        <div
+                          className={`max-w-[80%] p-3 rounded-lg ${
+                            message.sender_type === "organization"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium">{message.sender_name}</span>
+                            {message.read && message.sender_type !== "organization" && (
+                              <CheckCircle2 className="h-3 w-3" />
+                            )}
+                          </div>
+                          <p className="text-sm">{message.message}</p>
+                          <p className="text-xs opacity-70 mt-1">
+                            {new Date(message.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                
+                {/* Message Input */}
+                <div className="flex gap-2 mt-4">
+                  <Button variant="outline" size="icon">
+                    <PaperclipIcon className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    placeholder="Tapez votre message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                    className="flex-1"
+                  />
+                  <Button onClick={sendMessage}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </>
+          ) : (
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Sélectionnez une conversation pour commencer</p>
               </div>
             </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Messages reçus</CardTitle>
-              <MessageCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {messages.filter(m => m.sender_type === 'admin').length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total messages</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{messages.length}</div>
-            </CardContent>
-          </Card>
-        </div>
+          )}
+        </Card>
       </div>
     </div>
   );
