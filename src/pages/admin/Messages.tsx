@@ -156,7 +156,7 @@ const openNewConversationModal = async () => {
           title: "Réponse",
           message: newMessage,
           sender_name: (JSON.parse(localStorage.getItem("adminUser") || "{}").name) || "Super Admin",
-          sender_type: "superadmin",
+          sender_type: "super_admin",
           sender_id: "current-superadmin-id", // Should be actual user ID when auth is enabled
           recipient_name: selectedConversation.participant_name,
           recipient_type: selectedConversation.participant_type,
@@ -188,7 +188,7 @@ const openNewConversationModal = async () => {
         title: `Conversation avec ${org.name}`,
         message: "Conversation démarrée",
         sender_name: (JSON.parse(localStorage.getItem("adminUser") || "{}").name) || "Super Admin",
-        sender_type: "superadmin",
+        sender_type: "super_admin",
         sender_id: "current-superadmin-id",
         recipient_type: "organization",
         recipient_id: org.id,
@@ -415,20 +415,20 @@ const openNewConversationModal = async () => {
                       <div
                         key={message.id}
                         className={`flex ${
-                          message.sender_type === "superadmin" ? "justify-end" : "justify-start"
+                          message.sender_type === "super_admin" ? "justify-end" : "justify-start"
                         }`}
                         onClick={() => !message.read && markAsRead(message.id)}
                       >
                         <div
                           className={`max-w-[80%] p-3 rounded-lg ${
-                            message.sender_type === "superadmin"
+                            message.sender_type === "super_admin"
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted"
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium">{message.sender_name}</span>
-                            {message.read && message.sender_type !== "admin" && (
+                            {message.read && message.sender_type !== "super_admin" && (
                               <CheckCircle2 className="h-3 w-3" />
                             )}
                           </div>
