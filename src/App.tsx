@@ -17,6 +17,10 @@ import AdminCategories from "./pages/admin/Categories";
 import OrganizationLayout from "./pages/organization/OrganizationLayout";
 import OrgLogin from "./pages/organization/Login";
 import OrgReports from "./pages/organization/Reports";
+import OrgDashboard from "./pages/organization/Dashboard";
+import OrgMessages from "./pages/organization/Messages";
+import OrgNotifications from "./pages/organization/Notifications";
+import OrgSettings from "./pages/organization/Settings";
 
 
 const queryClient = new QueryClient();
@@ -43,17 +47,20 @@ const App = () => (
             <Route path="users" element={<AdminUsers />} />
             <Route path="messages" element={<AdminMessages />} />
             <Route path="categories" element={<AdminCategories />} />
-            
             <Route index element={<AdminDashboard />} />
           </Route>
           
           {/* Organization Routes */}
           <Route path="/organization/login" element={<OrgLogin />} />
           <Route path="/organization" element={<OrganizationLayout />}>
+            <Route path="dashboard" element={<OrgDashboard />} />
             <Route path="reports" element={<OrgReports />} />
-            <Route index element={<OrgReports />} />
+            <Route path="messages" element={<OrgMessages />} />
+            <Route path="notifications" element={<OrgNotifications />} />
+            <Route path="settings" element={<OrgSettings />} />
+            <Route index element={<OrgDashboard />} />
           </Route>
-          
+
           {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route
