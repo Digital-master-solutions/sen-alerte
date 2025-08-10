@@ -93,7 +93,7 @@ const openNewConversationModal = async () => {
   setOrgDialogOpen(true);
 };
 
-  const loadConversations = async () => {
+  const loadConversations = async (selectKey?: string) => {
     try {
       const { data, error } = await supabase
         .from("messagerie")
@@ -104,10 +104,8 @@ const openNewConversationModal = async () => {
 
       // Group messages by conversation
       const conversationMap = new Map<string, Conversation>();
-      
       data?.forEach((msg: Message) => {
         const key = `${msg.recipient_type}-${msg.recipient_id}`;
-        
         if (!conversationMap.has(key)) {
           conversationMap.set(key, {
             participant_name: msg.recipient_name || "Participant inconnu",
@@ -119,21 +117,23 @@ const openNewConversationModal = async () => {
             messages: [],
           });
         }
-        
         const conversation = conversationMap.get(key)!;
         conversation.messages.push(msg);
-        
         if (!msg.read) {
           conversation.unread_count++;
         }
-        
         if (new Date(msg.created_at) > new Date(conversation.last_message_time)) {
           conversation.last_message = msg.message;
           conversation.last_message_time = msg.created_at;
         }
       });
 
-      setConversations(Array.from(conversationMap.values()));
+      const list = Array.from(conversationMap.values());
+      setConversations(list);
+      if (selectKey) {
+        const found = list.find((c) => `${c.participant_type}-${c.participant_id}` === selectKey) || null;
+        if (found) setSelectedConversation(found);
+      }
     } catch (error) {
       console.error("Error loading conversations:", error);
       toast({
@@ -197,11 +197,7 @@ const openNewConversationModal = async () => {
       });
       if (error) throw error;
       setOrgDialogOpen(false);
-      await loadConversations();
-      const created = conversations.find(
-        (c) => c.participant_type === "organization" && c.participant_id === org.id
-      );
-      if (created) setSelectedConversation(created);
+      await loadConversations(`organization-${org.id}`);
       toast({ title: "Conversation créée", description: `Avec ${org.name}` });
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -259,7 +255,7 @@ const openNewConversationModal = async () => {
 
       {/* Modal: Nouvelle conversation */}
       <Dialog open={orgDialogOpen} onOpenChange={setOrgDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nouvelle conversation</DialogTitle>
             <DialogDescription>
@@ -276,7 +272,7 @@ const openNewConversationModal = async () => {
                 className="pl-10"
               />
             </div>
-            <ScrollArea className="max-h-80">
+            <ScrollArea className="h-[60vh]">
               {filteredOrgsList.map((org: any) => (
                 <button
                   key={org.id}
