@@ -3,6 +3,8 @@ import MapLibreMap from "@/components/MapLibreMap";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, Plus } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -16,8 +18,30 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="w-full border-b">
         <div className="container flex h-14 items-center justify-between">
-          <a href="/" className="font-semibold">SenAlert</a>
-          <nav className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Ouvrir le menu" className="sm:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <SheetHeader>
+                  <SheetTitle>SenAlert</SheetTitle>
+                </SheetHeader>
+                <nav className="mt-4 grid gap-2">
+                  <Button variant="ghost" onClick={() => navigate("/suivi")}>
+                    Suivi
+                  </Button>
+                  <Button variant="hero" onClick={() => navigate("/signaler")}>
+                    Signaler
+                  </Button>
+                </nav>
+              </SheetContent>
+            </Sheet>
+            <a href="/" className="font-semibold">SenAlert</a>
+          </div>
+          <nav className="hidden sm:flex items-center gap-3">
             <Button variant="ghost" onClick={() => navigate("/suivi")}>Suivi</Button>
             <Button variant="hero" onClick={() => navigate("/signaler")}>Signaler</Button>
           </nav>
@@ -37,6 +61,7 @@ const Index = () => {
                   <Button onClick={() => navigate(`/suivi?code=${encodeURIComponent(code)}`)}>Consulter</Button>
                   <Button variant="hero" onClick={() => navigate("/signaler")}>Signaler un incident</Button>
                 </div>
+                <p className="mt-2 text-xs text-muted-foreground">Pas de code ? Cliquez sur “Signaler un incident” pour créer un nouveau signalement.</p>
               </div>
             </div>
           </div>
@@ -57,6 +82,26 @@ const Index = () => {
           </div>
         </section>
       </main>
+
+      <Button
+        variant="hero"
+        onClick={() => navigate("/signaler")}
+        aria-label="Créer un signalement"
+        className="fixed bottom-6 right-6 z-50 shadow-lg"
+      >
+        <Plus className="mr-2 h-5 w-5" />
+        Signaler
+      </Button>
+
+      <footer className="border-t">
+        <div className="container py-8 text-sm text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p>© {new Date().getFullYear()} SenAlert</p>
+          <nav className="flex gap-4">
+            <a href="/suivi" className="hover:underline">Suivi</a>
+            <a href="/signaler" className="hover:underline">Signaler</a>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 };
