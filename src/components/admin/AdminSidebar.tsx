@@ -117,15 +117,15 @@ export function AdminSidebar() {
                         to={item.url} 
                         title={item.title}
                         className={({ isActive }) => `
-                          flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200
+                          group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200
                           ${isActive 
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-md" 
+                            ? "active bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-md" 
                             : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-primary"
                           }
                         `}
                       >
                         <item.icon className={`h-5 w-5 ${collapsed ? "mx-auto" : ""}`} />
-                        {!collapsed && <span className="font-medium">{item.title}</span>}
+                        {!collapsed && <span className="font-medium text-sidebar-foreground group-[.active]:text-sidebar-primary-foreground">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
