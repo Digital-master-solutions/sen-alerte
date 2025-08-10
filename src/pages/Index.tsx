@@ -57,11 +57,11 @@ const Index = () => {
                     <Home className="h-5 w-5" />
                     <span className="font-medium">Accueil</span>
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/suivi")}>
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/mes-signalements")}>
                     <FileText className="h-5 w-5" />
                     <span className="font-medium">Mes signalements</span>
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/notifications")}>
                     <Bell className="h-5 w-5" />
                     <span className="font-medium">Notifications</span>
                   </Button>
@@ -73,7 +73,7 @@ const Index = () => {
                     <Settings className="h-5 w-5" />
                     <span className="font-medium">Paramètres</span>
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/a-propos")}>
                     <Info className="h-5 w-5" />
                     <span className="font-medium">À propos</span>
                   </Button>

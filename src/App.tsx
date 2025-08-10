@@ -11,6 +11,9 @@ const queryClient = new QueryClient();
 
 const ReportPage = lazy(() => import("./pages/Report"));
 const TrackPage = lazy(() => import("./pages/Track"));
+const MyReportsPage = lazy(() => import("./pages/MyReports"));
+const NotificationsPage = lazy(() => import("./pages/Notifications"));
+const AboutPage = lazy(() => import("./pages/About"));
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -33,6 +36,30 @@ const App = () => (
             element={
               <Suspense fallback={<div className="p-6">Chargement...</div>}>
                 <TrackPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/mes-signalements"
+            element={
+              <Suspense fallback={<div className="p-6">Chargement...</div>}>
+                <MyReportsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <Suspense fallback={<div className="p-6">Chargement...</div>}>
+                <NotificationsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/a-propos"
+            element={
+              <Suspense fallback={<div className="p-6">Chargement...</div>}>
+                <AboutPage />
               </Suspense>
             }
           />

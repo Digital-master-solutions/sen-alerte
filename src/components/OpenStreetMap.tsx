@@ -79,12 +79,80 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     // Initialize map
     if (!mapInstanceRef.current) {
-      mapInstanceRef.current = L.map(mapRef.current).setView(userPosition, 15);
+      mapInstanceRef.current = L.map(mapRef.current, {
+        scrollWheelZoom: false, // Désactiver le zoom avec la molette
+        doubleClickZoom: false, // Désactiver le zoom au double clic
+        touchZoom: true, // Garder le zoom tactile
+        boxZoom: false, // Désactiver le zoom par sélection
+        keyboard: false // Désactiver les contrôles clavier
+      }).setView(userPosition, 15);
 
       // Add OpenStreetMap tiles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(mapInstanceRef.current);
+
+      // Add custom controls with recenter button
+      const customControl = L.Control.extend({
+        onAdd: function(map: L.Map) {
+          const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+          
+          // Zoom In button
+          const zoomInBtn = L.DomUtil.create('a', 'leaflet-control-zoom-in', container);
+          zoomInBtn.innerHTML = '+';
+          zoomInBtn.href = '#';
+          zoomInBtn.title = 'Zoom avant';
+          
+          // Zoom Out button
+          const zoomOutBtn = L.DomUtil.create('a', 'leaflet-control-zoom-out', container);
+          zoomOutBtn.innerHTML = '−';
+          zoomOutBtn.href = '#';
+          zoomOutBtn.title = 'Zoom arrière';
+          
+          // Recenter button
+          const recenterBtn = L.DomUtil.create('a', 'leaflet-control-recenter', container);
+          recenterBtn.innerHTML = '⌖';
+          recenterBtn.href = '#';
+          recenterBtn.title = 'Recentrer sur ma position';
+          
+          // Style the recenter button
+          recenterBtn.style.fontSize = '18px';
+          recenterBtn.style.lineHeight = '26px';
+          recenterBtn.style.textAlign = 'center';
+          
+          L.DomEvent.on(zoomInBtn, 'click', function(e) {
+            L.DomEvent.preventDefault(e);
+            map.zoomIn();
+          });
+          
+          L.DomEvent.on(zoomOutBtn, 'click', function(e) {
+            L.DomEvent.preventDefault(e);
+            map.zoomOut();
+          });
+          
+          L.DomEvent.on(recenterBtn, 'click', function(e) {
+            L.DomEvent.preventDefault(e);
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                (position) => {
+                  const { latitude, longitude } = position.coords;
+                  map.setView([latitude, longitude], 15);
+                  setUserPosition([latitude, longitude]);
+                },
+                (error) => {
+                  console.error('Error getting location:', error);
+                }
+              );
+            }
+          });
+          
+          return container;
+        }
+      });
+      
+      // Remove default zoom control and add custom control
+      mapInstanceRef.current.zoomControl.remove();
+      new customControl({ position: 'topright' }).addTo(mapInstanceRef.current);
     }
 
     // Clear existing markers
@@ -184,7 +252,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     <div className={className}>
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} className="rounded-lg" />
       
-      {/* Custom styles for markers */}
+      {/* Custom styles for markers and controls */}
       <style>{`
         .current-location-marker {
           background: transparent !important;
@@ -202,6 +270,25 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
             transform: scale(2);
             opacity: 0;
           }
+        }
+        .leaflet-control-recenter {
+          background: white;
+          color: #333;
+          border: none;
+          width: 26px;
+          height: 26px;
+          display: block;
+          text-decoration: none;
+          border-bottom: 1px solid #ccc;
+        }
+        .leaflet-control-recenter:hover {
+          background: #f4f4f4;
+          color: #000;
+        }
+        .leaflet-control-recenter:last-child {
+          border-bottom: none;
+          border-bottom-left-radius: 4px;
+          border-bottom-right-radius: 4px;
         }
       `}</style>
     </div>
