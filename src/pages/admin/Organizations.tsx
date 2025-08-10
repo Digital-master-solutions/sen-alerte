@@ -59,14 +59,19 @@ export default function AdminOrganizations() {
 
   const loadOrganizations = async () => {
     try {
-      const { data, error } = await supabase
-        .from("organizations")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const credsRaw = localStorage.getItem("adminUser");
+      const creds = credsRaw ? JSON.parse(credsRaw) : null;
+      if (!creds?.username || !creds?.password) {
+        throw new Error("Admin credentials manquantes");
+      }
+      const { data, error } = await supabase.rpc("admin_list_organizations", {
+        _username: creds.username,
+        _password_raw: creds.password,
+      });
 
       if (error) throw error;
       if (data) {
-        setOrganizations(data);
+        setOrganizations(data as any);
       }
     } catch (error) {
       console.error("Error loading organizations:", error);
@@ -103,13 +108,14 @@ export default function AdminOrganizations() {
 
   const updateOrganizationStatus = async (orgId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from("organizations")
-        .update({ 
-          status: newStatus,
-          is_active: newStatus === "approved"
-        })
-        .eq("id", orgId);
+      const credsRaw = localStorage.getItem("adminUser");
+      const creds = credsRaw ? JSON.parse(credsRaw) : null;
+      const { data, error } = await supabase.rpc("admin_update_org_status", {
+        _username: creds?.username,
+        _password_raw: creds?.password,
+        _org_id: orgId,
+        _new_status: newStatus,
+      });
 
       if (error) throw error;
 

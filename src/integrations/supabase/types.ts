@@ -760,12 +760,46 @@ export type Database = {
       }
     }
     Functions: {
+      _is_superadmin_credentials: {
+        Args: { _username: string; _password_raw: string }
+        Returns: boolean
+      }
       admin_assigned_to_report: {
         Args: { _user_id: string; _report_id: string }
         Returns: boolean
       }
       admin_can_view_population: {
         Args: { _user_id: string; _population_id: string }
+        Returns: boolean
+      }
+      admin_list_organizations: {
+        Args: { _username: string; _password_raw: string }
+        Returns: {
+          address: string | null
+          approved_at: string | null
+          city: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+          name: string
+          password_hash: string | null
+          permissions: string[] | null
+          phone: string | null
+          status: string | null
+          supabase_user_id: string | null
+          type: string
+          username: string | null
+        }[]
+      }
+      admin_update_org_status: {
+        Args: {
+          _username: string
+          _password_raw: string
+          _org_id: string
+          _new_status: string
+        }
         Returns: boolean
       }
       cleanup_orphaned_files: {

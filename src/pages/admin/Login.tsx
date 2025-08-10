@@ -58,7 +58,8 @@ export default function AdminLogin() {
         if (passwordMatch) {
           localStorage.setItem("adminUser", JSON.stringify({
             ...superAdmin,
-            role: "superadmin"
+            role: "superadmin",
+            password: values.password,
           }));
           
           toast({
