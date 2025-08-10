@@ -1,49 +1,66 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Building2,
+  Key,
+  Save,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 
-interface Org { id: string; name: string; email: string | null; phone: string | null; city: string | null; }
+interface OrgProfile {
+  id: string;
+  name: string;
+  email: string;
+  description?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  website?: string;
+  logo_url?: string;
+}
 
 export default function OrgSettings() {
   const { toast } = useToast();
-  const [org, setOrg] = useState<Org | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState<OrgProfile | null>(null);
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: "",
+  });
 
   useEffect(() => {
     document.title = "Paramètres | Organisation";
-    load();
+    loadProfile();
   }, []);
 
-  const load = async () => {
+  const loadProfile = async () => {
     setLoading(true);
     try {
-      const { data: s } = await supabase.auth.getSession();
-      const uid = s.session?.user.id;
+      const { data: session } = await supabase.auth.getSession();
+      const uid = session.session?.user.id;
       if (!uid) throw new Error("Non authentifié");
 
       const { data: orgRow, error } = await supabase
         .from("organizations")
-        .select("id,name,email,phone,city")
+        .select("*")
         .eq("supabase_user_id", uid)
         .maybeSingle();
+      
       if (error) throw error;
       if (!orgRow) throw new Error("Organisation introuvable");
-      setOrg(orgRow);
-      setName(orgRow.name || "");
-      setEmail(orgRow.email || "");
-      setPhone(orgRow.phone || "");
-      setCity(orgRow.city || "");
+      
+      setProfile(orgRow);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
     } finally {
@@ -51,20 +68,62 @@ export default function OrgSettings() {
     }
   };
 
-  const save = async () => {
-    if (!org) return;
+  const saveProfile = async () => {
+    if (!profile) return;
+    
     setSaving(true);
     try {
       const { error } = await supabase
         .from("organizations")
-        .update({ name, email, phone, city })
-        .eq("id", org.id);
+        .update({
+          name: profile.name,
+          email: profile.email,
+          description: profile.description,
+          phone: profile.phone,
+          address: profile.address,
+          city: profile.city,
+          website: profile.website,
+          logo_url: profile.logo_url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id);
+      
       if (error) throw error;
-      if (password.trim()) {
-        const { error: e2 } = await supabase.auth.updateUser({ password: password.trim() });
-        if (e2) throw e2;
-      }
-      toast({ title: "Modifications enregistrées" });
+      
+      toast({ title: "Profil mis à jour", description: "Vos informations ont été sauvegardées" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erreur", description: e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const changePassword = async () => {
+    if (!passwords.new || !passwords.confirm) {
+      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir tous les champs" });
+      return;
+    }
+    
+    if (passwords.new !== passwords.confirm) {
+      toast({ variant: "destructive", title: "Erreur", description: "Les mots de passe ne correspondent pas" });
+      return;
+    }
+    
+    if (passwords.new.length < 6) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le mot de passe doit faire au moins 6 caractères" });
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwords.new
+      });
+      
+      if (error) throw error;
+      
+      setPasswords({ current: "", new: "", confirm: "" });
+      toast({ title: "Mot de passe changé", description: "Votre nouveau mot de passe est actif" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
     } finally {
@@ -74,51 +133,250 @@ export default function OrgSettings() {
 
   if (loading) {
     return (
-      <div className="p-6 text-muted-foreground flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" /> Chargement...
+      <div className="p-6 space-y-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-muted rounded w-1/4" />
+          <div className="h-96 bg-muted rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="p-6">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Organisation introuvable</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">Impossible de charger votre profil d'organisation.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <CardHeader><CardTitle>Informations du compte</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nom</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Téléphone</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Ville</Label>
-            <Input value={city} onChange={(e) => setCity(e.target.value)} />
-          </div>
-          <Button onClick={save} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" /> Enregistrer
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="p-6 space-y-8 bg-background min-h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Paramètres</h1>
+          <p className="text-muted-foreground">
+            Gestion de votre profil d'organisation • {profile.name}
+          </p>
+        </div>
+        <Button onClick={loadProfile} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Actualiser
+        </Button>
+      </div>
 
-      <Card>
-        <CardHeader><CardTitle>Mot de passe</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nouveau mot de passe</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          <Button onClick={save} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" /> Mettre à jour
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Settings Tabs */}
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Profil
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Key className="h-4 w-4" />
+            Sécurité
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
+          <Card className="bg-card border-border shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-card-foreground">
+                <SettingsIcon className="h-5 w-5 text-primary" />
+                Informations de l'organisation
+              </CardTitle>
+              <CardDescription>
+                Modifiez les informations publiques de votre organisation
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="name">Nom de l'organisation *</Label>
+                  <Input
+                    id="name"
+                    value={profile.name}
+                    onChange={(e) => setProfile({...profile, name: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email de contact *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile({...profile, email: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={profile.description || ""}
+                  onChange={(e) => setProfile({...profile, description: e.target.value})}
+                  rows={3}
+                  className="mt-1"
+                  placeholder="Décrivez votre organisation..."
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <Input
+                    id="phone"
+                    value={profile.phone || ""}
+                    onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                    className="mt-1"
+                    placeholder="Ex: +33 1 23 45 67 89"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="website">Site web</Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    value={profile.website || ""}
+                    onChange={(e) => setProfile({...profile, website: e.target.value})}
+                    className="mt-1"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="address">Adresse</Label>
+                <Input
+                  id="address"
+                  value={profile.address || ""}
+                  onChange={(e) => setProfile({...profile, address: e.target.value})}
+                  className="mt-1"
+                  placeholder="Adresse complète"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="city">Ville</Label>
+                  <Input
+                    id="city"
+                    value={profile.city || ""}
+                    onChange={(e) => setProfile({...profile, city: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="logo_url">URL du logo</Label>
+                  <Input
+                    id="logo_url"
+                    type="url"
+                    value={profile.logo_url || ""}
+                    onChange={(e) => setProfile({...profile, logo_url: e.target.value})}
+                    className="mt-1"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-6 border-t border-border">
+                <Button 
+                  onClick={saveProfile} 
+                  disabled={saving}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Sauvegarder
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card className="bg-card border-border shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-card-foreground">
+                <Key className="h-5 w-5 text-primary" />
+                Sécurité du compte
+              </CardTitle>
+              <CardDescription>
+                Changez votre mot de passe pour sécuriser votre compte
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="current_password">Mot de passe actuel</Label>
+                  <Input
+                    id="current_password"
+                    type="password"
+                    value={passwords.current}
+                    onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="new_password">Nouveau mot de passe</Label>
+                  <Input
+                    id="new_password"
+                    type="password"
+                    value={passwords.new}
+                    onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                    className="mt-1"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Minimum 6 caractères
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="confirm_password">Confirmer le nouveau mot de passe</Label>
+                  <Input
+                    id="confirm_password"
+                    type="password"
+                    value={passwords.confirm}
+                    onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-6 border-t border-border">
+                <Button 
+                  onClick={changePassword} 
+                  disabled={saving || !passwords.new || !passwords.confirm}
+                  variant="default"
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Key className="mr-2 h-4 w-4" />
+                  )}
+                  Changer le mot de passe
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

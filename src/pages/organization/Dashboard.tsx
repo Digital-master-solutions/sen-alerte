@@ -1,20 +1,46 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Bell, ClipboardCheck, Loader2 } from "lucide-react";
+import {
+  FileText,
+  Clock,
+  CheckCircle,
+  TrendingUp,
+  MessageSquare,
+  Bell,
+  RefreshCw,
+} from "lucide-react";
 
-interface Org { id: string; name: string; }
+interface Org { 
+  id: string; 
+  name: string; 
+}
+
+interface DashboardStats {
+  total: number;
+  inProgress: number;
+  resolved: number;
+  pending: number;
+}
+
+interface RecentMessage {
+  id: string;
+  title: string;
+  message: string;
+  sender_type: string;
+  created_at: string;
+}
 
 export default function OrganizationDashboard() {
   const { toast } = useToast();
   const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, inProgress: 0, resolved: 0 });
-  const [messages, setMessages] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({ total: 0, inProgress: 0, resolved: 0, pending: 0 });
+  const [messages, setMessages] = useState<RecentMessage[]>([]);
   const [notifCount, setNotifCount] = useState<number>(0);
 
   useEffect(() => {
@@ -38,24 +64,28 @@ export default function OrganizationDashboard() {
       if (!orgRow) throw new Error("Organisation introuvable");
       setOrg(orgRow);
 
+      // Charger les statistiques des signalements
       const { data: repAll } = await supabase
         .from("reports")
         .select("id,status")
         .eq("assigned_organization_id", orgRow.id);
 
       const total = repAll?.length || 0;
+      const pending = repAll?.filter(r => r.status === 'en-attente').length || 0;
       const inProgress = repAll?.filter(r => r.status === 'en-cours').length || 0;
       const resolved = repAll?.filter(r => r.status === 'resolu').length || 0;
-      setStats({ total, inProgress, resolved });
+      setStats({ total, pending, inProgress, resolved });
 
+      // Charger les derniers messages
       const { data: msgs } = await supabase
         .from("messagerie")
-        .select("id,title,message,sender_type,recipient_type,created_at")
+        .select("id,title,message,sender_type,created_at")
         .or(`sender_type.eq.organization,recipient_type.eq.organization`)
         .order("created_at", { ascending: false })
         .limit(5);
       setMessages(msgs || []);
 
+      // Compter les notifications envoyées
       const { count } = await supabase
         .from("notifications")
         .select("id", { count: "exact", head: true });
@@ -69,81 +99,189 @@ export default function OrganizationDashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 text-muted-foreground flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" /> Chargement...
+      <div className="p-6 space-y-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-muted rounded w-1/4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded-lg" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-96 bg-muted rounded-lg" />
+            <div className="h-96 bg-muted rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!org) {
     return (
-      <Card>
-        <CardHeader><CardTitle>Organisation introuvable</CardTitle></CardHeader>
-        <CardContent>Votre compte n'est lié à aucune organisation.</CardContent>
-      </Card>
+      <div className="p-6">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Organisation introuvable</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">Votre compte n'est lié à aucune organisation.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
+  const resolutionRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Bienvenue, {org.name}</h1>
-        <p className="text-muted-foreground">Vue d’ensemble des activités récentes</p>
+    <div className="p-6 space-y-8 bg-background min-h-screen">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Bienvenue, {org.name}</h1>
+            <p className="text-muted-foreground">Vue d'ensemble de vos activités récentes</p>
+          </div>
+          <Button onClick={load} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader><CardTitle>Signalements assignés</CardTitle></CardHeader>
-          <CardContent className="text-3xl font-bold">{stats.total}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>En cours</CardTitle></CardHeader>
-          <CardContent className="text-3xl font-bold">{stats.inProgress}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Résolus</CardTitle></CardHeader>
-          <CardContent className="text-3xl font-bold">{stats.resolved}</CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Derniers messages</CardTitle>
-            <CardDescription>Conversations récentes</CardDescription>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-card border-border shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-card-foreground">Total assignés</CardTitle>
+            <FileText className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent className="space-y-3">
-            {messages.length === 0 && <p className="text-sm text-muted-foreground">Aucun message</p>}
-            {messages.map((m) => (
-              <div key={m.id} className="text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{m.sender_type}</Badge>
-                  <span className="text-muted-foreground">{new Date(m.created_at).toLocaleString()}</span>
-                </div>
-                <div className="font-medium">{m.title}</div>
-                <div className="text-muted-foreground line-clamp-2">{m.message}</div>
-                <Separator className="my-2" />
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={load}>Actualiser</Button>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Signalements gérés</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Notifications</CardTitle>
-            <CardDescription>Total envoyées (toutes)</CardDescription>
+        <Card className="bg-card border-border shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-card-foreground">En attente</CardTitle>
+            <Clock className="h-4 w-4 text-admin-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{notifCount}</div>
-            <div className="text-sm text-muted-foreground mt-2">Inclut toutes les notifications existantes.</div>
-            <div className="mt-4">
-              <Button variant="outline" size="sm" onClick={load}>
-                <ClipboardCheck className="h-4 w-4 mr-2" /> Rafraîchir
-              </Button>
+            <div className="text-2xl font-bold text-admin-warning">{stats.pending}</div>
+            <p className="text-xs text-muted-foreground">À traiter</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-card-foreground">En cours</CardTitle>
+            <Clock className="h-4 w-4 text-admin-info" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-admin-info">{stats.inProgress}</div>
+            <p className="text-xs text-muted-foreground">En traitement</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-card-foreground">Résolus</CardTitle>
+            <CheckCircle className="h-4 w-4 text-admin-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-admin-success">{stats.resolved}</div>
+            <p className="text-xs text-muted-foreground">Terminés</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Performance & Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Performance Card */}
+        <Card className="bg-card border-border shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-card-foreground">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Performance
+            </CardTitle>
+            <CardDescription>Votre efficacité de résolution</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-foreground">Taux de résolution</span>
+                <span className="font-medium text-foreground">{resolutionRate}%</span>
+              </div>
+              <Progress value={resolutionRate} className="h-3" />
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
+                <div className="text-xl font-bold text-admin-warning">{stats.pending}</div>
+                <div className="text-sm text-muted-foreground">En attente</div>
+              </div>
+              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
+                <div className="text-xl font-bold text-admin-info">{stats.inProgress}</div>
+                <div className="text-sm text-muted-foreground">En cours</div>
+              </div>
+              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
+                <div className="text-xl font-bold text-admin-success">{stats.resolved}</div>
+                <div className="text-sm text-muted-foreground">Résolus</div>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Messages & Notifications */}
+        <div className="space-y-6">
+          {/* Recent Messages */}
+          <Card className="bg-card border-border shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-card-foreground">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                Messages récents
+              </CardTitle>
+              <CardDescription>Dernières communications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {messages.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Aucun message récent</p>
+                )}
+                {messages.slice(0, 3).map((m) => (
+                  <div key={m.id} className="p-3 bg-accent/20 rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="secondary" className="text-xs">{m.sender_type}</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(m.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="font-medium text-sm">{m.title}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-2">{m.message}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notifications Stats */}
+          <Card className="bg-card border-border shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-card-foreground">
+                <Bell className="h-5 w-5 text-primary" />
+                Notifications
+              </CardTitle>
+              <CardDescription>Messages envoyés aux citoyens</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground">{notifCount}</div>
+              <div className="text-sm text-muted-foreground mt-2">
+                Total des notifications envoyées
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
