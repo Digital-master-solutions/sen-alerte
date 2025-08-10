@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
-import MapLibreMap from "@/components/MapLibreMap";
+import OpenStreetMap from "@/components/OpenStreetMap";
+import IncidentsSection from "@/components/IncidentsSection";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Plus, Home, MessageSquare, Bell, Info, FileText, MapPin } from "lucide-react";
+import { Menu, Plus, Home, MessageSquare, Bell, Info, FileText, MapPin, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   const navigate = useNavigate();
@@ -30,58 +31,72 @@ const Index = () => {
     loadReportCount();
   }, []);
   return <div className="min-h-screen bg-background">
-      <header className="w-full border-b bg-white shadow-sm">
+      <header className="w-full border-b bg-background shadow-sm">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Ouvrir le menu" className="lg:hidden">
+                <Button variant="ghost" size="icon" aria-label="Ouvrir le menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80">
                 <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
-                    <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                  <SheetTitle className="flex items-center gap-3">
+                    <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center font-bold">
                       S
                     </div>
-                    SenAlert
+                    <div>
+                      <div className="text-xl font-bold">SenAlert</div>
+                      <div className="text-sm text-muted-foreground font-normal">Plateforme citoyenne</div>
+                    </div>
                   </SheetTitle>
                 </SheetHeader>
-                <nav className="mt-6 space-y-1">
-                  <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => navigate("/")}>
-                    <Home className="h-4 w-4" />
-                    Accueil
+                <nav className="mt-8 space-y-2">
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/")}>
+                    <Home className="h-5 w-5" />
+                    <span className="font-medium">Accueil</span>
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => navigate("/suivi")}>
-                    <FileText className="h-4 w-4" />
-                    Mes signalements
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/suivi")}>
+                    <FileText className="h-5 w-5" />
+                    <span className="font-medium">Mes signalements</span>
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3">
-                    <Bell className="h-4 w-4" />
-                    Notifications
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                    <Bell className="h-5 w-5" />
+                    <span className="font-medium">Notifications</span>
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3">
-                    <Info className="h-4 w-4" />
-                    À propos
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                    <Users className="h-5 w-5" />
+                    <span className="font-medium">Communauté</span>
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                    <Settings className="h-5 w-5" />
+                    <span className="font-medium">Paramètres</span>
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
+                    <Info className="h-5 w-5" />
+                    <span className="font-medium">À propos</span>
                   </Button>
                 </nav>
                 <div className="mt-8 pt-6 border-t">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
+                  <div className="flex items-center gap-3 text-sm">
+                    <MapPin className="h-5 w-5 text-primary" />
                     <div>
-                      <div className="font-medium">Département de</div>
-                      <div>Dakar</div>
+                      <div className="font-semibold text-foreground">Département de Dakar</div>
+                      <div className="text-muted-foreground">Région de Dakar, Sénégal</div>
                     </div>
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
-            <div className="flex items-center gap-2">
-              <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center font-bold">
                 S
               </div>
-              <span className="font-semibold text-lg">SenAlert</span>
+              <div className="hidden sm:block">
+                <div className="text-xl font-bold text-foreground">SenAlert</div>
+                <div className="text-sm text-muted-foreground">Plateforme citoyenne</div>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -91,57 +106,100 @@ const Index = () => {
             <Button variant="ghost" size="icon" aria-label="Informations">
               <Info className="h-5 w-5" />
             </Button>
-            <Button variant="default" onClick={() => navigate("/auth")}>
-              Connexion
-            </Button>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="relative h-[calc(100vh-4rem)]">
-          <MapLibreMap className="absolute inset-0" />
+        {/* Carte interactive */}
+        <section className="relative h-[70vh] min-h-[500px]">
+          <OpenStreetMap className="absolute inset-0" />
           
-          {/* Bouton Signaler centré */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <Button variant="signal" size="lg" onClick={() => navigate("/signaler")} className="pointer-events-auto px-8 py-3 text-lg font-semibold rounded-full shadow-lg">
-              <Plus className="mr-2 h-6 w-6" />
-              Signaler
-            </Button>
-          </div>
-
-          {/* Compteur d'incidents en bas */}
-          <div className="absolute bottom-6 left-6 right-6">
-            
+          {/* Compteur d'incidents superposé */}
+          <div className="absolute bottom-6 left-6 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg border">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-primary rounded-full"></div>
+              <span className="text-sm font-medium text-foreground">
+                {reportCount} incident{reportCount !== 1 ? 's' : ''} rapporté{reportCount !== 1 ? 's' : ''} dans le département de Dakar
+              </span>
+            </div>
           </div>
         </section>
+
+        {/* Bouton Signaler */}
+        <section className="py-8 bg-background">
+          <div className="container flex justify-center">
+            <Button 
+              variant="signal" 
+              size="lg" 
+              onClick={() => navigate("/signaler")} 
+              className="px-12 py-4 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Plus className="mr-3 h-6 w-6" />
+              Signaler un problème
+            </Button>
+          </div>
+        </section>
+
+        {/* Section des incidents */}
+        <IncidentsSection />
       </main>
 
       <footer className="bg-footer-bg text-footer-foreground">
-        <div className="container py-12">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-white text-footer-bg rounded-full w-10 h-10 flex items-center justify-center text-lg font-bold">
+        <div className="container py-16">
+          <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-12">
+            {/* Logo et description */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-white text-footer-bg rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold">
                   S
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-white">SenAlert</div>
-                  <div className="text-sm text-footer-foreground/80">Plateforme citoyenne</div>
+                  <div className="text-2xl font-bold text-white">SenAlert</div>
+                  <div className="text-footer-foreground/80">Plateforme citoyenne</div>
                 </div>
               </div>
-              <div className="space-y-2 text-sm text-footer-foreground/90">
-                <p>Plateforme de signalement citoyen pour le Sénégal</p>
-                <p>Connectons les citoyens aux services publics</p>
+              <div className="space-y-3 text-footer-foreground/90 leading-relaxed">
+                <p>Plateforme de signalement citoyen pour le Sénégal.</p>
+                <p>Connectons les citoyens aux services publics pour une ville plus intelligente et plus réactive.</p>
               </div>
             </div>
-            <div className="text-center md:text-right">
-              <div className="flex items-center justify-center md:justify-end gap-2 text-sm mb-2">
-                <span>Fièrement développé par</span>
-                <span className="text-yellow-400 font-semibold">Digital Master Solution</span>
+
+            {/* Navigation rapide */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-white">Navigation</h3>
+              <nav className="space-y-3">
+                <a href="/" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                  Accueil
+                </a>
+                <a href="/signaler" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                  Signaler un problème
+                </a>
+                <a href="/suivi" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                  Suivi des signalements
+                </a>
+                <a href="/a-propos" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                  À propos
+                </a>
+              </nav>
+            </div>
+
+            {/* Contact et crédits */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-white">Contact</h3>
+              <div className="space-y-3 text-footer-foreground/90">
+                <p>Département de Dakar</p>
+                <p>Région de Dakar, Sénégal</p>
+                <p>contact@senalert.sn</p>
               </div>
-              <div className="text-sm text-footer-foreground/80">
-                © {new Date().getFullYear()} ❤️ SenAlert
+              <div className="pt-4 border-t border-footer-foreground/20">
+                <div className="flex items-center gap-2 text-sm mb-2">
+                  <span className="text-footer-foreground/80">Fièrement développé par</span>
+                  <span className="text-yellow-400 font-semibold">Digital Master Solution</span>
+                </div>
+                <div className="text-sm text-footer-foreground/70">
+                  © {new Date().getFullYear()} SenAlert. Tous droits réservés.
+                </div>
               </div>
             </div>
           </div>
