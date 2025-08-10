@@ -1,88 +1,45 @@
 import { useEffect } from "react";
-import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger } from "@/components/ui/sidebar";
+import { Outlet, useNavigate } from "react-router-dom";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { OrganizationSidebar } from "@/components/organization/OrganizationSidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { LogOut, LayoutList, MessageSquare, Bell, Settings, Gauge } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 export default function OrganizationLayout() {
   const navigate = useNavigate();
-  const location = useLocation();
-  
 
   useEffect(() => {
-    document.title = "Espace Organisation | SenAlert"; // SEO title
+    document.title = "Espace Organisation | SenAlert";
   }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        navigate("/organization/login", { replace: true });
+        navigate("/organization/login");
       }
     };
     checkAuth();
-  }, [navigate, location.pathname]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/organization/login", { replace: true });
-  };
-
-  const items: { title: string; url: string; icon: LucideIcon }[] = [
-    { title: "Tableau de bord", url: "/organization", icon: Gauge },
-    { title: "Signalements", url: "/organization/reports", icon: LayoutList },
-    { title: "Messagerie", url: "/organization/messages", icon: MessageSquare },
-    { title: "Notifications", url: "/organization/notifications", icon: Bell },
-    { title: "Paramètres", url: "/organization/settings", icon: Settings },
-  ];
-
-  const currentPath = location.pathname;
-  const isActive = (path: string) => currentPath === path;
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
+  }, [navigate]);
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <Sidebar collapsible="icon">
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Espace Organisation</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={item.url} end className={getNavCls}>
-                          <item.icon className="mr-2 h-4 w-4" />
-                          <span>{item.title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
-
-        <SidebarInset>
-          <header className="h-14 flex items-center border-b px-3 gap-2">
-            <SidebarTrigger />
-            <div className="ml-auto">
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Déconnexion
-              </Button>
+      <div className="min-h-screen flex w-full">
+        <OrganizationSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="h-16 border-b bg-background flex items-center px-6">
+            <SidebarTrigger className="mr-4" />
+            <div className="flex-1">
+              <h1 className="text-xl font-semibold">Espace Organisation</h1>
             </div>
           </header>
-
-          <main className="p-4 md:p-6">
+          
+          {/* Main Content */}
+          <main className="flex-1 overflow-auto bg-muted/10">
             <Outlet />
           </main>
-        </SidebarInset>
+        </div>
       </div>
     </SidebarProvider>
   );
