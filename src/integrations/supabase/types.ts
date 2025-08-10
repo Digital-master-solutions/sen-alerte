@@ -896,6 +896,14 @@ export type Database = {
       }
     }
     Functions: {
+      admin_assigned_to_report: {
+        Args: { _user_id: string; _report_id: string }
+        Returns: boolean
+      }
+      admin_can_view_population: {
+        Args: { _user_id: string; _population_id: string }
+        Returns: boolean
+      }
       cleanup_orphaned_files: {
         Args: Record<PropertyKey, never>
         Returns: undefined
