@@ -74,40 +74,53 @@ export default function AdminDashboard() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      "en-attente": "secondary",
-      "en-cours": "default",
-      "resolu": "default",
-      "rejete": "destructive",
-    } as const;
-
-    const colors = {
-      "en-attente": "bg-yellow-500",
-      "en-cours": "bg-blue-500",
-      "resolu": "bg-green-500",
-      "rejete": "bg-red-500",
+    const statusConfig = {
+      "en-attente": { 
+        variant: "secondary" as const, 
+        colorClass: "bg-admin-warning", 
+        label: "En attente" 
+      },
+      "en-cours": { 
+        variant: "default" as const, 
+        colorClass: "bg-admin-info", 
+        label: "En cours" 
+      },
+      "resolu": { 
+        variant: "default" as const, 
+        colorClass: "bg-admin-success", 
+        label: "Résolu" 
+      },
+      "rejete": { 
+        variant: "destructive" as const, 
+        colorClass: "bg-admin-danger", 
+        label: "Rejeté" 
+      },
     };
 
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig["en-attente"];
+
     return (
-      <Badge variant={variants[status as keyof typeof variants] || "secondary"}>
-        <div className={`w-2 h-2 rounded-full mr-1 ${colors[status as keyof typeof colors]}`} />
-        {status}
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <div className={`w-2 h-2 rounded-full ${config.colorClass}`} />
+        {config.label}
       </Badge>
     );
   };
 
   const getPriorityBadge = (priority: string) => {
-    const colors = {
-      low: "bg-gray-500",
-      normal: "bg-blue-500",
-      high: "bg-orange-500",
-      urgent: "bg-red-500",
+    const priorityConfig = {
+      low: { colorClass: "bg-gray-500", label: "Faible" },
+      normal: { colorClass: "bg-admin-info", label: "Normal" },
+      high: { colorClass: "bg-admin-warning", label: "Élevé" },
+      urgent: { colorClass: "bg-admin-danger", label: "Urgent" },
     };
 
+    const config = priorityConfig[priority as keyof typeof priorityConfig] || priorityConfig.normal;
+
     return (
-      <Badge variant="outline">
-        <div className={`w-2 h-2 rounded-full mr-1 ${colors[priority as keyof typeof colors]}`} />
-        {priority}
+      <Badge variant="outline" className="flex items-center gap-1">
+        <div className={`w-2 h-2 rounded-full ${config.colorClass}`} />
+        {config.label}
       </Badge>
     );
   };
@@ -134,10 +147,10 @@ export default function AdminDashboard() {
     Math.round((stats.resolved_reports / stats.total_reports) * 100) : 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-8 bg-background min-h-screen">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
         <p className="text-muted-foreground">
           Vue d'ensemble des signalements et statistiques
         </p>
@@ -145,13 +158,13 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="bg-card border-border shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">En attente</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-card-foreground">En attente</CardTitle>
+            <Clock className="h-4 w-4 text-admin-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-admin-warning">
               {stats?.pending_reports || 0}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -160,13 +173,13 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card border-border shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">En cours</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-card-foreground">En cours</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-admin-info" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-admin-info">
               {stats?.in_progress_reports || 0}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -175,13 +188,13 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card border-border shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Résolus</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-card-foreground">Résolus</CardTitle>
+            <CheckCircle className="h-4 w-4 text-admin-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-admin-success">
               {stats?.resolved_reports || 0}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -190,13 +203,13 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card border-border shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-card-foreground">Total</CardTitle>
+            <FileText className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-foreground">
               {stats?.total_reports || 0}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -209,10 +222,10 @@ export default function AdminDashboard() {
       {/* Performance & Recent Reports */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Performance Card */}
-        <Card>
+        <Card className="bg-card border-border shadow-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-card-foreground">
+              <TrendingUp className="h-5 w-5 text-primary" />
               Performance
             </CardTitle>
             <CardDescription>
@@ -222,20 +235,20 @@ export default function AdminDashboard() {
           <CardContent className="space-y-6">
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span>Taux de résolution</span>
-                <span className="font-medium">{resolutionRate}%</span>
+                <span className="text-foreground">Taux de résolution</span>
+                <span className="font-medium text-foreground">{resolutionRate}%</span>
               </div>
-              <Progress value={resolutionRate} className="h-2" />
+              <Progress value={resolutionRate} className="h-3" />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
                 <div className="text-2xl font-bold text-primary">
                   {stats?.today_reports || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Aujourd'hui</div>
               </div>
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
                 <div className="text-2xl font-bold text-primary">
                   {stats?.week_reports || 0}
                 </div>
@@ -244,8 +257,8 @@ export default function AdminDashboard() {
             </div>
 
             {stats?.avg_resolution_hours && (
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <div className="text-lg font-semibold">
+              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
+                <div className="text-lg font-semibold text-foreground">
                   {Math.round(stats.avg_resolution_hours)}h
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -257,10 +270,10 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Recent Reports */}
-        <Card>
+        <Card className="bg-card border-border shadow-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-card-foreground">
+              <FileText className="h-5 w-5 text-primary" />
               Signalements récents
             </CardTitle>
             <CardDescription>
@@ -268,19 +281,19 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {recentReports.map((report) => (
-                <div key={report.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div key={report.id} className="flex items-center justify-between p-4 bg-accent/20 rounded-lg border border-border hover:bg-accent/30 transition-colors">
                   <div className="flex items-center gap-3">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium text-sm">{report.type}</div>
+                    <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm text-foreground truncate">{report.type}</div>
                       <div className="text-xs text-muted-foreground">
                         {report.department} • {new Date(report.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                     {getPriorityBadge(report.priority)}
                     {getStatusBadge(report.status)}
                   </div>

@@ -67,6 +67,11 @@ export default {
 				"signal-button-foreground": "hsl(var(--signal-button-foreground))",
 				"footer-bg": "hsl(var(--footer-bg))",
 				"footer-foreground": "hsl(var(--footer-foreground))",
+				// Variables d'administration
+				"admin-success": "hsl(var(--admin-success))",
+				"admin-warning": "hsl(var(--admin-warning))", 
+				"admin-info": "hsl(var(--admin-info))",
+				"admin-danger": "hsl(var(--admin-danger))",
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
