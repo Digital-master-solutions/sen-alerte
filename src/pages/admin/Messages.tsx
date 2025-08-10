@@ -155,9 +155,9 @@ const openNewConversationModal = async () => {
         .insert({
           title: "Réponse",
           message: newMessage,
-          sender_name: "Admin",
-          sender_type: "admin",
-          sender_id: "current-admin-id", // Should be actual admin ID
+          sender_name: (JSON.parse(localStorage.getItem("adminUser") || "{}").name) || "Super Admin",
+          sender_type: "superadmin",
+          sender_id: "current-superadmin-id", // Should be actual user ID when auth is enabled
           recipient_name: selectedConversation.participant_name,
           recipient_type: selectedConversation.participant_type,
           recipient_id: selectedConversation.participant_id,
@@ -187,9 +187,9 @@ const openNewConversationModal = async () => {
       const { error } = await supabase.from("messagerie").insert({
         title: `Conversation avec ${org.name}`,
         message: "Conversation démarrée",
-        sender_name: "Admin",
-        sender_type: "admin",
-        sender_id: "current-admin-id",
+        sender_name: (JSON.parse(localStorage.getItem("adminUser") || "{}").name) || "Super Admin",
+        sender_type: "superadmin",
+        sender_id: "current-superadmin-id",
         recipient_type: "organization",
         recipient_id: org.id,
         recipient_name: org.name,
@@ -415,13 +415,13 @@ const openNewConversationModal = async () => {
                       <div
                         key={message.id}
                         className={`flex ${
-                          message.sender_type === "admin" ? "justify-end" : "justify-start"
+                          message.sender_type === "superadmin" ? "justify-end" : "justify-start"
                         }`}
                         onClick={() => !message.read && markAsRead(message.id)}
                       >
                         <div
                           className={`max-w-[80%] p-3 rounded-lg ${
-                            message.sender_type === "admin"
+                            message.sender_type === "superadmin"
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted"
                           }`}
