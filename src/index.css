@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 210 95% 21%; /* deep brand blue */
+    --primary: 217 91% 60%; /* #2563eb - bleu principal */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -26,8 +26,14 @@ All colors MUST be HSL.
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 43 95% 55%; /* warm gold accent */
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+
+    /* Couleurs spécifiques SenAlert */
+    --signal-button: 43 96% 56%; /* #f59e0b - orange pour signaler */
+    --signal-button-foreground: 0 0% 100%;
+    --footer-bg: 217 91% 21%; /* #1e3a8a - bleu foncé footer */
+    --footer-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;

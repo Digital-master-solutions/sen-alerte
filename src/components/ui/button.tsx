@@ -18,6 +18,7 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        signal: "bg-signal-button text-signal-button-foreground shadow-sm hover:bg-signal-button/90 font-medium",
         hero:
           "bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--ring))] text-primary-foreground shadow-md hover:shadow-lg hover:opacity-95",
         glass:

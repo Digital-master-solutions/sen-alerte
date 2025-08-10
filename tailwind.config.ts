@@ -61,7 +61,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Couleurs spécifiques SenAlert
+				"signal-button": "hsl(var(--signal-button))",
+				"signal-button-foreground": "hsl(var(--signal-button-foreground))",
+				"footer-bg": "hsl(var(--footer-bg))",
+				"footer-foreground": "hsl(var(--footer-foreground))",
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
