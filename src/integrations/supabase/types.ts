@@ -534,6 +534,7 @@ export type Database = {
           anonymous_name: string | null
           anonymous_phone: string | null
           assigned_admin_id: string | null
+          assigned_organization_id: string | null
           audio_url: string | null
           citizen_satisfaction_rating: number | null
           created_at: string | null
@@ -558,6 +559,7 @@ export type Database = {
           anonymous_name?: string | null
           anonymous_phone?: string | null
           assigned_admin_id?: string | null
+          assigned_organization_id?: string | null
           audio_url?: string | null
           citizen_satisfaction_rating?: number | null
           created_at?: string | null
@@ -582,6 +584,7 @@ export type Database = {
           anonymous_name?: string | null
           anonymous_phone?: string | null
           assigned_admin_id?: string | null
+          assigned_organization_id?: string | null
           audio_url?: string | null
           citizen_satisfaction_rating?: number | null
           created_at?: string | null
@@ -600,6 +603,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "reports_assigned_organization_id_fkey"
+            columns: ["assigned_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reports_population_id_fkey"
             columns: ["population_id"]
