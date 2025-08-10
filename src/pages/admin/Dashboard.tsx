@@ -147,7 +147,7 @@ export default function AdminDashboard() {
     Math.round((stats.resolved_reports / stats.total_reports) * 100) : 0;
 
   return (
-    <div className="p-6 space-y-8 bg-background min-h-screen">
+    <div className="p-6 pl-4 md:pl-6 lg:pl-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
       <div className="space-y-2 ml-6 sm:ml-8 lg:ml-0">
         <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
