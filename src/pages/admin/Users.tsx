@@ -9,19 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Users,
-  Search,
-  Plus,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Shield,
-  UserPlus,
-  Crown,
-} from "lucide-react";
+import { Users, Search, Plus, MoreHorizontal, Edit, Trash2, Shield, UserPlus, Crown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
 interface AdminUser {
   id: string;
   name: string;
@@ -33,7 +22,6 @@ interface AdminUser {
   created_at: string;
   last_login: string;
 }
-
 interface SuperAdmin {
   id: string;
   name: string;
@@ -43,7 +31,6 @@ interface SuperAdmin {
   created_at: string;
   last_login: string;
 }
-
 export default function AdminUsers() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [superAdmins, setSuperAdmins] = useState<SuperAdmin[]>([]);
@@ -52,47 +39,45 @@ export default function AdminUsers() {
   const [newUserOpen, setNewUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | SuperAdmin | null>(null);
   const [userType, setUserType] = useState<"admin" | "superadmin">("superadmin");
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     username: "",
     department: "",
     password: "",
-    organization_id: "",
+    organization_id: ""
   });
-
   useEffect(() => {
     loadUsers();
   }, []);
-
   const loadUsers = async () => {
     try {
       // Plus d'admins classiques: on vide la liste
       setAdmins([]);
 
       // Load super admins
-      const { data: superAdminData, error: superAdminError } = await supabase
-        .from("superadmin")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+      const {
+        data: superAdminData,
+        error: superAdminError
+      } = await supabase.from("superadmin").select("*").order("created_at", {
+        ascending: false
+      });
       if (superAdminError) throw superAdminError;
       if (superAdminData) setSuperAdmins(superAdminData);
-
     } catch (error) {
       console.error("Error loading users:", error);
       toast({
         title: "Erreur",
         description: "Impossible de charger les utilisateurs",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const handleCreateUser = async () => {
     try {
       // Hash password (in production, this should be done securely)
@@ -103,19 +88,16 @@ export default function AdminUsers() {
         email: formData.email,
         username: formData.username,
         password_hash: passwordHash,
-        status: "active",
+        status: "active"
       };
-
-      const { error } = await supabase
-        .from("superadmin")
-        .insert(userData);
+      const {
+        error
+      } = await supabase.from("superadmin").insert(userData);
       if (error) throw error;
-
       toast({
         title: "Utilisateur créé",
-        description: `L'${userType === "admin" ? "administrateur" : "super administrateur"} a été créé avec succès`,
+        description: `L'${userType === "admin" ? "administrateur" : "super administrateur"} a été créé avec succès`
       });
-
       setNewUserOpen(false);
       setFormData({
         name: "",
@@ -123,7 +105,7 @@ export default function AdminUsers() {
         username: "",
         department: "",
         password: "",
-        organization_id: "",
+        organization_id: ""
       });
       loadUsers();
     } catch (error) {
@@ -131,62 +113,44 @@ export default function AdminUsers() {
       toast({
         title: "Erreur",
         description: "Impossible de créer l'utilisateur",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleDeleteUser = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from("superadmin")
-        .update({ status: "inactive" })
-        .eq("id", userId);
-
+      const {
+        error
+      } = await supabase.from("superadmin").update({
+        status: "inactive"
+      }).eq("id", userId);
       if (error) throw error;
-
       toast({
         title: "Utilisateur supprimé",
-        description: "L'utilisateur a été désactivé",
+        description: "L'utilisateur a été désactivé"
       });
-
       loadUsers();
     } catch (error) {
       console.error("Error deleting user:", error);
       toast({
         title: "Erreur",
         description: "Impossible de supprimer l'utilisateur",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
-  const filteredAdmins = admins.filter(admin =>
-    admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    admin.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredSuperAdmins = superAdmins.filter(superAdmin =>
-    superAdmin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    superAdmin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    superAdmin.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+  const filteredAdmins = admins.filter(admin => admin.name.toLowerCase().includes(searchTerm.toLowerCase()) || admin.email.toLowerCase().includes(searchTerm.toLowerCase()) || admin.username.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredSuperAdmins = superAdmins.filter(superAdmin => superAdmin.name.toLowerCase().includes(searchTerm.toLowerCase()) || superAdmin.email.toLowerCase().includes(searchTerm.toLowerCase()) || superAdmin.username.toLowerCase().includes(searchTerm.toLowerCase()));
   if (loading) {
-    return (
-      <div className="p-6">
+    return <div className="p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-64" />
           <div className="h-10 bg-muted rounded" />
           <div className="h-96 bg-muted rounded" />
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="p-6 space-y-6">
+  return <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -212,7 +176,7 @@ export default function AdminUsers() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="userType">Type d'utilisateur</Label>
-                <Select value={userType} onValueChange={(value) => setUserType(value as "admin" | "superadmin")}>
+                <Select value={userType} onValueChange={value => setUserType(value as "admin" | "superadmin")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -223,47 +187,38 @@ export default function AdminUsers() {
               </div>
               <div>
                 <Label htmlFor="name">Nom complet</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+                <Input id="name" value={formData.name} onChange={e => setFormData({
+                ...formData,
+                name: e.target.value
+              })} />
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
+                <Input id="email" type="email" value={formData.email} onChange={e => setFormData({
+                ...formData,
+                email: e.target.value
+              })} />
               </div>
               <div>
                 <Label htmlFor="username">Nom d'utilisateur</Label>
-                <Input
-                  id="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                />
+                <Input id="username" value={formData.username} onChange={e => setFormData({
+                ...formData,
+                username: e.target.value
+              })} />
               </div>
-              {userType === "admin" && (
-                <div>
+              {userType === "admin" && <div>
                   <Label htmlFor="department">Département</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  />
-                </div>
-              )}
+                  <Input id="department" value={formData.department} onChange={e => setFormData({
+                ...formData,
+                department: e.target.value
+              })} />
+                </div>}
               <div>
                 <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
+                <Input id="password" type="password" value={formData.password} onChange={e => setFormData({
+                ...formData,
+                password: e.target.value
+              })} />
               </div>
             </div>
             <DialogFooter>
@@ -311,8 +266,7 @@ export default function AdminUsers() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {admins.filter(a => a.status === "active").length + 
-               superAdmins.filter(sa => sa.status === "active").length}
+              {admins.filter(a => a.status === "active").length + superAdmins.filter(sa => sa.status === "active").length}
             </div>
           </CardContent>
         </Card>
@@ -322,12 +276,7 @@ export default function AdminUsers() {
       <div className="flex items-center space-x-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un utilisateur..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Rechercher un utilisateur..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
         </div>
       </div>
 
@@ -352,8 +301,7 @@ export default function AdminUsers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSuperAdmins.filter(sa => sa.status === "active").map((superAdmin) => (
-                <TableRow key={superAdmin.id}>
+              {filteredSuperAdmins.filter(sa => sa.status === "active").map(superAdmin => <TableRow key={superAdmin.id}>
                   <TableCell className="font-medium">{superAdmin.name}</TableCell>
                   <TableCell>{superAdmin.email}</TableCell>
                   <TableCell>{superAdmin.username}</TableCell>
@@ -363,10 +311,7 @@ export default function AdminUsers() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {superAdmin.last_login ? 
-                      new Date(superAdmin.last_login).toLocaleDateString() : 
-                      "Jamais connecté"
-                    }
+                    {superAdmin.last_login ? new Date(superAdmin.last_login).toLocaleDateString() : "Jamais connecté"}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -383,83 +328,19 @@ export default function AdminUsers() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                </TableRow>
-              ))}
+                </TableRow>)}
             </TableBody>
           </Table>
-          {filteredSuperAdmins.filter(sa => sa.status === "active").length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+          {filteredSuperAdmins.filter(sa => sa.status === "active").length === 0 && <div className="text-center py-8 text-muted-foreground">
               Aucun super administrateur actif trouvé
-            </div>
-          )}
+            </div>}
         </CardContent>
       </Card>
 
       {/* Admins Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Administrateurs ({filteredAdmins.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Nom d'utilisateur</TableHead>
-                <TableHead>Département</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Dernière connexion</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAdmins.filter(a => a.status === "active").map((admin) => (
-                <TableRow key={admin.id}>
-                  <TableCell className="font-medium">{admin.name}</TableCell>
-                  <TableCell>{admin.email}</TableCell>
-                  <TableCell>{admin.username}</TableCell>
-                  <TableCell>{admin.department}</TableCell>
-                  <TableCell>
-                    <Badge className="bg-green-100 text-green-800 border-green-200">
-                      Actif
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {admin.last_login ? 
-                      new Date(admin.last_login).toLocaleDateString() : 
-                      "Jamais connecté"
-                    }
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditingUser(admin)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Modifier
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {filteredAdmins.filter(a => a.status === "active").length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Aucun administrateur actif trouvé
-            </div>
-          )}
-        </CardContent>
+        
+        
       </Card>
-    </div>
-  );
+    </div>;
 }
