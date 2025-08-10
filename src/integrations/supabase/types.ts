@@ -833,6 +833,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      link_org_to_user: {
+        Args: { _org_name: string }
+        Returns: boolean
+      }
       migrate_admins_to_auth: {
         Args: Record<PropertyKey, never>
         Returns: string
