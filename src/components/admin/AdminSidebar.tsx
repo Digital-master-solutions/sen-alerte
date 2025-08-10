@@ -10,6 +10,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
+  SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
@@ -20,21 +22,24 @@ import {
   Settings,
   LogOut,
   Shield,
+  Tag,
+  UserCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const mainItems = [
-  { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
+  { title: "Tableau de bord", url: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Signalements", url: "/admin/reports", icon: FileText },
   { title: "Organisations", url: "/admin/organizations", icon: Building2 },
   { title: "Utilisateurs", url: "/admin/users", icon: Users },
   { title: "Messages", url: "/admin/messages", icon: MessageSquare },
-  { title: "Catégories", url: "/admin/categories", icon: Settings },
+  { title: "Catégories", url: "/admin/categories", icon: Tag },
 ];
 
 const settingsItems = [
-  { title: "Paramètres", url: "/admin/settings", icon: Settings },
+  { title: "Paramètres", url: "/admin/settings", icon: UserCog },
 ];
 
 export function AdminSidebar() {
@@ -55,7 +60,9 @@ export function AdminSidebar() {
   const currentPath = location.pathname;
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-primary/10 text-primary border-r-2 border-primary" : "hover:bg-muted/50";
+    isActive 
+      ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm" 
+      : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-primary transition-all duration-200";
 
   const handleLogout = () => {
     localStorage.removeItem("adminUser");
@@ -67,76 +74,109 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
-      <SidebarContent className="bg-card">
-        {/* Header */}
-        <div className="p-4 border-b">
+    <Sidebar className={collapsed ? "w-16" : "w-72"} collapsible="icon">
+      <SidebarContent className="bg-sidebar-background border-r border-sidebar-border">
+        {/* Header moderne */}
+        <SidebarHeader className="p-6 border-b border-sidebar-border bg-gradient-to-r from-sidebar-primary/5 to-sidebar-accent">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 text-primary-foreground" />
+            <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center shadow-lg">
+              <Shield className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
             {!collapsed && (
               <div>
-                <h2 className="text-sm font-semibold">Administration</h2>
+                <h2 className="text-lg font-bold text-sidebar-foreground">Administration</h2>
                 {adminUser && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {adminUser.name}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Avatar className="w-5 h-5">
+                      <AvatarFallback className="text-xs bg-sidebar-primary text-sidebar-primary-foreground">
+                        {adminUser.name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <p className="text-sm text-sidebar-foreground/70 truncate font-medium">
+                      {adminUser.name}
+                    </p>
+                  </div>
                 )}
               </div>
             )}
           </div>
+        </SidebarHeader>
+
+        {/* Navigation principale */}
+        <div className="flex-1 px-4 py-6 space-y-2">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider px-3 mb-3">
+              Navigation
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {mainItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        className={({ isActive }) => `
+                          flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200
+                          ${isActive 
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-md" 
+                            : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-primary"
+                          }
+                        `}
+                      >
+                        <item.icon className={`h-5 w-5 ${collapsed ? "mx-auto" : ""}`} />
+                        {!collapsed && <span className="font-medium">{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Paramètres */}
+          <SidebarGroup className="mt-8">
+            <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider px-3 mb-3">
+              Système
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {settingsItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url}
+                        className={({ isActive }) => `
+                          flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200
+                          ${isActive 
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-md" 
+                            : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-primary"
+                          }
+                        `}
+                      >
+                        <item.icon className={`h-5 w-5 ${collapsed ? "mx-auto" : ""}`} />
+                        {!collapsed && <span className="font-medium">{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </div>
 
-        {/* Main Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Settings */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Système</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Logout */}
-        <div className="mt-auto p-4 border-t">
+        {/* Footer avec déconnexion */}
+        <SidebarFooter className="p-4 border-t border-sidebar-border bg-sidebar-accent/30">
           <Button
             onClick={handleLogout}
             variant="ghost"
-            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+            className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-200 ${
+              collapsed ? "p-2" : "px-3 py-2"
+            }`}
           >
-            <LogOut className="h-4 w-4" />
-            {!collapsed && <span className="ml-2">Déconnexion</span>}
+            <LogOut className={`h-4 w-4 ${collapsed ? "mx-auto" : "mr-3"}`} />
+            {!collapsed && <span className="font-medium">Déconnexion</span>}
           </Button>
-        </div>
+        </SidebarFooter>
       </SidebarContent>
     </Sidebar>
   );

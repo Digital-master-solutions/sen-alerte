@@ -370,14 +370,14 @@ export default function AdminUsers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSuperAdmins.map((superAdmin) => (
+              {filteredSuperAdmins.filter(sa => sa.status === "active").map((superAdmin) => (
                 <TableRow key={superAdmin.id}>
                   <TableCell className="font-medium">{superAdmin.name}</TableCell>
                   <TableCell>{superAdmin.email}</TableCell>
                   <TableCell>{superAdmin.username}</TableCell>
                   <TableCell>
-                    <Badge className={superAdmin.status === "active" ? "bg-green-500" : "bg-red-500"}>
-                      {superAdmin.status === "active" ? "Actif" : "Inactif"}
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      Actif
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -398,13 +398,6 @@ export default function AdminUsers() {
                           <Edit className="mr-2 h-4 w-4" />
                           Modifier
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => handleDeleteUser(superAdmin.id, "superadmin")}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Désactiver
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -412,9 +405,9 @@ export default function AdminUsers() {
               ))}
             </TableBody>
           </Table>
-          {filteredSuperAdmins.length === 0 && (
+          {filteredSuperAdmins.filter(sa => sa.status === "active").length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              Aucun super administrateur trouvé
+              Aucun super administrateur actif trouvé
             </div>
           )}
         </CardContent>
@@ -442,15 +435,15 @@ export default function AdminUsers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAdmins.map((admin) => (
+              {filteredAdmins.filter(a => a.status === "active").map((admin) => (
                 <TableRow key={admin.id}>
                   <TableCell className="font-medium">{admin.name}</TableCell>
                   <TableCell>{admin.email}</TableCell>
                   <TableCell>{admin.username}</TableCell>
                   <TableCell>{admin.department}</TableCell>
                   <TableCell>
-                    <Badge className={admin.status === "active" ? "bg-green-500" : "bg-red-500"}>
-                      {admin.status === "active" ? "Actif" : "Inactif"}
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      Actif
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -471,13 +464,6 @@ export default function AdminUsers() {
                           <Edit className="mr-2 h-4 w-4" />
                           Modifier
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => handleDeleteUser(admin.id, "admin")}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Désactiver
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -485,9 +471,9 @@ export default function AdminUsers() {
               ))}
             </TableBody>
           </Table>
-          {filteredAdmins.length === 0 && (
+          {filteredAdmins.filter(a => a.status === "active").length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              Aucun administrateur trouvé
+              Aucun administrateur actif trouvé
             </div>
           )}
         </CardContent>
