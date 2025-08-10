@@ -59,6 +59,21 @@ export default function OrgMessages() {
   useEffect(() => {
     document.title = "Messages | Espace Organisation";
     loadOrganization();
+    
+    // Set up real-time subscription for organization
+    const channel = supabase
+      .channel('organization_messages')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'messagerie' },
+        () => {
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadOrganization = async () => {
@@ -161,7 +176,7 @@ export default function OrgMessages() {
       if (error) throw error;
 
       setNewMessage("");
-      loadConversations();
+      // Real-time subscription will automatically reload conversations
       toast({
         title: "Message envoyé",
         description: "Votre message a été envoyé avec succès",

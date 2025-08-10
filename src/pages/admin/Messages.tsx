@@ -70,7 +70,23 @@ export default function AdminMessages() {
   });
 
 useEffect(() => {
+  document.title = "Messagerie | Administration";
   loadConversations();
+  
+  // Set up real-time subscription for admin
+  const channel = supabase
+    .channel('admin_messages')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'messagerie' },
+      () => {
+        loadConversations();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }, []);
 
 const loadApprovedOrganizations = async () => {
@@ -167,7 +183,7 @@ const openNewConversationModal = async () => {
       if (error) throw error;
 
       setNewMessage("");
-      loadConversations();
+      // Real-time subscription will automatically reload conversations
       toast({
         title: "Message envoyé",
         description: "Votre message a été envoyé avec succès",
