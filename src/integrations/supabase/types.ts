@@ -14,65 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin: {
-        Row: {
-          created_at: string | null
-          department: string | null
-          email: string | null
-          id: string
-          is_active: boolean | null
-          last_activity: string | null
-          last_login: string | null
-          name: string
-          organization_id: string | null
-          password_hash: string
-          phone: string | null
-          status: string | null
-          supabase_user_id: string | null
-          username: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          department?: string | null
-          email?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_activity?: string | null
-          last_login?: string | null
-          name: string
-          organization_id?: string | null
-          password_hash: string
-          phone?: string | null
-          status?: string | null
-          supabase_user_id?: string | null
-          username?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          department?: string | null
-          email?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_activity?: string | null
-          last_login?: string | null
-          name?: string
-          organization_id?: string | null
-          password_hash?: string
-          phone?: string | null
-          status?: string | null
-          supabase_user_id?: string | null
-          username?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       admin_logs: {
         Row: {
           action: string
@@ -99,13 +40,6 @@ export type Database = {
           superadmin_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "admin_logs_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "admin"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "admin_logs_superadmin_id_fkey"
             columns: ["superadmin_id"]
@@ -171,47 +105,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      admin_sessions: {
-        Row: {
-          admin_id: string | null
-          created_at: string | null
-          expires_at: string
-          id: string
-          ip_address: unknown | null
-          is_active: boolean | null
-          session_token: string
-          user_agent: string | null
-        }
-        Insert: {
-          admin_id?: string | null
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          ip_address?: unknown | null
-          is_active?: boolean | null
-          session_token: string
-          user_agent?: string | null
-        }
-        Update: {
-          admin_id?: string | null
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          ip_address?: unknown | null
-          is_active?: boolean | null
-          session_token?: string
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_sessions_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "admin"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       auth_profiles: {
         Row: {
@@ -625,20 +518,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "report_assignments_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "admin"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_assignments_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "admin"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "report_assignments_report_id_fkey"
             columns: ["report_id"]
             isOneToOne: false
@@ -721,13 +600,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "reports_assigned_admin_id_fkey"
-            columns: ["assigned_admin_id"]
-            isOneToOne: false
-            referencedRelation: "admin"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "reports_population_id_fkey"
             columns: ["population_id"]
@@ -869,15 +741,7 @@ export type Database = {
           updated_by?: string | null
           value?: Json
         }
-        Relationships: [
-          {
-            foreignKeyName: "system_settings_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "admin"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

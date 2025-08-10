@@ -71,33 +71,6 @@ export default function AdminLogin() {
         }
       }
 
-      // If not superadmin, check admin credentials
-      const { data: admin, error: adminError } = await supabase
-        .from("admin")
-        .select("*")
-        .eq("username", values.username)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (admin) {
-        // For our new admin accounts, use simple base64 comparison
-        const hashedInput = btoa(values.password);
-        
-        if (hashedInput === admin.password_hash) {
-          localStorage.setItem("adminUser", JSON.stringify({
-            ...admin,
-            role: "admin"
-          }));
-          
-          toast({
-            title: "Connexion réussie",
-            description: `Bienvenue ${admin.name}`,
-          });
-
-          navigate("/admin/dashboard");
-          return;
-        }
-      }
 
       // If we get here, credentials are invalid
       toast({

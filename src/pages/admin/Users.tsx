@@ -51,7 +51,7 @@ export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [newUserOpen, setNewUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | SuperAdmin | null>(null);
-  const [userType, setUserType] = useState<"admin" | "superadmin">("admin");
+  const [userType, setUserType] = useState<"admin" | "superadmin">("superadmin");
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -69,14 +69,8 @@ export default function AdminUsers() {
 
   const loadUsers = async () => {
     try {
-      // Load admins
-      const { data: adminData, error: adminError } = await supabase
-        .from("admin")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (adminError) throw adminError;
-      if (adminData) setAdmins(adminData);
+      // Plus d'admins classiques: on vide la liste
+      setAdmins([]);
 
       // Load super admins
       const { data: superAdminData, error: superAdminError } = await supabase
@@ -112,21 +106,10 @@ export default function AdminUsers() {
         status: "active",
       };
 
-      if (userType === "admin") {
-        const { error } = await supabase
-          .from("admin")
-          .insert({
-            ...userData,
-            department: formData.department,
-            organization_id: formData.organization_id || null,
-          });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("superadmin")
-          .insert(userData);
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from("superadmin")
+        .insert(userData);
+      if (error) throw error;
 
       toast({
         title: "Utilisateur créé",
@@ -153,10 +136,10 @@ export default function AdminUsers() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, type: "admin" | "superadmin") => {
+  const handleDeleteUser = async (userId: string) => {
     try {
       const { error } = await supabase
-        .from(type)
+        .from("superadmin")
         .update({ status: "inactive" })
         .eq("id", userId);
 
@@ -234,7 +217,6 @@ export default function AdminUsers() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Administrateur</SelectItem>
                     <SelectItem value="superadmin">Super Administrateur</SelectItem>
                   </SelectContent>
                 </Select>

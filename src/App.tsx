@@ -14,7 +14,7 @@ import AdminOrganizations from "./pages/admin/Organizations";
 import AdminUsers from "./pages/admin/Users";
 import AdminMessages from "./pages/admin/Messages";
 import AdminCategories from "./pages/admin/Categories";
-import AdminSettings from "./pages/admin/Settings";
+
 
 const queryClient = new QueryClient();
 
@@ -40,7 +40,7 @@ const App = () => (
             <Route path="users" element={<AdminUsers />} />
             <Route path="messages" element={<AdminMessages />} />
             <Route path="categories" element={<AdminCategories />} />
-            <Route path="settings" element={<AdminSettings />} />
+            
             <Route index element={<AdminDashboard />} />
           </Route>
           

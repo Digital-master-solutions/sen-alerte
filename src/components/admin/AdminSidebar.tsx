@@ -37,7 +37,6 @@ const mainItems = [
   { title: "Catégories", url: "/admin/categories", icon: Tag },
 ];
 
-const settingsItems = [{ title: "Paramètres", url: "/admin/settings", icon: UserCog }];
 
 export function AdminSidebar() {
   const { state } = useSidebar();
@@ -118,25 +117,6 @@ export function AdminSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <SidebarGroup className="mt-6">
-            <SidebarGroupLabel className="text-[10px] font-semibold tracking-wider text-sidebar-foreground/60 px-2">
-              SYSTÈME
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {settingsItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={({ isActive }) => linkClasses(isActive)} title={item.title}>
-                        <item.icon className={`h-5 w-5 ${collapsed ? "mx-auto" : ""}`} />
-                        {!collapsed && <span className="font-medium">{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
         </div>
 
         {/* Pied avec déconnexion */}

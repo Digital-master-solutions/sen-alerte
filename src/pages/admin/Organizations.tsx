@@ -23,6 +23,7 @@ import {
   Mail,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface Organization {
   id: string;
@@ -45,6 +46,8 @@ export default function AdminOrganizations() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     loadOrganizations();
@@ -93,7 +96,10 @@ export default function AdminOrganizations() {
     }
 
     setFilteredOrgs(filtered);
-  };
+};
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrgs.length / pageSize));
+  const paginatedOrgs = filteredOrgs.slice((page - 1) * pageSize, page * pageSize);
 
   const updateOrganizationStatus = async (orgId: string, newStatus: string) => {
     try {
@@ -263,7 +269,7 @@ export default function AdminOrganizations() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrgs.map((org) => (
+              {paginatedOrgs.map((org) => (
                 <TableRow key={org.id}>
                   <TableCell>
                     <div>
@@ -311,10 +317,17 @@ export default function AdminOrganizations() {
                           <Eye className="mr-2 h-4 w-4" />
                           Voir détails
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateOrganizationStatus(org.id, "approved")}>
-                          <UserCheck className="mr-2 h-4 w-4" />
-                          Approuver
-                        </DropdownMenuItem>
+                        {org.status === "approved" ? (
+                          <DropdownMenuItem onClick={() => updateOrganizationStatus(org.id, "pending")}>
+                            <UserX className="mr-2 h-4 w-4" />
+                            Annuler l'approbation
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => updateOrganizationStatus(org.id, "approved")}>
+                            <UserCheck className="mr-2 h-4 w-4" />
+                            Approuver
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => updateOrganizationStatus(org.id, "rejected")}>
                           <UserX className="mr-2 h-4 w-4" />
                           Rejeter
@@ -327,11 +340,23 @@ export default function AdminOrganizations() {
             </TableBody>
           </Table>
 
-          {filteredOrgs.length === 0 && (
+          {filteredOrgs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Aucune organisation trouvée
             </div>
-          )}
+          ) : null}
+
+          <div className="mt-4 flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationPrevious onClick={() => setPage((p) => Math.max(1, p - 1))} />
+                <PaginationItem>
+                  <span className="px-3 py-2 text-sm">Page {page} / {totalPages}</span>
+                </PaginationItem>
+                <PaginationNext onClick={() => setPage((p) => Math.min(totalPages, p + 1))} />
+              </PaginationContent>
+            </Pagination>
+          </div>
         </CardContent>
       </Card>
 
