@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,29 +9,6 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
-
-// Custom icons
-const currentLocationIcon = new L.Icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  className: 'current-location-marker'
-});
-
-const reportIcon = new L.Icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [20, 32],
-  iconAnchor: [10, 32],
-  popupAnchor: [1, -28],
-  shadowSize: [32, 32],
-  className: 'report-marker'
 });
 
 interface Report {
@@ -49,19 +25,10 @@ interface OpenStreetMapProps {
   className?: string;
 }
 
-function LocationUpdater({ position }: { position: [number, number] | null }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (position) {
-      map.setView(position, 13);
-    }
-  }, [position, map]);
-  
-  return null;
-}
-
 const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
 
@@ -107,6 +74,87 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     loadReports();
   }, []);
 
+  useEffect(() => {
+    if (!mapRef.current || !userPosition) return;
+
+    // Initialize map
+    if (!mapInstanceRef.current) {
+      mapInstanceRef.current = L.map(mapRef.current).setView(userPosition, 13);
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(mapInstanceRef.current);
+    }
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => {
+      mapInstanceRef.current?.removeLayer(marker);
+    });
+    markersRef.current = [];
+
+    // Add user location marker
+    const userMarker = L.marker(userPosition, {
+      icon: L.icon({
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+        className: 'current-location-marker'
+      })
+    }).addTo(mapInstanceRef.current!);
+    
+    userMarker.bindPopup('<strong>Votre position actuelle</strong>');
+    markersRef.current.push(userMarker);
+
+    // Add report markers
+    reports.forEach((report) => {
+      const reportMarker = L.marker([report.latitude, report.longitude], {
+        icon: L.icon({
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          iconSize: [20, 32],
+          iconAnchor: [10, 32],
+          popupAnchor: [1, -28],
+          shadowSize: [32, 32],
+          className: 'report-marker'
+        })
+      }).addTo(mapInstanceRef.current!);
+
+      const statusColor = report.status === 'resolu' ? 'green' : 
+                         report.status === 'en-cours' ? 'orange' : 'red';
+      
+      reportMarker.bindPopup(`
+        <div style="min-width: 200px;">
+          <h3 style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">${report.type}</h3>
+          <p style="font-size: 12px; color: #666; margin-bottom: 12px;">${report.description}</p>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
+            <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px;">
+              ${report.status}
+            </span>
+            <span style="color: #666;">
+              ${new Date(report.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      `);
+      
+      markersRef.current.push(reportMarker);
+    });
+
+    // Cleanup function
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [userPosition, reports]);
+
   if (!userPosition) {
     return (
       <div className={`flex items-center justify-center bg-muted ${className}`}>
@@ -117,53 +165,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
   return (
     <div className={className}>
-      <MapContainer
-        center={userPosition}
-        zoom={13}
-        style={{ height: '100%', width: '100%' }}
-        className="rounded-lg"
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        
-        <LocationUpdater position={userPosition} />
-        
-        {/* User's current location marker */}
-        <Marker position={userPosition} icon={currentLocationIcon}>
-          <Popup>
-            <strong>Votre position actuelle</strong>
-          </Popup>
-        </Marker>
-        
-        {/* Reports markers */}
-        {reports.map((report) => (
-          <Marker
-            key={report.id}
-            position={[report.latitude, report.longitude]}
-            icon={reportIcon}
-          >
-            <Popup>
-              <div className="min-w-[200px]">
-                <h3 className="font-semibold text-sm mb-1">{report.type}</h3>
-                <p className="text-xs text-muted-foreground mb-2">{report.description}</p>
-                <div className="flex items-center justify-between text-xs">
-                  <span className={`px-2 py-1 rounded text-white ${
-                    report.status === 'resolu' ? 'bg-green-500' :
-                    report.status === 'en-cours' ? 'bg-yellow-500' : 'bg-gray-500'
-                  }`}>
-                    {report.status}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {new Date(report.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
+      <div ref={mapRef} style={{ height: '100%', width: '100%' }} className="rounded-lg" />
       
       {/* Custom styles for markers */}
       <style>{`
