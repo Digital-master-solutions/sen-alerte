@@ -17,36 +17,48 @@ export type Database = {
       admin: {
         Row: {
           created_at: string | null
+          department: string | null
           email: string | null
           id: string
+          is_active: boolean | null
+          last_activity: string | null
           last_login: string | null
           name: string
           organization_id: string | null
           password_hash: string
+          phone: string | null
           status: string | null
           supabase_user_id: string | null
           username: string | null
         }
         Insert: {
           created_at?: string | null
+          department?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
+          last_activity?: string | null
           last_login?: string | null
           name: string
           organization_id?: string | null
           password_hash: string
+          phone?: string | null
           status?: string | null
           supabase_user_id?: string | null
           username?: string | null
         }
         Update: {
           created_at?: string | null
+          department?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
+          last_activity?: string | null
           last_login?: string | null
           name?: string
           organization_id?: string | null
           password_hash?: string
+          phone?: string | null
           status?: string | null
           supabase_user_id?: string | null
           username?: string | null
@@ -159,6 +171,47 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      admin_sessions: {
+        Row: {
+          admin_id: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          session_token: string
+          user_agent: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          session_token: string
+          user_agent?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          session_token?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_sessions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       auth_profiles: {
         Row: {
@@ -542,60 +595,127 @@ export type Database = {
         }
         Relationships: []
       }
+      report_assignments: {
+        Row: {
+          admin_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          notes: string | null
+          report_id: string | null
+          status: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          notes?: string | null
+          report_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          notes?: string | null
+          report_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_assignments_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_assignments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
+          actual_resolution_time: unknown | null
           address: string | null
           anonymous_code: string | null
           anonymous_name: string | null
           anonymous_phone: string | null
           assigned_admin_id: string | null
           audio_url: string | null
+          citizen_satisfaction_rating: number | null
           created_at: string | null
           department: string | null
           description: string
+          estimated_resolution_time: unknown | null
           id: string
           latitude: number | null
           longitude: number | null
           photo_url: string | null
           population_id: string | null
+          priority: string | null
+          resolution_notes: string | null
           status: string | null
           type: string
           updated_at: string | null
         }
         Insert: {
+          actual_resolution_time?: unknown | null
           address?: string | null
           anonymous_code?: string | null
           anonymous_name?: string | null
           anonymous_phone?: string | null
           assigned_admin_id?: string | null
           audio_url?: string | null
+          citizen_satisfaction_rating?: number | null
           created_at?: string | null
           department?: string | null
           description: string
+          estimated_resolution_time?: unknown | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           photo_url?: string | null
           population_id?: string | null
+          priority?: string | null
+          resolution_notes?: string | null
           status?: string | null
           type: string
           updated_at?: string | null
         }
         Update: {
+          actual_resolution_time?: unknown | null
           address?: string | null
           anonymous_code?: string | null
           anonymous_name?: string | null
           anonymous_phone?: string | null
           assigned_admin_id?: string | null
           audio_url?: string | null
+          citizen_satisfaction_rating?: number | null
           created_at?: string | null
           department?: string | null
           description?: string
+          estimated_resolution_time?: unknown | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           photo_url?: string | null
           population_id?: string | null
+          priority?: string | null
+          resolution_notes?: string | null
           status?: string | null
           type?: string
           updated_at?: string | null
@@ -718,9 +838,62 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "admin"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      dashboard_stats: {
+        Row: {
+          avg_resolution_hours: number | null
+          in_progress_reports: number | null
+          pending_reports: number | null
+          rejected_reports: number | null
+          resolved_reports: number | null
+          today_reports: number | null
+          total_reports: number | null
+          week_reports: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_orphaned_files: {
@@ -735,6 +908,14 @@ export type Database = {
           total_size: number
           avg_file_size: number
         }[]
+      }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      is_admin_or_superadmin: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       migrate_admins_to_auth: {
         Args: Record<PropertyKey, never>
