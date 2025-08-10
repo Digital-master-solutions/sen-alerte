@@ -149,7 +149,7 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 space-y-8 bg-background min-h-screen">
       {/* Header */}
-      <div className="space-y-2">
+      <div className="space-y-2 ml-6 sm:ml-8 lg:ml-0">
         <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
         <p className="text-muted-foreground">
           Vue d'ensemble des signalements et statistiques
