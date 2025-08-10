@@ -35,34 +35,64 @@ export default function AdminLogin() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      // Check admin credentials
-      const { data: admin, error } = await supabase
+      // Hash the input password for comparison
+      const hashedPassword = btoa(values.password); // Simple encoding to match our stored passwords
+      
+      // First check superadmin credentials
+      const { data: superAdmin, error: superAdminError } = await supabase
+        .from("superadmin")
+        .select("*")
+        .eq("username", values.username)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (superAdmin && superAdmin.password_hash === hashedPassword) {
+        localStorage.setItem("adminUser", JSON.stringify({
+          ...superAdmin,
+          role: "superadmin"
+        }));
+        
+        toast({
+          title: "Connexion réussie",
+          description: `Bienvenue ${superAdmin.name} (Super Admin)`,
+        });
+
+        navigate("/admin/dashboard");
+        return;
+      }
+
+      // If not superadmin, check admin credentials
+      const { data: admin, error: adminError } = await supabase
         .from("admin")
         .select("*")
         .eq("username", values.username)
         .eq("status", "active")
-        .single();
+        .maybeSingle();
 
-      if (error || !admin) {
+      if (admin && admin.password_hash === hashedPassword) {
+        localStorage.setItem("adminUser", JSON.stringify({
+          ...admin,
+          role: "admin"
+        }));
+        
         toast({
-          variant: "destructive",
-          title: "Erreur de connexion",
-          description: "Nom d'utilisateur ou mot de passe incorrect",
+          title: "Connexion réussie",
+          description: `Bienvenue ${admin.name}`,
         });
+
+        navigate("/admin/dashboard");
         return;
       }
 
-      // In a real app, you'd verify the password hash here
-      // For now, we'll simulate successful login
-      localStorage.setItem("adminUser", JSON.stringify(admin));
-      
+      // If we get here, credentials are invalid
       toast({
-        title: "Connexion réussie",
-        description: `Bienvenue ${admin.name}`,
+        variant: "destructive",
+        title: "Erreur de connexion",
+        description: "Nom d'utilisateur ou mot de passe incorrect",
       });
 
-      navigate("/admin/dashboard");
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
