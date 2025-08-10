@@ -6,32 +6,30 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Plus, Home, MessageSquare, Bell, Info, FileText, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
 const Index = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [reportCount, setReportCount] = useState(0);
-
   useEffect(() => {
     document.title = "SenAlert · Alertes urbaines au Sénégal";
-    
+
     // Charger le nombre total de signalements
     const loadReportCount = async () => {
       try {
-        const { count } = await supabase
-          .from('reports')
-          .select('*', { count: 'exact', head: true });
+        const {
+          count
+        } = await supabase.from('reports').select('*', {
+          count: 'exact',
+          head: true
+        });
         setReportCount(count || 0);
       } catch (error) {
         console.error('Erreur lors du chargement du compteur:', error);
       }
     };
-    
     loadReportCount();
   }, []);
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <header className="w-full border-b bg-white shadow-sm">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
@@ -106,12 +104,7 @@ const Index = () => {
           
           {/* Bouton Signaler centré */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <Button
-              variant="signal"
-              size="lg"
-              onClick={() => navigate("/signaler")}
-              className="pointer-events-auto px-8 py-3 text-lg font-semibold rounded-full shadow-lg"
-            >
+            <Button variant="signal" size="lg" onClick={() => navigate("/signaler")} className="pointer-events-auto px-8 py-3 text-lg font-semibold rounded-full shadow-lg">
               <Plus className="mr-2 h-6 w-6" />
               Signaler
             </Button>
@@ -119,29 +112,7 @@ const Index = () => {
 
           {/* Compteur d'incidents en bas */}
           <div className="absolute bottom-6 left-6 right-6">
-            <div className="bg-white/95 backdrop-blur-sm rounded-lg border shadow-sm p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-1 h-8 bg-primary rounded-full"></div>
-                <div>
-                  <div className="font-semibold text-lg">
-                    {reportCount} incident{reportCount !== 1 ? 's' : ''} rapporté{reportCount !== 1 ? 's' : ''} dans le département de Dakar
-                  </div>
-                  {reportCount === 0 && (
-                    <div className="mt-4 text-center">
-                      <div className="inline-flex items-center justify-center w-16 h-16 bg-muted rounded-full mb-3">
-                        <FileText className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                      <div className="text-lg font-medium text-foreground mb-1">
-                        Aucun incident signalé dans le département de Dakar
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Soyez le premier à signaler un problème !
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            
           </div>
         </section>
       </main>
@@ -176,8 +147,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
