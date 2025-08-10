@@ -65,14 +65,6 @@ const Index = () => {
                     <Bell className="h-5 w-5" />
                     <span className="font-medium">Notifications</span>
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
-                    <Users className="h-5 w-5" />
-                    <span className="font-medium">Communauté</span>
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3 h-12">
-                    <Settings className="h-5 w-5" />
-                    <span className="font-medium">Paramètres</span>
-                  </Button>
                   <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/a-propos")}>
                     <Info className="h-5 w-5" />
                     <span className="font-medium">À propos</span>
@@ -100,10 +92,20 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" aria-label="Notifications">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              aria-label="Notifications"
+              onClick={() => navigate('/notifications')}
+            >
               <Bell className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Informations">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              aria-label="Informations"
+              onClick={() => navigate('/a-propos')}
+            >
               <Info className="h-5 w-5" />
             </Button>
           </div>
