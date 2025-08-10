@@ -112,7 +112,7 @@ const Index = () => {
 
       <main>
         {/* Carte interactive */}
-        <section className="relative h-[70vh] min-h-[500px]">
+        <section className="relative h-[50vh] min-h-[400px] z-0">
           <OpenStreetMap className="absolute inset-0" />
           
           {/* Compteur d'incidents superposé */}
@@ -126,20 +126,19 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Bouton Signaler */}
-        <section className="py-8 bg-background">
+        {/* Bouton Signaler flottant */}
+        <div className="relative -mt-8 mb-8 z-10">
           <div className="container flex justify-center">
             <Button 
               variant="signal" 
               size="lg" 
               onClick={() => navigate("/signaler")} 
-              className="px-12 py-4 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+              className="px-8 py-3 text-lg font-semibold rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105"
             >
-              <Plus className="mr-3 h-6 w-6" />
-              Signaler un problème
+              Signaler
             </Button>
           </div>
-        </section>
+        </div>
 
         {/* Section des incidents */}
         <IncidentsSection />

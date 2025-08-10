@@ -79,7 +79,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     // Initialize map
     if (!mapInstanceRef.current) {
-      mapInstanceRef.current = L.map(mapRef.current).setView(userPosition, 13);
+      mapInstanceRef.current = L.map(mapRef.current).setView(userPosition, 15);
 
       // Add OpenStreetMap tiles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -93,17 +93,34 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     });
     markersRef.current = [];
 
-    // Add user location marker
+    // Add user location marker with custom icon
     const userMarker = L.marker(userPosition, {
-      icon: L.icon({
-        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41],
-        className: 'current-location-marker'
+      icon: L.divIcon({
+        className: 'current-location-marker',
+        html: `
+          <div style="
+            width: 20px;
+            height: 20px;
+            background: #22c55e;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              top: -2px;
+              left: -2px;
+              width: 24px;
+              height: 24px;
+              background: rgba(34, 197, 94, 0.3);
+              border-radius: 50%;
+              animation: pulse 2s infinite;
+            "></div>
+          </div>
+        `,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
       })
     }).addTo(mapInstanceRef.current!);
     
@@ -170,10 +187,21 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       {/* Custom styles for markers */}
       <style>{`
         .current-location-marker {
-          filter: hue-rotate(120deg) saturate(1.5);
+          background: transparent !important;
+          border: none !important;
         }
         .report-marker {
           filter: hue-rotate(240deg) saturate(1.2);
+        }
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(2);
+            opacity: 0;
+          }
         }
       `}</style>
     </div>

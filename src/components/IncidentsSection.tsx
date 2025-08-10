@@ -99,51 +99,61 @@ const IncidentsSection = () => {
   }
 
   return (
-    <section className="py-12 bg-secondary/20">
+    <section className="py-16 bg-background">
       <div className="container">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Incidents récents dans votre zone
-          </h2>
-          <p className="text-muted-foreground">
-            Département de Dakar • {reports.length} signalement{reports.length > 1 ? 's' : ''}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <AlertCircle className="h-8 w-8 text-primary" />
+            <h2 className="text-4xl font-bold text-foreground">
+              Incidents récents
+            </h2>
+          </div>
+          <p className="text-xl text-muted-foreground">
+            Département de Dakar • {reports.length} signalement{reports.length > 1 ? 's' : ''} cette semaine
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {reports.map((report) => (
-            <Card key={report.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold text-foreground">
-                    {report.type}
-                  </CardTitle>
-                  <Badge className={`text-white ${getStatusColor(report.status)}`}>
+            <Card key={report.id} className="bg-white hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:scale-105">
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <AlertCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <CardTitle className="text-lg font-bold text-foreground leading-tight">
+                      {report.type}
+                    </CardTitle>
+                  </div>
+                  <Badge className={`text-white font-medium px-3 py-1 ${getStatusColor(report.status)}`}>
                     {getStatusText(report.status)}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-muted-foreground text-sm line-clamp-3">
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground leading-relaxed line-clamp-3">
                   {report.description}
                 </p>
                 
-                {report.address && (
+                <div className="space-y-2">
+                  {report.address && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{report.address}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span className="truncate">{report.address}</span>
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    <span>
+                      {new Date(report.created_at).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </span>
                   </div>
-                )}
-                
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    {new Date(report.created_at).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </span>
                 </div>
               </CardContent>
             </Card>
