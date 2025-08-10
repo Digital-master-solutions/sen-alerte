@@ -14,6 +14,9 @@ import AdminOrganizations from "./pages/admin/Organizations";
 import AdminUsers from "./pages/admin/Users";
 import AdminMessages from "./pages/admin/Messages";
 import AdminCategories from "./pages/admin/Categories";
+import OrganizationLayout from "./pages/organization/OrganizationLayout";
+import OrgLogin from "./pages/organization/Login";
+import OrgReports from "./pages/organization/Reports";
 
 
 const queryClient = new QueryClient();
@@ -42,6 +45,13 @@ const App = () => (
             <Route path="categories" element={<AdminCategories />} />
             
             <Route index element={<AdminDashboard />} />
+          </Route>
+          
+          {/* Organization Routes */}
+          <Route path="/organization/login" element={<OrgLogin />} />
+          <Route path="/organization" element={<OrganizationLayout />}>
+            <Route path="reports" element={<OrgReports />} />
+            <Route index element={<OrgReports />} />
           </Route>
           
           {/* Public Routes */}
