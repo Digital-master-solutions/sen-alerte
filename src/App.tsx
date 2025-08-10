@@ -6,6 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { Suspense, lazy } from "react";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminLogin from "./pages/admin/Login";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminReports from "./pages/admin/Reports";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +26,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route index element={<AdminDashboard />} />
+          </Route>
+          
+          {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route
             path="/signaler"
