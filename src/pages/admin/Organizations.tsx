@@ -60,24 +60,33 @@ export default function AdminOrganizations() {
   const loadOrganizations = async () => {
     try {
       const credsRaw = localStorage.getItem("adminUser");
-      const creds = credsRaw ? JSON.parse(credsRaw) : null;
-      if (!creds?.username || !creds?.password) {
-        throw new Error("Admin credentials manquantes");
+      if (!credsRaw) {
+        throw new Error("Session administrateur expirée");
       }
+      
+      const creds = JSON.parse(credsRaw);
+      if (!creds?.username || !creds?.password) {
+        throw new Error("Credentials administrateur invalides");
+      }
+      
       const { data, error } = await supabase.rpc("admin_list_organizations", {
         _username: creds.username,
         _password_raw: creds.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("RPC Error:", error);
+        throw new Error(`Erreur de base de données: ${error.message}`);
+      }
+      
       if (data) {
         setOrganizations(data as any);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading organizations:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les organisations",
+        description: error.message || "Impossible de charger les organisations",
         variant: "destructive",
       });
     } finally {
