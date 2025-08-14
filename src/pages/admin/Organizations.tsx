@@ -50,8 +50,53 @@ export default function AdminOrganizations() {
   const pageSize = 10;
 
   useEffect(() => {
-    loadOrganizations();
+    document.title = "Organisations | Administration";
+    checkAuthAndLoadOrganizations();
   }, []);
+
+  const checkAuthAndLoadOrganizations = async () => {
+    try {
+      const credsRaw = localStorage.getItem("adminUser");
+      if (!credsRaw) {
+        toast({
+          title: "Session expirée",
+          description: "Veuillez vous reconnecter",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const creds = JSON.parse(credsRaw);
+      if (!creds?.username || !creds?.password || !creds?.role) {
+        toast({
+          title: "Credentials invalides",
+          description: "Veuillez vous reconnecter",
+          variant: "destructive",
+        });
+        localStorage.removeItem("adminUser");
+        return;
+      }
+
+      // Vérifier que l'utilisateur est bien un superadmin
+      if (creds.role !== "superadmin") {
+        toast({
+          title: "Accès refusé",
+          description: "Vous n'avez pas les droits d'accès à cette page",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await loadOrganizations();
+    } catch (error: any) {
+      console.error("Auth check error:", error);
+      toast({
+        title: "Erreur d'authentification",
+        description: "Impossible de vérifier vos droits d'accès",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     filterOrganizations();

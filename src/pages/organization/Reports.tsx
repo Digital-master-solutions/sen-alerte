@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import {
@@ -138,11 +139,23 @@ export default function OrgReports() {
       
       if (error) throw error;
       
-      toast({ title: "Signalement pris en charge", description: "Vous gérez maintenant ce signalement" });
+      toast({ 
+        title: "Signalement pris en charge", 
+        description: "Vous gérez maintenant ce signalement" 
+      });
+      
+      // Retirer immédiatement le signalement de la liste disponible
+      setAvailableReports(prev => prev.filter(r => r.id !== report.id));
+      
+      // Recharger les données pour s'assurer de la synchronisation
       await loadAll();
     } catch (e: any) {
       console.error("Error claiming report:", e);
-      toast({ variant: "destructive", title: "Erreur", description: e.message || "Impossible de prendre en charge ce signalement" });
+      toast({ 
+        variant: "destructive", 
+        title: "Erreur", 
+        description: e.message || "Impossible de prendre en charge ce signalement" 
+      });
     }
   };
 
@@ -353,14 +366,32 @@ export default function OrgReports() {
                         </DialogContent>
                       </Dialog>
                       
-                      <Button 
-                        onClick={() => claimReport(report)} 
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        <Hand className="h-4 w-4 mr-1" />
-                        Gérer
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            size="sm"
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            <Hand className="h-4 w-4 mr-1" />
+                            Gérer
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmer la prise en charge</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Êtes-vous sûr de vouloir prendre en charge ce signalement "{report.type}" ? 
+                              Une fois assigné, il ne sera plus disponible pour les autres organisations.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => claimReport(report)}>
+                              Confirmer la prise en charge
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
