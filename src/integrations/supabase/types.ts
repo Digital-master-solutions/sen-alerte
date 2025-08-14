@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -771,19 +771,19 @@ export type Database = {
     }
     Functions: {
       _is_superadmin_credentials: {
-        Args: { _username: string; _password_raw: string }
+        Args: { _password_raw: string; _username: string }
         Returns: boolean
       }
       admin_assigned_to_report: {
-        Args: { _user_id: string; _report_id: string }
+        Args: { _report_id: string; _user_id: string }
         Returns: boolean
       }
       admin_can_view_population: {
-        Args: { _user_id: string; _population_id: string }
+        Args: { _population_id: string; _user_id: string }
         Returns: boolean
       }
       admin_list_organizations: {
-        Args: { _username: string; _password_raw: string }
+        Args: { _password_raw: string; _username: string }
         Returns: {
           address: string | null
           approved_at: string | null
@@ -805,10 +805,10 @@ export type Database = {
       }
       admin_update_org_status: {
         Args: {
-          _username: string
-          _password_raw: string
-          _org_id: string
           _new_status: string
+          _org_id: string
+          _password_raw: string
+          _username: string
         }
         Returns: boolean
       }
@@ -819,10 +819,10 @@ export type Database = {
       get_storage_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
+          avg_file_size: number
           bucket_name: string
           file_count: number
           total_size: number
-          avg_file_size: number
         }[]
       }
       get_user_role: {
