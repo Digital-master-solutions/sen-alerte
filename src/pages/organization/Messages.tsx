@@ -54,19 +54,36 @@ export default function OrgMessages() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [organization, setOrganization] = useState<any>(null);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     document.title = "Messages | Espace Organisation";
     loadOrganization();
-    
-    // Set up real-time subscription for organization
+  }, []);
+
+  useEffect(() => {
+    if (organization) {
+      loadConversations();
+      setupRealtimeSubscription();
+    }
+  }, [organization]);
+
+  const setupRealtimeSubscription = () => {
+    // Set up real-time subscription for messages
     const channel = supabase
-      .channel('organization_messages')
+      .channel('organization_messages_realtime')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messagerie' },
-        () => {
-          loadConversations();
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'messagerie',
+          filter: `or(sender_type.eq.organization,recipient_type.eq.organization)`
+        },
+        (payload) => {
+          console.log('Realtime message update:', payload);
+          handleRealtimeUpdate(payload);
         }
       )
       .subscribe();
@@ -74,7 +91,31 @@ export default function OrgMessages() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  };
+
+  const handleRealtimeUpdate = async (payload: any) => {
+    if (payload.eventType === 'INSERT') {
+      // Nouveau message reçu
+      await loadConversations();
+      
+      // Mise à jour du badge si c'est un message de l'admin
+      if (payload.new.sender_type === 'super_admin' && !payload.new.read) {
+        setTotalUnreadCount(prev => prev + 1);
+        
+        // Notification toast pour nouveau message
+        toast({
+          title: "Nouveau message",
+          description: `Message de ${payload.new.sender_name}`,
+        });
+      }
+    } else if (payload.eventType === 'UPDATE') {
+      // Message marqué comme lu
+      if (payload.new.read && !payload.old.read) {
+        setTotalUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      await loadConversations();
+    }
+  };
 
   const loadOrganization = async () => {
     try {
@@ -101,6 +142,7 @@ export default function OrgMessages() {
   };
 
   const loadConversations = async (selectKey?: string) => {
+    setIsLoadingMessages(true);
     try {
       const { data, error } = await supabase
         .from("messagerie")
@@ -112,6 +154,8 @@ export default function OrgMessages() {
 
       // Group messages by conversation with super admin
       const conversationMap = new Map<string, Conversation>();
+      let totalUnread = 0;
+      
       data?.forEach((msg: Message) => {
         const key = "super_admin-admin"; // Always conversation with super admin
         if (!conversationMap.has(key)) {
@@ -121,15 +165,20 @@ export default function OrgMessages() {
             participant_id: "admin",
             last_message: msg.message,
             last_message_time: msg.created_at,
-            unread_count: msg.read ? 0 : 1,
+            unread_count: 0,
             messages: [],
           });
         }
+        
         const conversation = conversationMap.get(key)!;
         conversation.messages.push(msg);
+        
+        // Compter seulement les messages non lus de l'admin
         if (!msg.read && msg.sender_type === "super_admin") {
           conversation.unread_count++;
+          totalUnread++;
         }
+        
         if (new Date(msg.created_at) > new Date(conversation.last_message_time)) {
           conversation.last_message = msg.message;
           conversation.last_message_time = msg.created_at;
@@ -138,9 +187,10 @@ export default function OrgMessages() {
 
       const list = Array.from(conversationMap.values());
       setConversations(list);
+      setTotalUnreadCount(totalUnread);
       
       // Auto-select the conversation with admin if there is one
-      if (list.length > 0) {
+      if (list.length > 0 && !selectedConversation) {
         setSelectedConversation(list[0]);
       }
     } catch (error) {
@@ -152,18 +202,22 @@ export default function OrgMessages() {
       });
     } finally {
       setLoading(false);
+      setIsLoadingMessages(false);
     }
   };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !organization) return;
 
+    const messageText = newMessage;
+    setNewMessage(""); // Clear immediately for better UX
+
     try {
       const { error } = await supabase
         .from("messagerie")
         .insert({
           title: "Message de l'organisation",
-          message: newMessage,
+          message: messageText,
           sender_name: organization.name,
           sender_type: "organization",
           sender_id: organization.id,
@@ -175,14 +229,14 @@ export default function OrgMessages() {
 
       if (error) throw error;
 
-      setNewMessage("");
-      // Real-time subscription will automatically reload conversations
+      // Le realtime se chargera de mettre à jour l'interface
       toast({
         title: "Message envoyé",
         description: "Votre message a été envoyé avec succès",
       });
     } catch (error) {
       console.error("Error sending message:", error);
+      setNewMessage(messageText); // Restore message on error
       toast({
         title: "Erreur",
         description: "Impossible d'envoyer le message",
@@ -193,10 +247,15 @@ export default function OrgMessages() {
 
   const markAsRead = async (messageId: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from("messagerie")
         .update({ read: true })
-        .eq("id", messageId);
+        .eq("id", messageId)
+        .eq("sender_type", "super_admin"); // Only mark admin messages as read
+      
+      if (error) throw error;
+      
+      // Le realtime se chargera de mettre à jour les compteurs
     } catch (error) {
       console.error("Error marking message as read:", error);
     }
@@ -248,8 +307,13 @@ export default function OrgMessages() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {conversations.reduce((sum, conv) => sum + conv.unread_count, 0)}
+            <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
+              {totalUnreadCount}
+              {totalUnreadCount > 0 && (
+                <Badge variant="destructive" className="animate-pulse">
+                  Nouveau
+                </Badge>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -272,7 +336,17 @@ export default function OrgMessages() {
         {/* Conversations List */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Conversations</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Conversations
+              {totalUnreadCount > 0 && (
+                <Badge variant="destructive" className="animate-pulse">
+                  {totalUnreadCount}
+                </Badge>
+              )}
+              {isLoadingMessages && (
+                <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+              )}
+            </CardTitle>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -303,7 +377,7 @@ export default function OrgMessages() {
                       <div className="flex items-center justify-between">
                         <p className="font-medium truncate">{conversation.participant_name}</p>
                         {conversation.unread_count > 0 && (
-                          <Badge variant="destructive" className="text-xs">
+                          <Badge variant="destructive" className="text-xs animate-pulse">
                             {conversation.unread_count}
                           </Badge>
                         )}
