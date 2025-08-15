@@ -232,25 +232,6 @@ const openNewConversationModal = async () => {
     }
   };
 
-  const markConversationAsRead = async (conversation: Conversation) => {
-    try {
-      const unreadMessages = conversation.messages.filter(m => !m.read);
-      
-      if (unreadMessages.length === 0) return;
-
-      const { error } = await supabase
-        .from("messagerie")
-        .update({ read: true })
-        .in("id", unreadMessages.map(m => m.id));
-      
-      if (error) throw error;
-      
-      // Le realtime se chargera de mettre à jour les compteurs
-    } catch (error) {
-      console.error("Error marking conversation as read:", error);
-    }
-  };
-
   const filteredConversations = conversations.filter(conv =>
     conv.participant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.last_message.toLowerCase().includes(searchTerm.toLowerCase())
@@ -387,10 +368,7 @@ const openNewConversationModal = async () => {
                   className={`p-4 border-b cursor-pointer hover:bg-muted/50 ${
                     selectedConversation === conversation ? "bg-muted" : ""
                   }`}
-                  onClick={() => {
-                    setSelectedConversation(conversation);
-                    markConversationAsRead(conversation);
-                  }}
+                  onClick={() => setSelectedConversation(conversation)}
                 >
                   <div className="flex items-start space-x-3">
                     <Avatar>
