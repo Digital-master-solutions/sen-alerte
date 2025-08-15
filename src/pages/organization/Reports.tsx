@@ -125,6 +125,8 @@ export default function OrgReports() {
           title: "Erreur", 
           description: "Ce signalement est déjà assigné à une organisation" 
         });
+        // Retirer le signalement de la liste disponible car il est déjà assigné
+        setAvailableReports(prev => prev.filter(r => r.id !== report.id));
         return;
       }
       
@@ -135,7 +137,7 @@ export default function OrgReports() {
           status: 'en-cours'
         })
         .eq("id", report.id)
-        .is("assigned_organization_id", null); // Seulement si pas encore assigné
+        .is("assigned_organization_id", null);
       
       if (error) throw error;
       
@@ -147,8 +149,10 @@ export default function OrgReports() {
       // Retirer immédiatement le signalement de la liste disponible
       setAvailableReports(prev => prev.filter(r => r.id !== report.id));
       
-      // Recharger les données pour s'assurer de la synchronisation
-      await loadAll();
+      // Ajouter le signalement mis à jour à "Mes signalements"
+      const updatedReport = { ...report, assigned_organization_id: org.id, status: 'en-cours' };
+      setMyReports(prev => [updatedReport, ...prev]);
+      
     } catch (e: any) {
       console.error("Error claiming report:", e);
       toast({ 
