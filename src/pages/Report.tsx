@@ -19,8 +19,8 @@ const schema = z.object({
   longitude: z.number().optional(),
   photo: z.instanceof(File).optional(),
   audio: z.instanceof(File).optional(),
-  anonymous_name: z.string().optional(),
-  anonymous_phone: z.string().optional(),
+  anonymous_name: z.string().min(2, "Le nom complet est obligatoire"),
+  anonymous_phone: z.string().min(9, "Le numéro de téléphone est obligatoire"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -47,7 +47,12 @@ export default function Report() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { description: "", type: "" },
+    defaultValues: { 
+      description: "", 
+      type: "", 
+      anonymous_name: "", 
+      anonymous_phone: "" 
+    },
   });
 
   const categories = useMemo(
@@ -176,19 +181,29 @@ export default function Report() {
 
             {/* Informations personnelles */}
             <div className="space-y-4">
-              <h3 className="text-base font-medium text-gray-900">Informations personnelles</h3>
+              <h3 className="text-base font-medium text-gray-900">Informations personnelles *</h3>
               <div className="grid gap-4">
-                <Input
-                  placeholder="Prénom et Nom"
-                  className="h-12"
-                  {...form.register("anonymous_name")}
-                />
-                <Input
-                  placeholder="Numéro de téléphone *"
-                  type="tel"
-                  className="h-12"
-                  {...form.register("anonymous_phone")}
-                />
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Nom complet *"
+                    className="h-12"
+                    {...form.register("anonymous_name")}
+                  />
+                  {form.formState.errors.anonymous_name && (
+                    <p className="text-sm text-destructive">{form.formState.errors.anonymous_name.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Numéro de téléphone *"
+                    type="tel"
+                    className="h-12"
+                    {...form.register("anonymous_phone")}
+                  />
+                  {form.formState.errors.anonymous_phone && (
+                    <p className="text-sm text-destructive">{form.formState.errors.anonymous_phone.message}</p>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -28,6 +28,7 @@ interface Message {
   message: string;
   sender_name: string;
   sender_type: string;
+  sender_id: string;
   recipient_name: string;
   recipient_type: string;
   recipient_id: string;
@@ -75,11 +76,12 @@ useEffect(() => {
   
   // Set up real-time subscription for admin
   const channel = supabase
-    .channel('admin_messages')
+    .channel('admin_messages_realtime')
     .on('postgres_changes', 
       { event: '*', schema: 'public', table: 'messagerie' },
-      () => {
-        loadConversations();
+      (payload) => {
+        console.log('Admin realtime update:', payload);
+        handleRealtimeUpdate(payload);
       }
     )
     .subscribe();
@@ -88,6 +90,23 @@ useEffect(() => {
     supabase.removeChannel(channel);
   };
 }, []);
+
+const handleRealtimeUpdate = (payload: any) => {
+  if (payload.eventType === 'INSERT') {
+    // Nouveau message - recharger les conversations
+    loadConversations();
+    // Afficher notification si nécessaire
+    if (payload.new.sender_type === 'organization') {
+      toast({
+        title: "Nouveau message",
+        description: `Message de ${payload.new.sender_name}`,
+      });
+    }
+  } else if (payload.eventType === 'UPDATE') {
+    // Message mis à jour - recharger
+    loadConversations();
+  }
+};
 
 const loadApprovedOrganizations = async () => {
   try {
@@ -165,12 +184,15 @@ const openNewConversationModal = async () => {
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
 
+    const messageText = newMessage;
+    setNewMessage(""); // Clear immediately for better UX
+
     try {
       const { error } = await supabase
         .from("messagerie")
         .insert({
           title: "Réponse",
-          message: newMessage,
+          message: messageText,
           sender_name: (JSON.parse(localStorage.getItem("adminUser") || "{}").name) || "Super Admin",
           sender_type: "super_admin",
           sender_id: "current-superadmin-id", // Should be actual user ID when auth is enabled
@@ -182,14 +204,51 @@ const openNewConversationModal = async () => {
 
       if (error) throw error;
 
-      setNewMessage("");
-      // Real-time subscription will automatically reload conversations
+      // Mise à jour optimiste - ajouter le message immédiatement à l'interface
+      const newMsg = {
+        id: `temp-${Date.now()}`,
+        title: "Réponse",
+        message: messageText,
+        sender_name: (JSON.parse(localStorage.getItem("adminUser") || "{}").name) || "Super Admin",
+        sender_type: "super_admin",
+        sender_id: "current-superadmin-id",
+        recipient_name: selectedConversation.participant_name,
+        recipient_type: selectedConversation.participant_type,
+        recipient_id: selectedConversation.participant_id,
+        read: false,
+        created_at: new Date().toISOString(),
+        reply_count: 0,
+        is_reply: true,
+        parent_id: "",
+      };
+
+      // Mettre à jour la conversation sélectionnée
+      if (selectedConversation) {
+        const updatedConversation = {
+          ...selectedConversation,
+          messages: [...selectedConversation.messages, newMsg],
+          last_message: messageText,
+          last_message_time: new Date().toISOString(),
+        };
+        setSelectedConversation(updatedConversation);
+        
+        // Mettre à jour aussi la liste des conversations
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.participant_id === selectedConversation.participant_id 
+              ? updatedConversation 
+              : conv
+          )
+        );
+      }
+
       toast({
         title: "Message envoyé",
         description: "Votre message a été envoyé avec succès",
       });
     } catch (error) {
       console.error("Error sending message:", error);
+      setNewMessage(messageText); // Restore message on error
       toast({
         title: "Erreur",
         description: "Impossible d'envoyer le message",
@@ -229,6 +288,20 @@ const openNewConversationModal = async () => {
         .eq("id", messageId);
     } catch (error) {
       console.error("Error marking message as read:", error);
+    }
+  };
+
+  const markConversationAsRead = async (conversation: Conversation) => {
+    try {
+      const unreadMessages = conversation.messages.filter(m => !m.read);
+      if (unreadMessages.length === 0) return;
+
+      await supabase
+        .from("messagerie")
+        .update({ read: true })
+        .in("id", unreadMessages.map(m => m.id));
+    } catch (error) {
+      console.error("Error marking conversation as read:", error);
     }
   };
 
@@ -368,7 +441,10 @@ const openNewConversationModal = async () => {
                   className={`p-4 border-b cursor-pointer hover:bg-muted/50 ${
                     selectedConversation === conversation ? "bg-muted" : ""
                   }`}
-                  onClick={() => setSelectedConversation(conversation)}
+                  onClick={() => {
+                    setSelectedConversation(conversation);
+                    markConversationAsRead(conversation);
+                  }}
                 >
                   <div className="flex items-start space-x-3">
                     <Avatar>

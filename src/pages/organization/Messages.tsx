@@ -26,6 +26,7 @@ interface Message {
   message: string;
   sender_name: string;
   sender_type: string;
+  sender_id: string;
   recipient_name: string;
   recipient_type: string;
   recipient_id: string;
@@ -207,7 +208,7 @@ export default function OrgMessages() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !organization) return;
+    if (!newMessage.trim() || !organization || !selectedConversation) return;
 
     const messageText = newMessage;
     setNewMessage(""); // Clear immediately for better UX
@@ -229,7 +230,44 @@ export default function OrgMessages() {
 
       if (error) throw error;
 
-      // Le realtime se chargera de mettre à jour l'interface
+      // Mise à jour optimiste - ajouter le message immédiatement à l'interface
+      const newMsg = {
+        id: `temp-${Date.now()}`,
+        title: "Message de l'organisation",
+        message: messageText,
+        sender_name: organization.name,
+        sender_type: "organization",
+        sender_id: organization.id,
+        recipient_name: "Administration",
+        recipient_type: "super_admin",
+        recipient_id: "admin",
+        read: false,
+        created_at: new Date().toISOString(),
+        reply_count: 0,
+        is_reply: true,
+        parent_id: "",
+      };
+
+      // Mettre à jour la conversation sélectionnée
+      if (selectedConversation) {
+        const updatedConversation = {
+          ...selectedConversation,
+          messages: [...selectedConversation.messages, newMsg],
+          last_message: messageText,
+          last_message_time: new Date().toISOString(),
+        };
+        setSelectedConversation(updatedConversation);
+        
+        // Mettre à jour aussi la liste des conversations
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.participant_id === selectedConversation.participant_id 
+              ? updatedConversation 
+              : conv
+          )
+        );
+      }
+
       toast({
         title: "Message envoyé",
         description: "Votre message a été envoyé avec succès",

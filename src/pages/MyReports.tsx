@@ -8,10 +8,14 @@ const MyReports = () => {
   const navigate = useNavigate();
   const [authCode, setAuthCode] = useState('');
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (authCode.length === 8) {
-      // TODO: Implement authentication logic
-      console.log('Auth code:', authCode);
+      try {
+        // Rediriger vers la page de suivi avec le code
+        navigate(`/suivi?code=${encodeURIComponent(authCode)}`);
+      } catch (error) {
+        console.error('Error navigating:', error);
+      }
     }
   };
 
