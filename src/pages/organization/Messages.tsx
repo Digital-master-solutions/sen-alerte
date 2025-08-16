@@ -96,22 +96,51 @@ export default function OrgMessages() {
 
   const handleRealtimeUpdate = async (payload: any) => {
     if (payload.eventType === 'INSERT') {
-      // Nouveau message reçu
-      await loadConversations();
+      const newMessage = payload.new;
       
-      // Mise à jour du badge si c'est un message de l'admin
-      if (payload.new.sender_type === 'super_admin' && !payload.new.read) {
-        setTotalUnreadCount(prev => prev + 1);
+      // Si l'utilisateur est dans la conversation avec l'admin
+      if (selectedConversation && newMessage.sender_type === 'super_admin') {
+        // Marquer automatiquement le message comme lu
+        await supabase
+          .from("messagerie")
+          .update({ read: true })
+          .eq("id", newMessage.id);
         
-        // Notification toast pour nouveau message
-        toast({
-          title: "Nouveau message",
-          description: `Message de ${payload.new.sender_name}`,
-        });
+        // Ajouter le message directement à la conversation active
+        const updatedConversation = {
+          ...selectedConversation,
+          messages: [...selectedConversation.messages, newMessage],
+          last_message: newMessage.message,
+          last_message_time: newMessage.created_at,
+        };
+        setSelectedConversation(updatedConversation);
+        
+        // Mettre à jour la liste des conversations sans incrémenter le badge
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.participant_id === selectedConversation.participant_id 
+              ? { ...updatedConversation, unread_count: 0 }
+              : conv
+          )
+        );
+      } else {
+        // Recharger les conversations normalement
+        await loadConversations();
+        
+        // Mise à jour du badge si c'est un message de l'admin et pas dans la conversation
+        if (newMessage.sender_type === 'super_admin' && !newMessage.read) {
+          setTotalUnreadCount(prev => prev + 1);
+          
+          // Notification toast pour nouveau message
+          toast({
+            title: "Nouveau message",
+            description: `Message de ${newMessage.sender_name}`,
+          });
+        }
       }
     } else if (payload.eventType === 'UPDATE') {
       // Message marqué comme lu
-      if (payload.new.read && !payload.old.read) {
+      if (payload.new.read && !payload.old.read && payload.new.sender_type === 'super_admin') {
         setTotalUnreadCount(prev => Math.max(0, prev - 1));
       }
       await loadConversations();

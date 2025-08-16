@@ -91,16 +91,49 @@ useEffect(() => {
   };
 }, []);
 
-const handleRealtimeUpdate = (payload: any) => {
+const handleRealtimeUpdate = async (payload: any) => {
   if (payload.eventType === 'INSERT') {
-    // Nouveau message - recharger les conversations
-    loadConversations();
-    // Afficher notification si nécessaire
-    if (payload.new.sender_type === 'organization') {
-      toast({
-        title: "Nouveau message",
-        description: `Message de ${payload.new.sender_name}`,
-      });
+    const newMessage = payload.new;
+    
+    // Si l'utilisateur est dans la conversation concernée
+    if (selectedConversation && 
+        selectedConversation.participant_id === newMessage.sender_id && 
+        newMessage.sender_type === 'organization') {
+      
+      // Marquer automatiquement le message comme lu
+      await supabase
+        .from("messagerie")
+        .update({ read: true })
+        .eq("id", newMessage.id);
+      
+      // Ajouter le message directement à la conversation active
+      const updatedConversation = {
+        ...selectedConversation,
+        messages: [...selectedConversation.messages, newMessage],
+        last_message: newMessage.message,
+        last_message_time: newMessage.created_at,
+      };
+      setSelectedConversation(updatedConversation);
+      
+      // Mettre à jour aussi la liste des conversations sans badge
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.participant_id === selectedConversation.participant_id 
+            ? { ...updatedConversation, unread_count: 0 }
+            : conv
+        )
+      );
+    } else {
+      // Recharger les conversations normalement
+      loadConversations();
+      
+      // Afficher notification si nécessaire
+      if (newMessage.sender_type === 'organization') {
+        toast({
+          title: "Nouveau message",
+          description: `Message de ${newMessage.sender_name}`,
+        });
+      }
     }
   } else if (payload.eventType === 'UPDATE') {
     // Message mis à jour - recharger
@@ -154,7 +187,8 @@ const openNewConversationModal = async () => {
         }
         const conversation = conversationMap.get(key)!;
         conversation.messages.push(msg);
-        if (!msg.read) {
+        // Compter seulement les messages non lus des organisations (pas de l'admin)
+        if (!msg.read && msg.sender_type === 'organization') {
           conversation.unread_count++;
         }
         if (new Date(msg.created_at) > new Date(conversation.last_message_time)) {
