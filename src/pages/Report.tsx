@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Upload, Mic, Crosshair } from "lucide-react";
+import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, Play, Pause } from "lucide-react";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -43,6 +43,16 @@ export default function Report() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
+  const [hasLocation, setHasLocation] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     document.title = "Signaler un incident · SenAlert";
@@ -73,12 +83,31 @@ export default function Report() {
     []
   );
 
+  // Récupérer la géolocalisation automatiquement au chargement
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          form.setValue("latitude", pos.coords.latitude);
+          form.setValue("longitude", pos.coords.longitude);
+          setHasLocation(true);
+          toast.success("Position détectée automatiquement");
+        },
+        () => {
+          // Silencieux si pas de permission
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+  }, []);
+
   const onUseGeolocation = () => {
     setGeoLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         form.setValue("latitude", pos.coords.latitude);
         form.setValue("longitude", pos.coords.longitude);
+        setHasLocation(true);
         toast.success("Position détectée");
         setGeoLoading(false);
       },
@@ -88,6 +117,105 @@ export default function Report() {
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
+  };
+
+  // Fonctions pour la caméra
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }, 
+        audio: false 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setShowCamera(true);
+    } catch (error) {
+      toast.error("Impossible d'accéder à la caméra");
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            form.setValue("photo", file as any);
+            toast.success("Photo capturée");
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  };
+
+  // Fonctions pour l'enregistrement audio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      streamRef.current = stream;
+      
+      const chunks: BlobPart[] = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setRecordedAudio(blob);
+        const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+        form.setValue("audio", file as any);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      intervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (error) {
+      toast.error("Impossible d'accéder au microphone");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      toast.success("Enregistrement terminé");
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const onSubmit = async (values: FormValues) => {
@@ -227,28 +355,34 @@ export default function Report() {
                 <h3 className="text-base font-medium text-gray-900">Localisation</h3>
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <MapPin className="h-5 w-5 text-yellow-600" />
-                  <span className="text-gray-700">Département de Guédiawaye, Guédiawaye</span>
+                  <span className="text-gray-700">
+                    {hasLocation ? "Position détectée" : "Département de Guédiawaye, Guédiawaye"}
+                  </span>
                 </div>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input 
-                    type="number" 
-                    step="any" 
-                    placeholder="Latitude"
-                    className="h-12"
-                    {...form.register("latitude", { valueAsNumber: true })} 
-                  />
-                  <Input 
-                    type="number" 
-                    step="any" 
-                    placeholder="Longitude"
-                    className="h-12"
-                    {...form.register("longitude", { valueAsNumber: true })} 
-                  />
-                </div>
-                <Button type="button" variant="outline" onClick={onUseGeolocation} disabled={geoLoading} className="h-12">
-                  <Crosshair className="mr-2 h-4 w-4" /> 
-                  {geoLoading ? "Détection..." : "Utiliser ma position"}
-                </Button>
+                {!hasLocation && (
+                  <>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <Input 
+                        type="number" 
+                        step="any" 
+                        placeholder="Latitude"
+                        className="h-12"
+                        {...form.register("latitude", { valueAsNumber: true })} 
+                      />
+                      <Input 
+                        type="number" 
+                        step="any" 
+                        placeholder="Longitude"
+                        className="h-12"
+                        {...form.register("longitude", { valueAsNumber: true })} 
+                      />
+                    </div>
+                    <Button type="button" variant="outline" onClick={onUseGeolocation} disabled={geoLoading} className="h-12">
+                      <Crosshair className="mr-2 h-4 w-4" /> 
+                      {geoLoading ? "Détection..." : "Utiliser ma position"}
+                    </Button>
+                  </>
+                )}
               </div>
 
               {/* Description */}
@@ -269,67 +403,140 @@ export default function Report() {
               <div className="space-y-4">
                 <h3 className="text-base font-medium text-gray-900">Photo (optionnel)</h3>
                 <div className="grid grid-cols-2 gap-4">
+                  {/* Bouton Caméra */}
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-16 border-2 border-dashed border-gray-300 hover:border-gray-400"
-                    onClick={() => document.getElementById('photo-input')?.click()}
+                    className="h-16 border-2 border-dashed border-blue-300 hover:border-blue-400 bg-blue-50"
+                    onClick={startCamera}
                   >
                     <div className="flex flex-col items-center space-y-1">
-                      <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                        📷
-                      </div>
-                      <span className="text-sm">Photo</span>
+                      <Camera className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm text-blue-700">Caméra</span>
                     </div>
                   </Button>
+                  
+                  {/* Bouton Upload depuis galerie */}
                   <Button
                     type="button"
                     variant="outline"
                     className="h-16 border-2 border-dashed border-yellow-300 hover:border-yellow-400 bg-yellow-50"
-                    onClick={() => document.getElementById('photo-input')?.click()}
+                    onClick={() => document.getElementById('photo-upload')?.click()}
                   >
                     <div className="flex flex-col items-center space-y-1">
-                      <Upload className="w-4 h-4 text-yellow-600" />
-                      <span className="text-sm text-yellow-700">Upload</span>
+                      <Image className="w-5 h-5 text-yellow-600" />
+                      <span className="text-sm text-yellow-700">Galerie</span>
                     </div>
                   </Button>
                 </div>
+                
+                {/* Input file caché pour upload depuis galerie */}
                 <input
-                  id="photo-input"
+                  id="photo-upload"
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    form.setValue("photo", (f as unknown as File) || undefined);
+                    if (f) {
+                      form.setValue("photo", f as any);
+                      toast.success("Photo sélectionnée");
+                    }
                   }}
                 />
+
+                {/* Interface caméra */}
+                {showCamera && (
+                  <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center">
+                    <div className="relative max-w-md w-full mx-4">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full rounded-lg"
+                      />
+                      <canvas ref={canvasRef} className="hidden" />
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-4">
+                        <Button
+                          onClick={capturePhoto}
+                          className="bg-white text-black hover:bg-gray-200 rounded-full w-16 h-16"
+                        >
+                          <Camera className="w-6 h-6" />
+                        </Button>
+                        <Button
+                          onClick={stopCamera}
+                          variant="outline"
+                          className="bg-red-500 text-white hover:bg-red-600 rounded-full w-16 h-16"
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Message vocal */}
               <div className="space-y-4">
                 <h3 className="text-base font-medium text-gray-900">Message vocal (optionnel)</h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-16 border-2 border-dashed border-gray-300"
-                  onClick={() => document.getElementById('audio-input')?.click()}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Mic className="w-5 h-5 text-gray-600" />
-                    <span>Enregistrer un message vocal</span>
+                
+                {!isRecording && !recordedAudio && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-16 border-2 border-dashed border-red-300 hover:border-red-400 bg-red-50"
+                    onClick={startRecording}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Mic className="w-5 h-5 text-red-600" />
+                      <span className="text-red-700">Enregistrer un message vocal</span>
+                    </div>
+                  </Button>
+                )}
+
+                {isRecording && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center space-x-3 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-red-700 font-medium">Enregistrement en cours</span>
+                      </div>
+                      <span className="text-red-600 font-mono">{formatTime(recordingTime)}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={stopRecording}
+                      className="w-full bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      <Square className="w-4 h-4 mr-2" />
+                      Arrêter l'enregistrement
+                    </Button>
                   </div>
-                </Button>
-                <input
-                  id="audio-input"
-                  type="file"
-                  accept="audio/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    form.setValue("audio", (f as unknown as File) || undefined);
-                  }}
-                />
+                )}
+
+                {recordedAudio && !isRecording && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center space-x-3 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-green-700 font-medium">Enregistrement terminé</span>
+                      </div>
+                      <span className="text-green-600 font-mono">{formatTime(recordingTime)}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setRecordedAudio(null);
+                        form.setValue("audio", undefined);
+                        setRecordingTime(0);
+                      }}
+                      className="w-full"
+                    >
+                      Nouvel enregistrement
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Submit button */}
