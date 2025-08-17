@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Building2, Bell, LogOut, Settings } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Bell, LogOut, Settings, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,9 +12,13 @@ const mainItems = [{
   url: "/organization/dashboard",
   icon: LayoutDashboard
 }, {
-  title: "Signalements",
-  url: "/organization/reports",
+  title: "Signalements disponibles",
+  url: "/organization/available-reports",
   icon: FileText
+}, {
+  title: "Mes signalements",
+  url: "/organization/managed-reports",
+  icon: CheckCircle
 }, {
   title: "Notifications",
   url: "/organization/notifications",

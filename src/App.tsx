@@ -16,9 +16,9 @@ import AdminUsers from "./pages/admin/Users";
 import AdminCategories from "./pages/admin/Categories";
 import OrganizationLayout from "./pages/organization/OrganizationLayout";
 import OrgLogin from "./pages/organization/Login";
-import OrgReports from "./pages/organization/Reports";
+import AvailableReports from "./pages/organization/AvailableReports";
+import ManagedReports from "./pages/organization/ManagedReports";
 import OrgDashboard from "./pages/organization/Dashboard";
-
 import OrgNotifications from "./pages/organization/Notifications";
 import OrgSettings from "./pages/organization/Settings";
 
@@ -54,8 +54,8 @@ const App = () => (
           <Route path="/organization/login" element={<OrgLogin />} />
           <Route path="/organization" element={<OrganizationLayout />}>
             <Route path="dashboard" element={<OrgDashboard />} />
-            <Route path="reports" element={<OrgReports />} />
-            
+            <Route path="available-reports" element={<AvailableReports />} />
+            <Route path="managed-reports" element={<ManagedReports />} />
             <Route path="notifications" element={<OrgNotifications />} />
             <Route path="settings" element={<OrgSettings />} />
             <Route index element={<OrgDashboard />} />
