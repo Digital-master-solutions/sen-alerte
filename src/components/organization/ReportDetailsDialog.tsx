@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Play, Pause, Volume2 } from "lucide-react";
+import { Eye, Play, Pause, Volume2, X, ZoomIn } from "lucide-react";
 import { getStatusBadge } from "./getStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useEffect } from "react";
@@ -14,6 +14,8 @@ interface Report {
   updated_at: string;
   department: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   photo_url?: string;
   audio_url?: string;
   anonymous_code?: string;
@@ -29,6 +31,7 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -104,11 +107,22 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
           {photoUrl && (
             <div>
               <strong>Photo:</strong>
-              <img
-                src={photoUrl}
-                alt="Signalement"
-                className="mt-2 rounded-lg max-h-64 w-full object-cover border"
-              />
+              <div className="mt-2 relative">
+                <img
+                  src={photoUrl}
+                  alt="Signalement"
+                  className="rounded-lg max-h-64 w-full object-cover border cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setShowImageModal(true)}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="absolute top-2 right-2 h-8 w-8 p-0"
+                  onClick={() => setShowImageModal(true)}
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
           {audioUrl && (
@@ -145,6 +159,29 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
           )}
         </div>
       </DialogContent>
+
+      {/* Modal d'agrandissement d'image */}
+      {showImageModal && photoUrl && (
+        <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-2">
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 z-10 h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white"
+                onClick={() => setShowImageModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <img
+                src={photoUrl}
+                alt="Signalement - Vue agrandie"
+                className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }

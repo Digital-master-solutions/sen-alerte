@@ -26,6 +26,8 @@ interface Report {
   updated_at: string;
   department: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   photo_url?: string;
   audio_url?: string;
   anonymous_code?: string;

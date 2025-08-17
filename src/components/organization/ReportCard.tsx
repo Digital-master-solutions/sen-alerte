@@ -15,6 +15,8 @@ interface Report {
   updated_at: string;
   department: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   photo_url?: string;
   audio_url?: string;
   anonymous_code?: string;
@@ -45,7 +47,11 @@ export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSele
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {report.department || "Non spécifié"}
+                {report.address ? report.address : 
+                 report.department ? report.department :
+                 (report.latitude && report.longitude) ? 
+                   `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}` : 
+                   "Localisation non spécifiée"}
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
