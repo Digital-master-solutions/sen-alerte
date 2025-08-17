@@ -28,7 +28,11 @@ const Notifications = () => {
   const [error, setError] = useState('');
 
   const fetchNotifications = async () => {
-    if (authCode.length !== 8) return;
+    console.log('fetchNotifications called with code:', authCode);
+    if (authCode.length !== 8) {
+      console.log('Code length invalid:', authCode.length);
+      return;
+    }
     
     setLoading(true);
     setError('');
@@ -75,6 +79,7 @@ const Notifications = () => {
   };
 
   const handleContinue = () => {
+    console.log('handleContinue clicked, authCode:', authCode, 'length:', authCode.length);
     fetchNotifications();
   };
 
