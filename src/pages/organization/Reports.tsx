@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { useAvailableReports } from "@/hooks/useAvailableReports";
+import { useManagedReports } from "@/hooks/useManagedReports";
 import {
   Search,
   Filter,
@@ -45,8 +47,6 @@ interface Report {
 export default function OrgReports() {
   const { toast } = useToast();
   const [org, setOrg] = useState<Org | null>(null);
-  const [availableReports, setAvailableReports] = useState<Report[]>([]);
-  const [myReports, setMyReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchAvailable, setSearchAvailable] = useState("");
   const [searchMine, setSearchMine] = useState("");
@@ -55,6 +55,9 @@ export default function OrgReports() {
   const [pageAvailable, setPageAvailable] = useState(1);
   const [pageMine, setPageMine] = useState(1);
   const pageSize = 5;
+
+  const availableReports = useAvailableReports();
+  const managedReports = useManagedReports();
 
   useEffect(() => {
     document.title = "Signalements | Organisation";
@@ -78,7 +81,11 @@ export default function OrgReports() {
       if (!orgRow) throw new Error("Organisation introuvable");
       setOrg(orgRow);
 
-      await Promise.all([loadAvailable(orgRow), loadMine(orgRow.id)]);
+      // Charger les signalements avec les hooks séparés
+      await Promise.all([
+        availableReports.loadReports(orgRow),
+        managedReports.loadReports(orgRow.id)
+      ]);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
     } finally {
@@ -86,109 +93,25 @@ export default function OrgReports() {
     }
   };
 
-  const loadAvailable = async (orgData: Org) => {
-    const { data, error } = await supabase
-      .from("reports")
-      .select("*")
-      .is("assigned_organization_id", null)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    setAvailableReports(data || []);
-  };
-
-  const loadMine = async (orgId: string) => {
-    const { data, error } = await supabase
-      .from("reports")
-      .select("*")
-      .eq("assigned_organization_id", orgId)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    setMyReports(data || []);
-  };
-
-  const claimReport = async (report: Report) => {
-    try {
-      if (!org) throw new Error("Organisation non trouvée");
-      
-      // Vérifier d'abord que le signalement n'est pas déjà assigné
-      const { data: currentReport, error: fetchError } = await supabase
-        .from("reports")
-        .select("assigned_organization_id")
-        .eq("id", report.id)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      
-      if (currentReport.assigned_organization_id) {
-        toast({ 
-          variant: "destructive", 
-          title: "Erreur", 
-          description: "Ce signalement est déjà assigné à une organisation" 
-        });
-        // Retirer le signalement de la liste disponible car il est déjà assigné
-        setAvailableReports(prev => prev.filter(r => r.id !== report.id));
-        return;
-      }
-      
-      const { error } = await supabase
-        .from("reports")
-        .update({ 
-          assigned_organization_id: org.id,
-          status: 'en-cours'
-        })
-        .eq("id", report.id)
-        .is("assigned_organization_id", null);
-      
-      if (error) throw error;
-      
-      toast({ 
-        title: "Signalement pris en charge", 
-        description: "Vous gérez maintenant ce signalement" 
-      });
-      
-      // Retirer immédiatement le signalement de la liste disponible
-      setAvailableReports(prev => prev.filter(r => r.id !== report.id));
-      
-      // Ajouter le signalement mis à jour à "Mes signalements"
-      const updatedReport = { ...report, assigned_organization_id: org.id, status: 'en-cours' };
-      setMyReports(prev => [updatedReport, ...prev]);
-      
-    } catch (e: any) {
-      console.error("Error claiming report:", e);
-      toast({ 
-        variant: "destructive", 
-        title: "Erreur", 
-        description: e.message || "Impossible de prendre en charge ce signalement" 
-      });
-    }
-  };
-
-  const updateStatus = async (reportId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from("reports")
-        .update({ status: newStatus })
-        .eq("id", reportId);
-      
-      if (error) throw error;
-      
-      toast({ title: "Statut mis à jour", description: `Signalement marqué comme ${newStatus}` });
-      await loadAll();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erreur", description: e.message });
+  const handleClaimReport = async (report: Report) => {
+    if (!org) return;
+    
+    const updatedReport = await availableReports.claimReport(report, org);
+    if (updatedReport) {
+      managedReports.addReport(updatedReport);
     }
   };
 
   const filteredAvailable = useMemo(() => {
-    return availableReports.filter(r =>
+    return availableReports.reports.filter(r =>
       r.type.toLowerCase().includes(searchAvailable.toLowerCase()) ||
       r.description.toLowerCase().includes(searchAvailable.toLowerCase()) ||
       r.department?.toLowerCase().includes(searchAvailable.toLowerCase())
     );
-  }, [availableReports, searchAvailable]);
+  }, [availableReports.reports, searchAvailable]);
 
   const filteredMine = useMemo(() => {
-    let filtered = myReports;
+    let filtered = managedReports.reports;
     if (searchMine) {
       filtered = filtered.filter(r =>
         r.type.toLowerCase().includes(searchMine.toLowerCase()) ||
@@ -200,7 +123,7 @@ export default function OrgReports() {
       filtered = filtered.filter(r => r.status === statusFilter);
     }
     return filtered;
-  }, [myReports, searchMine, statusFilter]);
+  }, [managedReports.reports, searchMine, statusFilter]);
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -220,7 +143,7 @@ export default function OrgReports() {
     );
   };
 
-  if (loading) {
+  if (loading || availableReports.loading || managedReports.loading) {
     return (
       <div className="p-6 space-y-6">
         <div className="animate-pulse space-y-6">
@@ -390,7 +313,7 @@ export default function OrgReports() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => claimReport(report)}>
+                            <AlertDialogAction onClick={() => handleClaimReport(report)}>
                               Confirmer la prise en charge
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -537,7 +460,7 @@ export default function OrgReports() {
                         </DialogContent>
                       </Dialog>
                       
-                      <Select value={report.status} onValueChange={(status) => updateStatus(report.id, status)}>
+                      <Select value={report.status} onValueChange={(status) => managedReports.updateStatus(report.id, status)}>
                         <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
