@@ -1,7 +1,9 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Play, Pause, Volume2 } from "lucide-react";
 import { getStatusBadge } from "./getStatusBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef, useEffect } from "react";
 
 interface Report {
   id: string;
@@ -13,6 +15,7 @@ interface Report {
   department: string;
   address: string;
   photo_url?: string;
+  audio_url?: string;
   anonymous_code?: string;
   assigned_organization_id?: string;
 }
@@ -23,6 +26,49 @@ interface ReportDetailsDialogProps {
 }
 
 export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDialogProps) {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const loadMedia = async () => {
+      // Charger l'URL de la photo depuis le storage
+      if (report.photo_url) {
+        const { data: photoData } = supabase.storage
+          .from('report-photos')
+          .getPublicUrl(report.photo_url);
+        setPhotoUrl(photoData.publicUrl);
+      }
+
+      // Charger l'URL de l'audio depuis le storage
+      if (report.audio_url) {
+        const { data: audioData } = supabase.storage
+          .from('report-audio')
+          .getPublicUrl(report.audio_url);
+        setAudioUrl(audioData.publicUrl);
+      }
+    };
+
+    loadMedia();
+  }, [report.photo_url, report.audio_url]);
+
+  const toggleAudio = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    }
+  };
+
+  const handleAudioEnded = () => {
+    setIsPlaying(false);
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -31,7 +77,7 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
           Voir
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Détails du signalement</DialogTitle>
           <DialogDescription>Code: {report.anonymous_code}</DialogDescription>
@@ -47,22 +93,54 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
           </div>
           <div>
             <strong>Description:</strong>
-            <p className="mt-1">{report.description}</p>
+            <p className="mt-1 break-words">{report.description}</p>
           </div>
           {report.address && (
             <div>
               <strong>Adresse:</strong>
-              <p className="mt-1">{report.address}</p>
+              <p className="mt-1 break-words">{report.address}</p>
             </div>
           )}
-          {report.photo_url && (
+          {photoUrl && (
             <div>
               <strong>Photo:</strong>
               <img
-                src={report.photo_url}
+                src={photoUrl}
                 alt="Signalement"
-                className="mt-1 rounded-lg max-h-48 object-cover"
+                className="mt-2 rounded-lg max-h-64 w-full object-cover border"
               />
+            </div>
+          )}
+          {audioUrl && (
+            <div>
+              <strong>Enregistrement audio:</strong>
+              <div className="mt-2 flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={toggleAudio}
+                  className="shrink-0"
+                >
+                  {isPlaying ? (
+                    <Pause className="h-4 w-4 mr-1" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-1" />
+                  )}
+                  {isPlaying ? "Pause" : "Écouter"}
+                </Button>
+                <Volume2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Enregistrement vocal du signalement
+                </span>
+                <audio
+                  ref={audioRef}
+                  src={audioUrl}
+                  onEnded={handleAudioEnded}
+                  className="hidden"
+                  preload="metadata"
+                />
+              </div>
             </div>
           )}
         </div>

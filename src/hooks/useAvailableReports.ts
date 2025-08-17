@@ -12,6 +12,7 @@ interface Report {
   department: string;
   address: string;
   photo_url?: string;
+  audio_url?: string;
   anonymous_code?: string;
   assigned_organization_id?: string;
 }
