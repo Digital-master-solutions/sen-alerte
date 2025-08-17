@@ -26,10 +26,10 @@ import OrgSettings from "./pages/organization/Settings";
 const queryClient = new QueryClient();
 
 const ReportPage = lazy(() => import("./pages/Report"));
-const TrackPage = lazy(() => import("./pages/Track"));
 const MyReportsPage = lazy(() => import("./pages/MyReports"));
 const NotificationsPage = lazy(() => import("./pages/Notifications"));
 const AboutPage = lazy(() => import("./pages/About"));
+const NotFoundPage = lazy(() => import("./pages/NotFound"));
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -66,23 +66,15 @@ const App = () => (
           <Route
             path="/signaler"
             element={
-              <Suspense fallback={<div className="p-6">Chargement...</div>}>
+              <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
                 <ReportPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/suivi"
-            element={
-              <Suspense fallback={<div className="p-6">Chargement...</div>}>
-                <TrackPage />
               </Suspense>
             }
           />
           <Route
             path="/mes-signalements"
             element={
-              <Suspense fallback={<div className="p-6">Chargement...</div>}>
+              <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
                 <MyReportsPage />
               </Suspense>
             }
@@ -90,7 +82,7 @@ const App = () => (
           <Route
             path="/notifications"
             element={
-              <Suspense fallback={<div className="p-6">Chargement...</div>}>
+              <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
                 <NotificationsPage />
               </Suspense>
             }
@@ -98,13 +90,20 @@ const App = () => (
           <Route
             path="/a-propos"
             element={
-              <Suspense fallback={<div className="p-6">Chargement...</div>}>
+              <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
                 <AboutPage />
               </Suspense>
             }
           />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route 
+            path="*" 
+            element={
+              <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
+                <NotFoundPage />
+              </Suspense>
+            } 
+          />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
