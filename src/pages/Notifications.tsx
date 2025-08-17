@@ -18,6 +18,8 @@ interface Notification {
   report_id: string;
 }
 
+const MAX_PREVIEW_LENGTH = 150;
+
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -26,6 +28,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [error, setError] = useState('');
+  const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
 
   const fetchNotifications = async () => {
     console.log('fetchNotifications called with code:', authCode);
@@ -88,6 +91,17 @@ const Notifications = () => {
     setNotifications([]);
     setShowNotifications(false);
     setError('');
+    setExpandedNotifications(new Set());
+  };
+
+  const toggleExpanded = (notificationId: string) => {
+    const newExpanded = new Set(expandedNotifications);
+    if (newExpanded.has(notificationId)) {
+      newExpanded.delete(notificationId);
+    } else {
+      newExpanded.add(notificationId);
+    }
+    setExpandedNotifications(newExpanded);
   };
 
   const handleAuthCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,9 +114,9 @@ const Notifications = () => {
   const getTypeIcon = (type: string) => {
     switch (type?.toLowerCase()) {
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
+        return <CheckCircle className="h-5 w-5 text-emerald-600" />;
       case 'warning':
-        return <AlertCircle className="h-5 w-5 text-yellow-600" />;
+        return <AlertCircle className="h-5 w-5 text-amber-600" />;
       case 'error':
         return <AlertCircle className="h-5 w-5 text-red-600" />;
       default:
@@ -113,13 +127,13 @@ const Notifications = () => {
   const getTypeBadge = (type: string) => {
     switch (type?.toLowerCase()) {
       case 'success':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Succès</Badge>;
+        return <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">Succès</Badge>;
       case 'warning':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Attention</Badge>;
+        return <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">Attention</Badge>;
       case 'error':
-        return <Badge variant="destructive">Erreur</Badge>;
+        return <Badge variant="destructive" className="bg-red-50 text-red-700 border-red-200">Erreur</Badge>;
       default:
-        return <Badge variant="secondary">Info</Badge>;
+        return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">Info</Badge>;
     }
   };
 
@@ -133,69 +147,107 @@ const Notifications = () => {
     });
   };
 
+  const isLongMessage = (message: string) => message.length > MAX_PREVIEW_LENGTH;
+  
+  const getPreviewMessage = (message: string) => {
+    if (!isLongMessage(message)) return message;
+    return message.substring(0, MAX_PREVIEW_LENGTH) + '...';
+  };
+
   if (showNotifications) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <div className="w-full max-w-4xl mx-auto">
           {/* Back button */}
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={resetForm}
-            className="mb-8"
+            className="mb-8 hover:bg-white/80 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
 
           {/* Header */}
-          <div className="bg-white rounded-2xl shadow-sm p-8 mb-6 text-center">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="h-10 w-10 text-blue-600" />
+          <div className="bg-white rounded-3xl shadow-lg border border-slate-200/50 p-8 mb-8 text-center backdrop-blur-sm">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <MessageCircle className="h-12 w-12 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-slate-900 mb-3">
               Vos Notifications
             </h1>
-            <p className="text-gray-600">
-              Code: {authCode} • {notifications.length} notification(s)
+            <p className="text-slate-600 text-lg">
+              Code: <span className="font-mono font-semibold text-blue-600">{authCode}</span> • {notifications.length} notification(s)
             </p>
           </div>
 
           {/* Notifications List */}
-          <div className="space-y-4">
-            {notifications.map((notification) => (
-              <Card key={notification.id} className="bg-white shadow-sm">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      {getTypeIcon(notification.type)}
-                      <CardTitle className="text-lg">{notification.title}</CardTitle>
+          <div className="space-y-6">
+            {notifications.map((notification, index) => {
+              const isExpanded = expandedNotifications.has(notification.id);
+              const shouldShowExpand = isLongMessage(notification.message);
+              
+              return (
+                <Card 
+                  key={notification.id} 
+                  className="bg-white shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <CardHeader className="pb-4 bg-gradient-to-r from-slate-50 to-white">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 rounded-xl bg-white shadow-sm">
+                          {getTypeIcon(notification.type)}
+                        </div>
+                        <CardTitle className="text-xl font-semibold text-slate-900 leading-tight">
+                          {notification.title}
+                        </CardTitle>
+                      </div>
+                      {getTypeBadge(notification.type)}
                     </div>
-                    {getTypeBadge(notification.type)}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 mb-4 leading-relaxed">
-                    {notification.message}
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>{formatDate(notification.created_at)}</span>
-                    {notification.read && (
-                      <Badge variant="outline" className="text-xs">
-                        Lu
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="prose max-w-none">
+                      <p className="text-slate-700 leading-relaxed text-base">
+                        {isExpanded || !shouldShowExpand 
+                          ? notification.message 
+                          : getPreviewMessage(notification.message)
+                        }
+                      </p>
+                      
+                      {shouldShowExpand && (
+                        <button
+                          onClick={() => toggleExpanded(notification.id)}
+                          className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md px-1"
+                        >
+                          {isExpanded ? 'Voir moins' : 'Voir plus'}
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
+                      <span className="text-sm text-slate-500 font-medium">
+                        {formatDate(notification.created_at)}
+                      </span>
+                      {notification.read && (
+                        <Badge variant="outline" className="text-xs border-emerald-200 text-emerald-700 bg-emerald-50">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Lu
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
           {/* Action Button */}
-          <div className="mt-8 text-center">
+          <div className="mt-12 text-center">
             <Button
               onClick={resetForm}
               variant="outline"
-              className="w-full max-w-md"
+              className="px-8 py-3 text-lg font-medium bg-white hover:bg-slate-50 border-slate-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
             >
               Saisir un autre code
             </Button>
