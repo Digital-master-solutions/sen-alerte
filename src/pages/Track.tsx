@@ -73,9 +73,9 @@ export default function Track() {
       <div className="mx-auto max-w-4xl px-4 py-10 space-y-6">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
           <Input
-            placeholder="Entrer votre code (ex: SN-AB12CD)"
+            placeholder="Entrer votre code (8 caractères alphanumériques)"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8))}
           />
           <Button variant="default" onClick={() => search(code)} disabled={loading}>
             Rechercher

@@ -87,7 +87,17 @@ export default function Report() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const code = genCode();
+      // Generate unique 8-character alphanumeric code
+      const generateCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+      
+      const code = generateCode();
       let photoPath: string | null = null;
       let audioPath: string | null = null;
 
