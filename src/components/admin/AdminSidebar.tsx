@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Building2, Users, MessageSquare, LogOut, Shield, Tag, UserCog } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Users, LogOut, Shield, Tag, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,10 +21,6 @@ const mainItems = [{
   title: "Utilisateurs",
   url: "/admin/users",
   icon: Users
-}, {
-  title: "Messages",
-  url: "/admin/messages",
-  icon: MessageSquare
 }, {
   title: "Catégories",
   url: "/admin/categories",

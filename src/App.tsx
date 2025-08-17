@@ -12,13 +12,13 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminReports from "./pages/admin/Reports";
 import AdminOrganizations from "./pages/admin/Organizations";
 import AdminUsers from "./pages/admin/Users";
-import AdminMessages from "./pages/admin/Messages";
+
 import AdminCategories from "./pages/admin/Categories";
 import OrganizationLayout from "./pages/organization/OrganizationLayout";
 import OrgLogin from "./pages/organization/Login";
 import OrgReports from "./pages/organization/Reports";
 import OrgDashboard from "./pages/organization/Dashboard";
-import OrgMessages from "./pages/organization/Messages";
+
 import OrgNotifications from "./pages/organization/Notifications";
 import OrgSettings from "./pages/organization/Settings";
 
@@ -45,7 +45,7 @@ const App = () => (
             <Route path="reports" element={<AdminReports />} />
             <Route path="organizations" element={<AdminOrganizations />} />
             <Route path="users" element={<AdminUsers />} />
-            <Route path="messages" element={<AdminMessages />} />
+            
             <Route path="categories" element={<AdminCategories />} />
             <Route index element={<AdminDashboard />} />
           </Route>
@@ -55,7 +55,7 @@ const App = () => (
           <Route path="/organization" element={<OrganizationLayout />}>
             <Route path="dashboard" element={<OrgDashboard />} />
             <Route path="reports" element={<OrgReports />} />
-            <Route path="messages" element={<OrgMessages />} />
+            
             <Route path="notifications" element={<OrgNotifications />} />
             <Route path="settings" element={<OrgSettings />} />
             <Route index element={<OrgDashboard />} />

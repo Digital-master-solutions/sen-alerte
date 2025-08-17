@@ -10,7 +10,6 @@ import {
   Clock,
   CheckCircle,
   TrendingUp,
-  MessageSquare,
   Bell,
   RefreshCw,
 } from "lucide-react";
@@ -40,7 +39,7 @@ export default function OrganizationDashboard() {
   const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({ total: 0, inProgress: 0, resolved: 0, pending: 0 });
-  const [messages, setMessages] = useState<RecentMessage[]>([]);
+  
   const [notifCount, setNotifCount] = useState<number>(0);
 
   useEffect(() => {
@@ -76,14 +75,6 @@ export default function OrganizationDashboard() {
       const resolved = repAll?.filter(r => r.status === 'resolu').length || 0;
       setStats({ total, pending, inProgress, resolved });
 
-      // Charger les derniers messages
-      const { data: msgs } = await supabase
-        .from("messagerie")
-        .select("id,title,message,sender_type,created_at")
-        .or(`sender_type.eq.organization,recipient_type.eq.organization`)
-        .order("created_at", { ascending: false })
-        .limit(5);
-      setMessages(msgs || []);
 
       // Compter les notifications envoyées
       const { count } = await supabase
@@ -233,38 +224,8 @@ export default function OrganizationDashboard() {
           </CardContent>
         </Card>
 
-        {/* Messages & Notifications */}
+        {/* Notifications */}
         <div className="space-y-6">
-          {/* Recent Messages */}
-          <Card className="bg-card border-border shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-card-foreground">
-                <MessageSquare className="h-5 w-5 text-primary" />
-                Messages récents
-              </CardTitle>
-              <CardDescription>Dernières communications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {messages.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Aucun message récent</p>
-                )}
-                {messages.slice(0, 3).map((m) => (
-                  <div key={m.id} className="p-3 bg-accent/20 rounded-lg border border-border">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="secondary" className="text-xs">{m.sender_type}</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(m.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="font-medium text-sm">{m.title}</div>
-                    <div className="text-xs text-muted-foreground line-clamp-2">{m.message}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Notifications Stats */}
           <Card className="bg-card border-border shadow-md">
             <CardHeader>

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Plus, Home, MessageSquare, Bell, Info, FileText, MapPin, Users, Settings } from "lucide-react";
+import { Menu, Plus, Home, Bell, Info, FileText, MapPin, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   const navigate = useNavigate();
