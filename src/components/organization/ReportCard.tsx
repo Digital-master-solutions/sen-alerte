@@ -5,6 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { MapPin, Clock, User, Hand } from "lucide-react";
 import { getStatusBadge } from "./getStatusBadge";
 import { ReportDetailsDialog } from "./ReportDetailsDialog";
+import { useState, useEffect } from "react";
 
 interface Report {
   id: string;
@@ -32,6 +33,47 @@ interface ReportCardProps {
 }
 
 export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSelect }: ReportCardProps) {
+  const [location, setLocation] = useState<string>("");
+
+  useEffect(() => {
+    const getLocation = async () => {
+      if (report.address) {
+        setLocation(report.address);
+      } else if (report.department) {
+        setLocation(report.department);
+      } else if (report.latitude && report.longitude) {
+        try {
+          // Utiliser l'API Nominatim d'OpenStreetMap pour le géocodage inverse
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${report.latitude}&lon=${report.longitude}&zoom=16&addressdetails=1&accept-language=fr`
+          );
+          const data = await response.json();
+          
+          if (data && data.address) {
+            // Extraire le quartier ou la zone
+            const quartier = data.address.suburb || 
+                           data.address.neighbourhood || 
+                           data.address.quarter ||
+                           data.address.city_district ||
+                           data.address.village ||
+                           data.address.town ||
+                           data.address.city ||
+                           "Zone inconnue";
+            setLocation(quartier);
+          } else {
+            setLocation(`${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`);
+          }
+        } catch (error) {
+          console.error("Erreur géocodage:", error);
+          setLocation(`${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`);
+        }
+      } else {
+        setLocation("Localisation non spécifiée");
+      }
+    };
+
+    getLocation();
+  }, [report.address, report.department, report.latitude, report.longitude]);
   return (
     <Card className="border-border hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -47,11 +89,7 @@ export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSele
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {report.address ? report.address : 
-                 report.department ? report.department :
-                 (report.latitude && report.longitude) ? 
-                   `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}` : 
-                   "Localisation non spécifiée"}
+                {location || "Chargement..."}
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
