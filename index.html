@@ -1,22 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SenAlert · Alertes urbaines au Sénégal</title>
-    <meta name="description" content="SenAlert: signalez et suivez les problèmes urbains au Sénégal. Plateforme citoyenne et organisations." />
+    <title>SenAlert · Plateforme d'alertes urbaines au Sénégal</title>
+    <meta name="description" content="SenAlert: signalez et suivez les problèmes urbains au Sénégal (voirie, éclairage, propreté). Plateforme collaborative citoyens et organisations municipales." />
+    <meta name="keywords" content="Sénégal, alertes urbaines, signalement, voirie, éclairage public, propreté, municipalité, citoyens, infrastructure" />
     <meta name="author" content="SenAlert" />
+    <meta name="robots" content="index, follow" />
 
-    <link rel="canonical" href="/" />
+    <!-- Favicon -->
+    <link rel="icon" href="/src/assets/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/src/assets/favicon.png" />
 
-    <meta property="og:title" content="SenAlert · Alertes urbaines au Sénégal" />
-    <meta property="og:description" content="Signalez et suivez les problèmes urbains: voirie, éclairage, propreté, etc." />
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://senalert.sn/" />
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://senalert.sn/" />
+    <meta property="og:title" content="SenAlert · Plateforme d'alertes urbaines au Sénégal" />
+    <meta property="og:description" content="Signalez et suivez les problèmes urbains: voirie, éclairage, propreté. Collaboration citoyens-municipalités au Sénégal." />
+    <meta property="og:image" content="https://senalert.sn/og-image.png" />
+    <meta property="og:locale" content="fr_SN" />
+    <meta property="og:site_name" content="SenAlert" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:url" content="https://senalert.sn/" />
+    <meta name="twitter:title" content="SenAlert · Alertes urbaines Sénégal" />
+    <meta name="twitter:description" content="Plateforme collaborative pour signaler les problèmes urbains au Sénégal" />
+    <meta name="twitter:image" content="https://senalert.sn/og-image.png" />
+
+    <!-- Geo tags pour le référencement local -->
+    <meta name="geo.region" content="SN" />
+    <meta name="geo.country" content="Sénégal" />
+    <meta name="geo.placename" content="Dakar, Sénégal" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "SenAlert",
+      "description": "Plateforme collaborative pour signaler et suivre les problèmes urbains au Sénégal",
+      "url": "https://senalert.sn",
+      "applicationCategory": "GovernmentApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "XOF"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "SenAlert",
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "SN",
+          "addressRegion": "Dakar"
+        }
+      }
+    }
+    </script>
+
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://mjhsvrksrmcemhbglfkm.supabase.co https://nominatim.openstreetmap.org;" />
   </head>
 
   <body>

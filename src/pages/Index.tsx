@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Plus, Home, Bell, Info, FileText, MapPin, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SEOHead } from "@/components/SEOHead";
 const Index = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
@@ -31,6 +32,12 @@ const Index = () => {
     loadReportCount();
   }, []);
   return <div className="min-h-screen bg-background">
+      <SEOHead 
+        title="SenAlert · Plateforme d'alertes urbaines au Sénégal"
+        description="Signalez et suivez les problèmes urbains au Sénégal : voirie, éclairage public, propreté. Plateforme collaborative citoyens-municipalités."
+        keywords={["Sénégal", "alertes urbaines", "signalement", "voirie", "éclairage public", "propreté", "municipalité", "citoyens", "infrastructure", "Dakar"]}
+      />
+      
       <header className="w-full border-b bg-background shadow-sm">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">

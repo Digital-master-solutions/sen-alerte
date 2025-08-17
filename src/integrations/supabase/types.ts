@@ -867,6 +867,10 @@ export type Database = {
         Args: { _org_name: string }
         Returns: boolean
       }
+      log_security_event: {
+        Args: { _details?: Json; _event_type: string }
+        Returns: undefined
+      }
       migrate_admins_to_auth: {
         Args: Record<PropertyKey, never>
         Returns: string
