@@ -221,7 +221,7 @@ export default function OrgNotifications() {
                           Voir plus
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
                             <FileText className="h-5 w-5" />
@@ -250,7 +250,7 @@ export default function OrgNotifications() {
                                 <MapPin className="h-4 w-4" />
                                 Adresse
                               </span>
-                              <p className="text-sm bg-accent/20 p-2 rounded">{r.address}</p>
+                              <p className="text-sm bg-accent/20 p-2 rounded break-words">{r.address}</p>
                             </div>
                           )}
                           
@@ -263,8 +263,8 @@ export default function OrgNotifications() {
                           
                           <div className="space-y-1">
                             <span className="text-sm font-medium text-muted-foreground">Description complète</span>
-                            <div className="bg-accent/10 p-4 rounded-lg border">
-                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{r.description}</p>
+                            <div className="bg-accent/10 p-4 rounded-lg border max-h-60 overflow-y-auto">
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{r.description}</p>
                             </div>
                           </div>
                           
