@@ -51,28 +51,10 @@ export const useAvailableReports = () => {
 
   const claimReport = async (report: Report, organization: Organization) => {
     try {
-      // Vérifier d'abord que le signalement n'est pas déjà assigné
-      const { data: currentReport, error: fetchError } = await supabase
-        .from("reports")
-        .select("assigned_organization_id")
-        .eq("id", report.id)
-        .single();
+      console.log("Attempting to claim report:", report.id, "for organization:", organization.id);
       
-      if (fetchError) throw fetchError;
-      
-      if (currentReport.assigned_organization_id) {
-        toast({ 
-          variant: "destructive", 
-          title: "Erreur", 
-          description: "Ce signalement est déjà assigné à une organisation" 
-        });
-        // Retirer le signalement de la liste car il est déjà assigné
-        setReports(prev => prev.filter(r => r.id !== report.id));
-        return null;
-      }
-      
-      // Utiliser une transaction pour s'assurer de la cohérence
-      const { data: updatedReport, error } = await supabase
+      // Utiliser une approche plus simple - essayer directement l'update
+      const { data: updatedReports, error } = await supabase
         .from("reports")
         .update({ 
           assigned_organization_id: organization.id,
@@ -81,18 +63,27 @@ export const useAvailableReports = () => {
         })
         .eq("id", report.id)
         .is("assigned_organization_id", null)
-        .select()
-        .single();
+        .select();
       
       if (error) {
         console.error("Database update error:", error);
         throw error;
       }
       
-      if (!updatedReport) {
-        throw new Error("Le signalement n'a pas pu être mis à jour");
+      // Vérifier si l'update a affecté au moins une ligne
+      if (!updatedReports || updatedReports.length === 0) {
+        console.warn("No rows were updated - report may already be assigned");
+        toast({ 
+          variant: "destructive", 
+          title: "Signalement déjà assigné", 
+          description: "Ce signalement a déjà été pris en charge par une autre organisation" 
+        });
+        // Retirer le signalement de la liste car il n'est plus disponible
+        setReports(prev => prev.filter(r => r.id !== report.id));
+        return null;
       }
       
+      const updatedReport = updatedReports[0];
       console.log("Report successfully claimed:", updatedReport);
       
       toast({ 
