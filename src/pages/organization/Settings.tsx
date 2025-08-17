@@ -20,12 +20,14 @@ interface OrgProfile {
   id: string;
   name: string;
   email: string;
-  description?: string;
   phone?: string;
   address?: string;
   city?: string;
-  website?: string;
-  logo_url?: string;
+  type: string;
+  status: string;
+  created_at: string;
+  last_login?: string;
+  is_active: boolean;
 }
 
 export default function OrgSettings() {
@@ -78,13 +80,9 @@ export default function OrgSettings() {
         .update({
           name: profile.name,
           email: profile.email,
-          description: profile.description,
           phone: profile.phone,
           address: profile.address,
           city: profile.city,
-          website: profile.website,
-          logo_url: profile.logo_url,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", profile.id);
       
@@ -187,125 +185,147 @@ export default function OrgSettings() {
         </TabsList>
 
         <TabsContent value="profile">
-          <Card className="bg-card border-border shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-card-foreground">
-                <SettingsIcon className="h-5 w-5 text-primary" />
-                Informations de l'organisation
-              </CardTitle>
-              <CardDescription>
-                Modifiez les informations publiques de votre organisation
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="name">Nom de l'organisation *</Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
-                    onChange={(e) => setProfile({...profile, name: e.target.value})}
-                    className="mt-1"
-                  />
+          <div className="space-y-6">
+            {/* Informations système - Lecture seule */}
+            <Card className="bg-card border-border shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-card-foreground">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  Informations système
+                </CardTitle>
+                <CardDescription>
+                  Informations de votre organisation gérées par le système
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Type</Label>
+                    <p className="text-sm text-foreground mt-1">{profile.type}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Statut</Label>
+                    <p className={`text-sm mt-1 ${
+                      profile.status === 'approved' ? 'text-green-600' : 
+                      profile.status === 'pending' ? 'text-yellow-600' : 
+                      'text-red-600'
+                    }`}>
+                      {profile.status === 'approved' ? 'Approuvé' :
+                       profile.status === 'pending' ? 'En attente' :
+                       profile.status === 'rejected' ? 'Rejeté' : profile.status}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Date de création</Label>
+                    <p className="text-sm text-foreground mt-1">
+                      {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Dernière connexion</Label>
+                    <p className="text-sm text-foreground mt-1">
+                      {profile.last_login ? 
+                        new Date(profile.last_login).toLocaleDateString('fr-FR') : 
+                        'Jamais connecté'
+                      }
+                    </p>
+                  </div>
                 </div>
                 <div>
-                  <Label htmlFor="email">Email de contact *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({...profile, email: e.target.value})}
-                    className="mt-1"
-                  />
+                  <Label className="text-sm font-medium text-muted-foreground">Compte actif</Label>
+                  <p className={`text-sm mt-1 ${profile.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                    {profile.is_active ? 'Oui' : 'Non'}
+                  </p>
                 </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={profile.description || ""}
-                  onChange={(e) => setProfile({...profile, description: e.target.value})}
-                  rows={3}
-                  className="mt-1"
-                  placeholder="Décrivez votre organisation..."
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              </CardContent>
+            </Card>
+
+            {/* Informations modifiables */}
+            <Card className="bg-card border-border shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-card-foreground">
+                  <SettingsIcon className="h-5 w-5 text-primary" />
+                  Informations modifiables
+                </CardTitle>
+                <CardDescription>
+                  Modifiez les informations de votre organisation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="name">Nom de l'organisation *</Label>
+                    <Input
+                      id="name"
+                      value={profile.name}
+                      onChange={(e) => setProfile({...profile, name: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email de contact *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile.email}
+                      onChange={(e) => setProfile({...profile, email: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="phone">Téléphone</Label>
+                    <Input
+                      id="phone"
+                      value={profile.phone || ""}
+                      onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                      className="mt-1"
+                      placeholder="Ex: +33 1 23 45 67 89"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city">Ville</Label>
+                    <Input
+                      id="city"
+                      value={profile.city || ""}
+                      onChange={(e) => setProfile({...profile, city: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
                 <div>
-                  <Label htmlFor="phone">Téléphone</Label>
+                  <Label htmlFor="address">Adresse</Label>
                   <Input
-                    id="phone"
-                    value={profile.phone || ""}
-                    onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                    id="address"
+                    value={profile.address || ""}
+                    onChange={(e) => setProfile({...profile, address: e.target.value})}
                     className="mt-1"
-                    placeholder="Ex: +33 1 23 45 67 89"
+                    placeholder="Adresse complète"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="website">Site web</Label>
-                  <Input
-                    id="website"
-                    type="url"
-                    value={profile.website || ""}
-                    onChange={(e) => setProfile({...profile, website: e.target.value})}
-                    className="mt-1"
-                    placeholder="https://..."
-                  />
+                
+                <div className="flex justify-end pt-6 border-t border-border">
+                  <Button 
+                    onClick={saveProfile} 
+                    disabled={saving}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    {saving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Sauvegarder
+                  </Button>
                 </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="address">Adresse</Label>
-                <Input
-                  id="address"
-                  value={profile.address || ""}
-                  onChange={(e) => setProfile({...profile, address: e.target.value})}
-                  className="mt-1"
-                  placeholder="Adresse complète"
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="city">Ville</Label>
-                  <Input
-                    id="city"
-                    value={profile.city || ""}
-                    onChange={(e) => setProfile({...profile, city: e.target.value})}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="logo_url">URL du logo</Label>
-                  <Input
-                    id="logo_url"
-                    type="url"
-                    value={profile.logo_url || ""}
-                    onChange={(e) => setProfile({...profile, logo_url: e.target.value})}
-                    className="mt-1"
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end pt-6 border-t border-border">
-                <Button 
-                  onClick={saveProfile} 
-                  disabled={saving}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {saving ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                  )}
-                  Sauvegarder
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="security">
