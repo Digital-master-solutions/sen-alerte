@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, Play, Pause } from "lucide-react";
+import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, Play, Pause, Trash2 } from "lucide-react";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -53,6 +53,10 @@ export default function Report() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Signaler un incident · SenAlert";
@@ -123,15 +127,21 @@ export default function Report() {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' }, 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }, 
         audio: false 
       });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        await videoRef.current.play();
       }
       setShowCamera(true);
     } catch (error) {
+      console.error("Camera error:", error);
       toast.error("Impossible d'accéder à la caméra");
     }
   };
@@ -140,15 +150,26 @@ export default function Report() {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(video, 0, 0);
+        // Draw the video frame to canvas
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to blob and create file
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
             form.setValue("photo", file as any);
+            
+            // Create preview URL
+            const url = URL.createObjectURL(blob);
+            setCapturedPhoto(url);
+            
             toast.success("Photo capturée");
             stopCamera();
           }
@@ -185,6 +206,11 @@ export default function Report() {
         setRecordedAudio(blob);
         const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
         form.setValue("audio", file as any);
+        
+        // Create audio URL for playback
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -217,6 +243,44 @@ export default function Report() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Fonctions pour la lecture audio
+  const playAudio = () => {
+    if (audioRef.current && audioUrl) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const pauseAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const deleteAudio = () => {
+    setRecordedAudio(null);
+    setAudioUrl(null);
+    setIsPlaying(false);
+    form.setValue("audio", undefined);
+    setRecordingTime(0);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+  };
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+      if (capturedPhoto) {
+        URL.revokeObjectURL(capturedPhoto);
+      }
+    };
+  }, [audioUrl, capturedPhoto]);
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
@@ -440,35 +504,66 @@ export default function Report() {
                     const f = e.target.files?.[0];
                     if (f) {
                       form.setValue("photo", f as any);
+                      // Create preview for uploaded image
+                      const url = URL.createObjectURL(f);
+                      setCapturedPhoto(url);
                       toast.success("Photo sélectionnée");
                     }
                   }}
                 />
 
+                {/* Preview de la photo capturée/sélectionnée */}
+                {capturedPhoto && (
+                  <div className="relative">
+                    <img 
+                      src={capturedPhoto} 
+                      alt="Photo capturée" 
+                      className="w-full h-48 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setCapturedPhoto(null);
+                        form.setValue("photo", undefined);
+                        if (capturedPhoto) {
+                          URL.revokeObjectURL(capturedPhoto);
+                        }
+                      }}
+                      className="absolute top-2 right-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+
                 {/* Interface caméra */}
                 {showCamera && (
-                  <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center">
-                    <div className="relative max-w-md w-full mx-4">
+                  <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+                    <div className="relative max-w-lg w-full">
                       <video
                         ref={videoRef}
                         autoPlay
                         playsInline
-                        className="w-full rounded-lg"
+                        muted
+                        className="w-full aspect-video rounded-lg object-cover"
                       />
                       <canvas ref={canvasRef} className="hidden" />
-                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-4">
+                      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-6">
                         <Button
+                          type="button"
                           onClick={capturePhoto}
-                          className="bg-white text-black hover:bg-gray-200 rounded-full w-16 h-16"
+                          className="bg-white text-black hover:bg-gray-200 rounded-full w-16 h-16 flex items-center justify-center"
                         >
-                          <Camera className="w-6 h-6" />
+                          <Camera className="w-8 h-8" />
                         </Button>
                         <Button
+                          type="button"
                           onClick={stopCamera}
-                          variant="outline"
-                          className="bg-red-500 text-white hover:bg-red-600 rounded-full w-16 h-16"
+                          className="bg-red-500 text-white hover:bg-red-600 rounded-full w-16 h-16 flex items-center justify-center"
                         >
-                          ✕
+                          <span className="text-2xl">✕</span>
                         </Button>
                       </div>
                     </div>
@@ -523,18 +618,43 @@ export default function Report() {
                       </div>
                       <span className="text-green-600 font-mono">{formatTime(recordingTime)}</span>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setRecordedAudio(null);
-                        form.setValue("audio", undefined);
-                        setRecordingTime(0);
-                      }}
-                      className="w-full"
-                    >
-                      Nouvel enregistrement
-                    </Button>
+                    
+                    {/* Audio player controls */}
+                    <div className="flex items-center justify-center space-x-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={isPlaying ? pauseAudio : playAudio}
+                        className="flex items-center space-x-2"
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                        <span>{isPlaying ? "Pause" : "Écouter"}</span>
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={deleteAudio}
+                        className="flex items-center space-x-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Supprimer</span>
+                      </Button>
+                    </div>
+                    
+                    {/* Hidden audio element */}
+                    {audioUrl && (
+                      <audio
+                        ref={audioRef}
+                        src={audioUrl}
+                        onEnded={() => setIsPlaying(false)}
+                        className="hidden"
+                      />
+                    )}
                   </div>
                 )}
               </div>
