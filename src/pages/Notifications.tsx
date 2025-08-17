@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Phone, ArrowLeft, MessageCircle, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Phone, ArrowLeft, MessageCircle, CheckCircle, AlertCircle, Info, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -28,7 +29,8 @@ const Notifications = () => {
   const [loading, setLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [error, setError] = useState('');
-  const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const fetchNotifications = async () => {
     console.log('fetchNotifications called with code:', authCode);
@@ -91,17 +93,13 @@ const Notifications = () => {
     setNotifications([]);
     setShowNotifications(false);
     setError('');
-    setExpandedNotifications(new Set());
+    setSelectedNotification(null);
+    setIsDialogOpen(false);
   };
 
-  const toggleExpanded = (notificationId: string) => {
-    const newExpanded = new Set(expandedNotifications);
-    if (newExpanded.has(notificationId)) {
-      newExpanded.delete(notificationId);
-    } else {
-      newExpanded.add(notificationId);
-    }
-    setExpandedNotifications(newExpanded);
+  const openNotificationDialog = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setIsDialogOpen(true);
   };
 
   const handleAuthCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,13 +145,6 @@ const Notifications = () => {
     });
   };
 
-  const isLongMessage = (message: string) => message.length > MAX_PREVIEW_LENGTH;
-  
-  const getPreviewMessage = (message: string) => {
-    if (!isLongMessage(message)) return message;
-    return message.substring(0, MAX_PREVIEW_LENGTH) + '...';
-  };
-
   if (showNotifications) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -183,63 +174,56 @@ const Notifications = () => {
 
           {/* Notifications List */}
           <div className="space-y-6">
-            {notifications.map((notification, index) => {
-              const isExpanded = expandedNotifications.has(notification.id);
-              const shouldShowExpand = isLongMessage(notification.message);
-              
-              return (
-                <Card 
-                  key={notification.id} 
-                  className="bg-white shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden animate-fade-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardHeader className="pb-4 bg-gradient-to-r from-slate-50 to-white">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 rounded-xl bg-white shadow-sm">
-                          {getTypeIcon(notification.type)}
-                        </div>
-                        <CardTitle className="text-xl font-semibold text-slate-900 leading-tight">
-                          {notification.title}
-                        </CardTitle>
+            {notifications.map((notification, index) => (
+              <Card 
+                key={notification.id} 
+                className="bg-white shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardHeader className="pb-4 bg-gradient-to-r from-slate-50 to-white">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 rounded-xl bg-white shadow-sm">
+                        {getTypeIcon(notification.type)}
                       </div>
-                      {getTypeBadge(notification.type)}
+                      <CardTitle className="text-xl font-semibold text-slate-900 leading-tight">
+                        {notification.title}
+                      </CardTitle>
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="prose max-w-none">
-                      <p className="text-slate-700 leading-relaxed text-base">
-                        {isExpanded || !shouldShowExpand 
-                          ? notification.message 
-                          : getPreviewMessage(notification.message)
-                        }
+                    {getTypeBadge(notification.type)}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-slate-600 text-sm mb-4">
+                        Cliquez sur "Voir" pour lire le message complet
                       </p>
                       
-                      {shouldShowExpand && (
-                        <button
-                          onClick={() => toggleExpanded(notification.id)}
-                          className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md px-1"
-                        >
-                          {isExpanded ? 'Voir moins' : 'Voir plus'}
-                        </button>
-                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-500 font-medium">
+                          {formatDate(notification.created_at)}
+                        </span>
+                        {notification.read && (
+                          <Badge variant="outline" className="text-xs border-emerald-200 text-emerald-700 bg-emerald-50">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Lu
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-                      <span className="text-sm text-slate-500 font-medium">
-                        {formatDate(notification.created_at)}
-                      </span>
-                      {notification.read && (
-                        <Badge variant="outline" className="text-xs border-emerald-200 text-emerald-700 bg-emerald-50">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Lu
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    <Button
+                      onClick={() => openNotificationDialog(notification)}
+                      className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Voir
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Action Button */}
@@ -253,6 +237,51 @@ const Notifications = () => {
             </Button>
           </div>
         </div>
+
+        {/* Notification Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            {selectedNotification && (
+              <>
+                <DialogHeader className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-slate-100">
+                      {getTypeIcon(selectedNotification.type)}
+                    </div>
+                    <div className="flex-1">
+                      <DialogTitle className="text-xl font-semibold text-slate-900 leading-tight">
+                        {selectedNotification.title}
+                      </DialogTitle>
+                      <div className="flex items-center gap-2 mt-2">
+                        {getTypeBadge(selectedNotification.type)}
+                        <span className="text-sm text-slate-500">
+                          {formatDate(selectedNotification.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </DialogHeader>
+                
+                <div className="mt-6">
+                  <div className="prose max-w-none">
+                    <p className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap">
+                      {selectedNotification.message}
+                    </p>
+                  </div>
+                  
+                  {selectedNotification.read && (
+                    <div className="mt-6 pt-4 border-t border-slate-200">
+                      <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Message lu
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
