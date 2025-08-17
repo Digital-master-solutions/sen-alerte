@@ -71,16 +71,29 @@ export const useAvailableReports = () => {
         return null;
       }
       
-      const { error } = await supabase
+      // Utiliser une transaction pour s'assurer de la cohérence
+      const { data: updatedReport, error } = await supabase
         .from("reports")
         .update({ 
           assigned_organization_id: organization.id,
-          status: 'en-cours'
+          status: 'en-cours',
+          updated_at: new Date().toISOString()
         })
         .eq("id", report.id)
-        .is("assigned_organization_id", null);
+        .is("assigned_organization_id", null)
+        .select()
+        .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Database update error:", error);
+        throw error;
+      }
+      
+      if (!updatedReport) {
+        throw new Error("Le signalement n'a pas pu être mis à jour");
+      }
+      
+      console.log("Report successfully claimed:", updatedReport);
       
       toast({ 
         title: "Signalement pris en charge", 
@@ -90,8 +103,8 @@ export const useAvailableReports = () => {
       // Retirer immédiatement le signalement de la liste disponible
       setReports(prev => prev.filter(r => r.id !== report.id));
       
-      // Retourner le signalement mis à jour
-      return { ...report, assigned_organization_id: organization.id, status: 'en-cours' };
+      // Retourner le signalement mis à jour depuis la base
+      return updatedReport;
       
     } catch (error: any) {
       console.error("Error claiming report:", error);

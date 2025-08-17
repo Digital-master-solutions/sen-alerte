@@ -24,6 +24,8 @@ export const useManagedReports = () => {
   const loadReports = async (organizationId: string) => {
     setLoading(true);
     try {
+      console.log("Loading managed reports for organization:", organizationId);
+      
       const { data, error } = await supabase
         .from("reports")
         .select("*")
@@ -31,8 +33,11 @@ export const useManagedReports = () => {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
+      
+      console.log("Loaded managed reports:", data?.length || 0);
       setReports(data || []);
     } catch (error: any) {
+      console.error("Error loading managed reports:", error);
       toast({ 
         variant: "destructive", 
         title: "Erreur", 
