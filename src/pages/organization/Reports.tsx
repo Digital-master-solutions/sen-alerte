@@ -96,9 +96,19 @@ export default function OrgReports() {
   const handleClaimReport = async (report: Report) => {
     if (!org) return;
     
+    console.log("Claiming report:", report.id);
     const updatedReport = await availableReports.claimReport(report, org);
     if (updatedReport) {
+      console.log("Report claimed successfully, adding to managed reports");
       managedReports.addReport(updatedReport);
+      
+      // Recharger les deux listes pour s'assurer de la synchronisation
+      setTimeout(async () => {
+        await Promise.all([
+          availableReports.loadReports(org),
+          managedReports.loadReports(org.id)
+        ]);
+      }, 1000);
     }
   };
 

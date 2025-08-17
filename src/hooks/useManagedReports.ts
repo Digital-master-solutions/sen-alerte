@@ -80,7 +80,17 @@ export const useManagedReports = () => {
   };
 
   const addReport = (report: Report) => {
-    setReports(prev => [report, ...prev]);
+    console.log("Adding report to managed list:", report.id);
+    setReports(prev => {
+      // Éviter les doublons
+      const exists = prev.find(r => r.id === report.id);
+      if (exists) {
+        console.log("Report already in managed list, updating");
+        return prev.map(r => r.id === report.id ? report : r);
+      }
+      console.log("Adding new report to managed list");
+      return [report, ...prev];
+    });
   };
 
   return {
