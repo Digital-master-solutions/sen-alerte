@@ -46,63 +46,89 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // Use the new secure function to get dashboard stats
-      const { data: statsData, error: statsError } = await supabase
-        .rpc('get_dashboard_stats');
+      // Calculer directement à partir de la table reports
+      const { data: allReports, error: repError } = await supabase
+        .from("reports")
+        .select("status, actual_resolution_time, created_at")
+        .order("created_at", { ascending: false });
 
-      if (statsData && !statsError) {
-        setStats(statsData[0] as DashboardStats);
-      } else {
-        console.error('Error loading dashboard stats:', statsError);
-        // Fallback: calculate from reports table directly
-        const { data: allReports, error: repError } = await supabase
-          .from("reports")
-          .select("status, actual_resolution_time, created_at")
-          .order("created_at", { ascending: false });
-
-        if (!repError && allReports) {
-          const total = allReports.length;
-          const pending = allReports.filter(r => r.status === "en-attente").length;
-          const inProgress = allReports.filter(r => r.status === "en-cours").length;
-          const resolved = allReports.filter(r => r.status === "resolu").length;
-          const rejected = allReports.filter(r => r.status === "rejete").length;
-          const avgHours = (() => {
-            const vals = allReports
-              .map(r => (r as any).actual_resolution_time)
-              .filter(Boolean)
-              .map((iv: string) => {
-                // Postgrest renvoie souvent les intervals en format "HH:MM:SS"
+      if (!repError && allReports) {
+        const total = allReports.length;
+        const pending = allReports.filter(r => r.status === "en-attente").length;
+        const inProgress = allReports.filter(r => r.status === "en-cours").length;
+        const resolved = allReports.filter(r => r.status === "resolu").length;
+        const rejected = allReports.filter(r => r.status === "rejete").length;
+        const avgHours = (() => {
+          const vals = allReports
+            .map(r => (r as any).actual_resolution_time)
+            .filter(Boolean)
+            .map((iv: string) => {
+              // Postgrest renvoie souvent les intervals en format "HH:MM:SS"
+              if (typeof iv === 'string' && iv.includes(':')) {
                 const [h, m, s] = iv.split(":").map(Number);
                 return h + m / 60 + (s || 0) / 3600;
-              });
-            if (!vals.length) return 0;
-            return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length));
-          })();
-          const today = allReports.filter(r => new Date(r.created_at).toDateString() === new Date().toDateString()).length;
-          const week = allReports.filter(r => new Date(r.created_at) >= new Date(Date.now() - 7 * 24 * 3600 * 1000)).length;
+              }
+              return 0;
+            });
+          if (!vals.length) return 0;
+          return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length));
+        })();
+        const today = allReports.filter(r => new Date(r.created_at).toDateString() === new Date().toDateString()).length;
+        const week = allReports.filter(r => new Date(r.created_at) >= new Date(Date.now() - 7 * 24 * 3600 * 1000)).length;
 
-          setStats({
-            pending_reports: pending,
-            in_progress_reports: inProgress,
-            resolved_reports: resolved,
-            rejected_reports: rejected,
-            total_reports: total,
-            avg_resolution_hours: avgHours,
-            today_reports: today,
-            week_reports: week,
-          });
-        }
+        setStats({
+          pending_reports: pending,
+          in_progress_reports: inProgress,
+          resolved_reports: resolved,
+          rejected_reports: rejected,
+          total_reports: total,
+          avg_resolution_hours: avgHours,
+          today_reports: today,
+          week_reports: week,
+        });
+      } else {
+        console.error('Error loading reports:', repError);
+        // Set default values if no data
+        setStats({
+          pending_reports: 0,
+          in_progress_reports: 0,
+          resolved_reports: 0,
+          rejected_reports: 0,
+          total_reports: 0,
+          avg_resolution_hours: 0,
+          today_reports: 0,
+          week_reports: 0,
+        });
       }
 
-      // 3) Derniers signalements
-      const { data: reportsData } = await supabase
+      // Derniers signalements
+      const { data: reportsData, error: reportsError } = await supabase
         .from("reports")
         .select("id, type, status, created_at, department, priority")
         .order("created_at", { ascending: false })
         .limit(5);
-      if (reportsData) setRecentReports(reportsData);
+      
+      if (reportsData && !reportsError) {
+        setRecentReports(reportsData);
+      } else {
+        console.error('Error loading recent reports:', reportsError);
+        setRecentReports([]);
+      }
+      
     } catch (error) {
       console.error("Error loading dashboard data:", error);
+      // Set default values in case of error
+      setStats({
+        pending_reports: 0,
+        in_progress_reports: 0,
+        resolved_reports: 0,
+        rejected_reports: 0,
+        total_reports: 0,
+        avg_resolution_hours: 0,
+        today_reports: 0,
+        week_reports: 0,
+      });
+      setRecentReports([]);
     } finally {
       setLoading(false);
     }
