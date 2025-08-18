@@ -254,13 +254,6 @@ export type Database = {
             referencedRelation: "public_organizations"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "categorie_organization_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "public_organizations_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       login_logs: {
@@ -456,13 +449,6 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "public_organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "organization_logs_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "public_organizations_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -678,13 +664,6 @@ export type Database = {
             columns: ["assigned_organization_id"]
             isOneToOne: false
             referencedRelation: "public_organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reports_assigned_organization_id_fkey"
-            columns: ["assigned_organization_id"]
-            isOneToOne: false
-            referencedRelation: "public_organizations_safe"
             referencedColumns: ["id"]
           },
           {
@@ -905,36 +884,6 @@ export type Database = {
         }
         Relationships: []
       }
-      public_organizations_safe: {
-        Row: {
-          city: string | null
-          created_at: string | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          status: string | null
-          type: string | null
-        }
-        Insert: {
-          city?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          status?: string | null
-          type?: string | null
-        }
-        Update: {
-          city?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          status?: string | null
-          type?: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       _is_superadmin_credentials: {
@@ -990,6 +939,18 @@ export type Database = {
           username: string
         }[]
       }
+      get_public_organizations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          city: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          status: string
+          type: string
+        }[]
+      }
       get_storage_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1038,6 +999,19 @@ export type Database = {
       migrate_superadmins_to_auth: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      search_public_organizations: {
+        Args: {
+          city_filter?: string
+          organization_type?: string
+          search_term?: string
+        }
+        Returns: {
+          city: string
+          id: string
+          name: string
+          type: string
+        }[]
       }
       validate_admin_session: {
         Args: Record<PropertyKey, never>
