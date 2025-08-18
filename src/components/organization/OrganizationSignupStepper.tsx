@@ -154,12 +154,17 @@ export function OrganizationSignupStepper() {
       }, 3000);
 
     } catch (err: any) {
+      console.error("Erreur d'inscription:", err);
       let errorMessage = "Une erreur est survenue";
       
       if (err.message.includes('duplicate') || err.message.includes('already exists')) {
         errorMessage = "Cette adresse email est déjà utilisée.";
       } else if (err.message.includes('network')) {
         errorMessage = "Erreur de connexion. Vérifiez votre internet.";
+      } else if (err.message.includes('violates check constraint "organizations_type_check"')) {
+        errorMessage = "Type d'organisation non valide. Veuillez sélectionner un type dans la liste.";
+      } else if (err.message.includes('Bad Request') || err.message.includes('400')) {
+        errorMessage = "Données invalides. Vérifiez que tous les champs sont correctement remplis.";
       } else if (err.message) {
         errorMessage = err.message;
       }
