@@ -55,18 +55,72 @@ export default function AdminUsers() {
   }, []);
   const loadUsers = async () => {
     try {
-      // Plus d'admins classiques: on vide la liste
-      setAdmins([]);
+      // Charger tous les utilisateurs depuis auth_profiles 
+      const { data: authProfiles, error: authError } = await supabase
+        .from("auth_profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      // Load super admins
-      const {
-        data: superAdminData,
-        error: superAdminError
-      } = await supabase.from("superadmin").select("*").order("created_at", {
-        ascending: false
-      });
-      if (superAdminError) throw superAdminError;
-      if (superAdminData) setSuperAdmins(superAdminData);
+      if (authError) throw authError;
+
+      console.log("Auth profiles data:", authProfiles);
+
+      // Séparer par type d'utilisateur
+      const adminUsers: AdminUser[] = authProfiles
+        ?.filter(profile => profile.user_type === 'admin')
+        ?.map(profile => ({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email || '',
+          username: profile.email || '', // Using email as username fallback
+          department: profile.organization_id || '',
+          status: profile.status,
+          organization_id: profile.organization_id || '',
+          created_at: profile.created_at,
+          last_login: profile.last_login || ''
+        })) || [];
+
+      const superAdminUsers: SuperAdmin[] = authProfiles
+        ?.filter(profile => profile.user_type === 'superadmin')
+        ?.map(profile => ({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email || '',
+          username: profile.email || '', // Using email as username fallback
+          status: profile.status,
+          created_at: profile.created_at,
+          last_login: profile.last_login || ''
+        })) || [];
+
+      setAdmins(adminUsers);
+      setSuperAdmins(superAdminUsers);
+
+      // Also load original superadmin table for comparison
+      const { data: superAdminData, error: superAdminError } = await supabase
+        .from("superadmin")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!superAdminError && superAdminData) {
+        console.log("Original superadmin data:", superAdminData);
+        // Merge with auth_profiles data if needed
+        const originalSuperAdmins: SuperAdmin[] = superAdminData.map(sa => ({
+          id: sa.id,
+          name: sa.name,
+          email: sa.email || '',
+          username: sa.username || '',
+          status: sa.status,
+          created_at: sa.created_at,
+          last_login: sa.last_login || ''
+        }));
+        
+        // Combine both sources, removing duplicates
+        const allSuperAdmins = [...superAdminUsers, ...originalSuperAdmins.filter(
+          osa => !superAdminUsers.find(sa => sa.email === osa.email)
+        )];
+        setSuperAdmins(allSuperAdmins);
+      }
+
     } catch (error) {
       console.error("Error loading users:", error);
       toast({
@@ -234,7 +288,7 @@ export default function AdminUsers() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Super Admins</CardTitle>
@@ -247,7 +301,29 @@ export default function AdminUsers() {
           </CardContent>
         </Card>
 
-        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Admins</CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {admins.filter(a => a.status === "active").length}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Utilisateurs</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {admins.length + superAdmins.length}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -328,9 +404,70 @@ export default function AdminUsers() {
       </Card>
 
       {/* Admins Table */}
-      <Card>
-        
-        
-      </Card>
+      {admins.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Administrateurs ({filteredAdmins.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Dernière connexion</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAdmins.filter(admin => admin.status === "active").map(admin => (
+                  <TableRow key={admin.id}>
+                    <TableCell className="font-medium">{admin.name}</TableCell>
+                    <TableCell>{admin.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                        Admin
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        Actif
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {admin.last_login ? new Date(admin.last_login).toLocaleDateString() : "Jamais connecté"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEditingUser(admin)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {filteredAdmins.filter(admin => admin.status === "active").length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                Aucun administrateur actif trouvé
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>;
 }

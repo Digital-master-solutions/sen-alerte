@@ -46,9 +46,11 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // 1) Utiliser la fonction RPC get_dashboard_stats
+      // 1) Utiliser la fonction RPC get_dashboard_stats pour les vraies données
       const { data: statsData, error: dsError } = await supabase
         .rpc("get_dashboard_stats");
+
+      console.log("Stats RPC data:", statsData, "Error:", dsError);
 
       if (statsData && !dsError) {
         setStats(statsData as unknown as DashboardStats);
