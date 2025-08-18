@@ -450,6 +450,7 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           name: string
+          password_hash: string | null
           permissions: string[] | null
           phone: string | null
           status: string | null
@@ -466,6 +467,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           name: string
+          password_hash?: string | null
           permissions?: string[] | null
           phone?: string | null
           status?: string | null
@@ -482,6 +484,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           name?: string
+          password_hash?: string | null
           permissions?: string[] | null
           phone?: string | null
           status?: string | null
@@ -847,6 +850,7 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           name: string
+          password_hash: string | null
           permissions: string[] | null
           phone: string | null
           status: string | null
@@ -866,6 +870,7 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           name: string
+          password_hash: string | null
           permissions: string[] | null
           phone: string | null
           status: string | null
@@ -881,6 +886,17 @@ export type Database = {
           _username: string
         }
         Returns: boolean
+      }
+      authenticate_organization: {
+        Args: { org_email: string; plain_password: string }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          status: string
+          type: string
+        }[]
       }
       authenticate_superadmin: {
         Args: { _password_raw: string; _username: string }
@@ -954,6 +970,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      hash_password: {
+        Args: { plain_password: string }
+        Returns: string
+      }
       is_admin_or_superadmin: {
         Args: { _user_id: string }
         Returns: boolean
@@ -1009,6 +1029,10 @@ export type Database = {
       }
       validate_admin_session: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      verify_password: {
+        Args: { plain_password: string; stored_hash: string }
         Returns: boolean
       }
     }
