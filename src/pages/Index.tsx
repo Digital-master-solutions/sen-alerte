@@ -83,8 +83,8 @@ const Index = () => {
                 </div>
               </SheetContent>
             </Sheet>
-            <Logo size="lg" showText={true} className="hidden sm:flex" />
-            <Logo size="lg" showText={false} className="sm:hidden" />
+            <Logo size="lg" className="hidden sm:flex" />
+            <Logo size="md" className="sm:hidden" />
           </div>
           <div className="flex items-center gap-3">
             <Button 
