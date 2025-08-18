@@ -2,22 +2,23 @@ import { cn } from "@/lib/utils";
 import logoImage from "/lovable-uploads/9eb49aac-44e9-40b3-80a3-4e1c7f94eb76.png";
 
 interface LogoProps {
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   showText?: boolean;
   textPosition?: "right" | "bottom";
   className?: string;
 }
 
 const sizeConfig = {
-  sm: { image: "w-6 h-6", text: "text-sm" },
-  md: { image: "w-8 h-8", text: "text-base" },
-  lg: { image: "w-10 h-10", text: "text-lg" },
-  xl: { image: "w-12 h-12", text: "text-xl" }
+  sm: { image: "w-8 h-8", text: "text-sm" },
+  md: { image: "w-12 h-12", text: "text-base" },
+  lg: { image: "w-16 h-16", text: "text-lg" },
+  xl: { image: "w-20 h-20", text: "text-xl" },
+  "2xl": { image: "w-24 h-24", text: "text-2xl" }
 };
 
 export function Logo({ 
   size = "md", 
-  showText = true, 
+  showText = false, 
   textPosition = "right",
   className 
 }: LogoProps) {
