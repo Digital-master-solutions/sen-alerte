@@ -179,11 +179,36 @@ export default function AdminCategories() {
     }
   };
 
+  const handleToggleStatus = async (categoryId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("categorie")
+        .update({ active: !currentStatus })
+        .eq("id", categoryId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Statut modifié",
+        description: `La catégorie est maintenant ${!currentStatus ? 'active' : 'inactive'}`,
+      });
+
+      loadCategories();
+    } catch (error) {
+      console.error("Error toggling category status:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le statut de la catégorie",
+        variant: "destructive",
+      });
+    }
+  };
+
   const openEditDialog = (category: Category) => {
     setEditingCategory(category);
     setFormData({
       nom: category.nom,
-      active: category.active || true,
+      active: category.active !== false,
     });
   };
 
@@ -327,9 +352,15 @@ export default function AdminCategories() {
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.nom}</TableCell>
                   <TableCell>
-                    <Badge className={category.active !== false ? "bg-green-500" : "bg-red-500"}>
-                      {category.active !== false ? "Active" : "Inactive"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className={category.active !== false ? "bg-green-500" : "bg-red-500"}>
+                        {category.active !== false ? "Active" : "Inactive"}
+                      </Badge>
+                      <Switch
+                        checked={category.active !== false}
+                        onCheckedChange={() => handleToggleStatus(category.id, category.active !== false)}
+                      />
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span className="text-muted-foreground">
