@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import logoImage from "@/assets/senalert-logo.png";
+import logoImage from "/lovable-uploads/9eb49aac-44e9-40b3-80a3-4e1c7f94eb76.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -34,9 +34,8 @@ export function Logo({
         <div className={cn(
           textPosition === "bottom" ? "text-center" : "",
         )}>
-          <div className={cn("font-bold", config.text)}>
-            <span className="text-primary">Sen</span>
-            <span className="text-foreground">Alert</span>
+          <div className={cn("font-bold text-primary", config.text)}>
+            SenAlert
           </div>
           {size !== "sm" && (
             <div className="text-xs text-muted-foreground">
