@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { Logo } from "@/components/ui/logo";
 
 const mainItems = [{
   title: "Tableau de bord",
@@ -82,17 +83,16 @@ export function OrganizationSidebar() {
         {/* En-tête simple */}
         <SidebarHeader className="sticky top-0 z-10 bg-sidebar-background border-b border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-sidebar-primary rounded-lg flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
-            </div>
-            {!collapsed && (
-              <div>
-                <h2 className="text-base font-semibold">Organisation</h2>
-                {orgUser && (
-                  <div className="text-xs text-sidebar-foreground/60">
-                    {orgUser.name}
-                  </div>
-                )}
+            <Logo 
+              size={collapsed ? "sm" : "md"} 
+              showText={!collapsed}
+              className={collapsed ? "justify-center" : ""}
+            />
+            {!collapsed && orgUser && (
+              <div className="ml-auto">
+                <div className="text-xs text-sidebar-foreground/60">
+                  {orgUser.name}
+                </div>
               </div>
             )}
           </div>

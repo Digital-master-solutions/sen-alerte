@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Menu, Plus, Home, Bell, Info, FileText, MapPin, Users, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
+import { Logo } from "@/components/ui/logo";
 const Index = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
@@ -49,14 +50,8 @@ const Index = () => {
               </SheetTrigger>
               <SheetContent side="left" className="w-80">
                 <SheetHeader>
-                  <SheetTitle className="flex items-center gap-3">
-                    <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                      S
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold">SenAlert</div>
-                      <div className="text-sm text-muted-foreground font-normal">Plateforme citoyenne</div>
-                    </div>
+                  <SheetTitle>
+                    <Logo size="lg" />
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="mt-8 space-y-2">
@@ -88,15 +83,8 @@ const Index = () => {
                 </div>
               </SheetContent>
             </Sheet>
-            <div className="flex items-center gap-3">
-              <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                S
-              </div>
-              <div className="hidden sm:block">
-                <div className="text-xl font-bold text-foreground">SenAlert</div>
-                <div className="text-sm text-muted-foreground">Plateforme citoyenne</div>
-              </div>
-            </div>
+            <Logo size="lg" showText={true} className="hidden sm:flex" />
+            <Logo size="lg" showText={false} className="sm:hidden" />
           </div>
           <div className="flex items-center gap-3">
             <Button 
@@ -158,15 +146,7 @@ const Index = () => {
           <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-12">
             {/* Logo et description */}
             <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-white text-footer-bg rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold">
-                  S
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">SenAlert</div>
-                  <div className="text-footer-foreground/80">Plateforme citoyenne</div>
-                </div>
-              </div>
+              <Logo size="xl" className="text-white" />
               <div className="space-y-3 text-footer-foreground/90 leading-relaxed">
                 <p>Plateforme de signalement citoyen pour le Sénégal.</p>
                 <p>Connectons les citoyens aux services publics pour une ville plus intelligente et plus réactive.</p>

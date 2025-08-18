@@ -5,6 +5,7 @@ import { LayoutDashboard, FileText, Building2, Users, LogOut, Shield, Tag, UserC
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Logo } from "@/components/ui/logo";
 const mainItems = [{
   title: "Tableau de bord",
   url: "/admin/dashboard",
@@ -55,17 +56,16 @@ export function AdminSidebar() {
         {/* En-tête simple */}
         <SidebarHeader className="sticky top-0 z-10 bg-sidebar-background border-b border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-sidebar-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-sidebar-primary-foreground" />
-            </div>
-            {!collapsed && (
-              <div>
-                <h2 className="text-base font-semibold">Administration</h2>
-                {adminUser && (
-                  <div className="text-xs text-sidebar-foreground/60">
-                    {adminUser.name ? String(adminUser.name) : String(adminUser.username)}
-                  </div>
-                )}
+            <Logo 
+              size={collapsed ? "sm" : "md"} 
+              showText={!collapsed}
+              className={collapsed ? "justify-center" : ""}
+            />
+            {!collapsed && adminUser && (
+              <div className="ml-auto">
+                <div className="text-xs text-sidebar-foreground/60">
+                  Admin: {adminUser.name ? String(adminUser.name) : String(adminUser.username)}
+                </div>
               </div>
             )}
           </div>
