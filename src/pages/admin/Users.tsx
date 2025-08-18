@@ -57,26 +57,32 @@ export default function AdminUsers() {
     try {
       console.log("Loading users data...");
       
-      // Charger directement depuis la table superadmin
-      const { data: superAdminData, error: superAdminError } = await supabase
-        .from("superadmin")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Utiliser la fonction RPC pour contourner les restrictions RLS
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_admin_users');
 
-      console.log("SuperAdmin data:", { data: superAdminData, error: superAdminError });
+      console.log("RPC data:", { data: rpcData, error: rpcError });
 
-      if (!superAdminError && superAdminData) {
-        const superAdminUsers: SuperAdmin[] = superAdminData.map(sa => ({
-          id: sa.id,
-          name: sa.name,
-          email: sa.email || '',
-          username: sa.username || '',
-          status: sa.status,
-          created_at: sa.created_at,
-          last_login: sa.last_login || ''
-        }));
-        setSuperAdmins(superAdminUsers);
+      if (!rpcError && rpcData) {
+        // Trouver les données des superadmins
+        const superadminData = rpcData.find((item: any) => item.user_type === 'superadmin');
+        
+        if (superadminData && superadminData.users && Array.isArray(superadminData.users)) {
+          const superAdminUsers: SuperAdmin[] = superadminData.users.map((sa: any) => ({
+            id: sa.id,
+            name: sa.name,
+            email: sa.email || '',
+            username: sa.username || '',
+            status: sa.status,
+            created_at: sa.created_at,
+            last_login: sa.last_login || ''
+          }));
+          setSuperAdmins(superAdminUsers);
+        } else {
+          setSuperAdmins([]);
+        }
       } else {
+        console.error("RPC Error:", rpcError);
         setSuperAdmins([]);
       }
 
