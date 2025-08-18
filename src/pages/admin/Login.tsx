@@ -37,77 +37,51 @@ export default function AdminLogin() {
     try {
       console.log("Tentative de connexion pour:", values.username);
       
-      // Récupérer l'utilisateur par nom d'utilisateur
-      const { data: superAdmin, error: superAdminError } = await supabase
-        .from("superadmin")
-        .select("*")
-        .eq("username", values.username)
-        .eq("status", "active")
-        .maybeSingle();
+      // Utiliser la fonction RPC pour bypasser les politiques RLS
+      const { data: adminData, error: authError } = await supabase
+        .rpc('authenticate_superadmin', {
+          _username: values.username,
+          _password_raw: values.password
+        });
 
-      console.log("Utilisateur trouvé:", superAdmin);
-      console.log("Erreur:", superAdminError);
+      console.log("Résultat de l'authentification:", adminData);
+      console.log("Erreur d'authentification:", authError);
 
-      if (superAdminError) {
-        console.error("Erreur lors de la récupération:", superAdminError);
-        throw superAdminError;
+      if (authError) {
+        console.error("Erreur lors de l'authentification:", authError);
+        throw authError;
       }
 
-      if (!superAdmin) {
+      if (!adminData || adminData.length === 0) {
         toast({
           variant: "destructive",
           title: "Erreur de connexion",
-          description: "Utilisateur non trouvé",
+          description: "Nom d'utilisateur ou mot de passe incorrect",
         });
         return;
       }
 
-      let passwordMatch = false;
-      
-      console.log("Hash stocké:", superAdmin.password_hash);
-      console.log("Mot de passe saisi:", values.password);
-      
-      // Vérification du mot de passe selon le type de hash
-      if (superAdmin.password_hash.startsWith('$2')) {
-        // Hash bcrypt - pour l'admin principal avec mot de passe 'admin123'
-        passwordMatch = values.password === 'admin123';
-        console.log("Vérification bcrypt:", passwordMatch);
-      } else {
-        // Hash base64 simple - pour les autres admins
-        const hashedInput = btoa(values.password);
-        passwordMatch = hashedInput === superAdmin.password_hash;
-        console.log("Hash calculé:", hashedInput);
-        console.log("Vérification base64:", passwordMatch);
-      }
+      const superAdmin = adminData[0];
 
-      if (passwordMatch) {
-        // Mettre à jour la dernière connexion
-        await supabase
-          .from("superadmin")
-          .update({ last_login: new Date().toISOString() })
-          .eq("id", superAdmin.id);
-
-        localStorage.setItem("adminUser", JSON.stringify({
-          ...superAdmin,
-          role: "superadmin",
-          password: values.password,
-        }));
-        
-        toast({
-          title: "Connexion réussie",
-          description: `Bienvenue ${superAdmin.name} (Super Admin)`,
+      // Mettre à jour la dernière connexion
+      await supabase
+        .rpc('authenticate_superadmin', {
+          _username: values.username,
+          _password_raw: values.password
         });
 
-        navigate("/admin/dashboard");
-        return;
-      }
-
-      // Mot de passe incorrect
+      localStorage.setItem("adminUser", JSON.stringify({
+        ...superAdmin,
+        role: "superadmin",
+        password: values.password,
+      }));
+      
       toast({
-        variant: "destructive",
-        title: "Erreur de connexion",
-        description: "Nom d'utilisateur ou mot de passe incorrect",
+        title: "Connexion réussie",
+        description: `Bienvenue ${superAdmin.name} (Super Admin)`,
       });
+
+      navigate("/admin/dashboard");
 
     } catch (error) {
       console.error("Erreur de connexion:", error);
