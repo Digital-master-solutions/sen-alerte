@@ -99,6 +99,7 @@ export default function AdminCategories() {
         .from("categorie")
         .insert({
           nom: formData.nom,
+          active: formData.active,
         });
 
       if (error) throw error;
@@ -129,6 +130,7 @@ export default function AdminCategories() {
         .from("categorie")
         .update({
           nom: formData.nom,
+          active: formData.active,
         })
         .eq("id", editingCategory.id);
 
