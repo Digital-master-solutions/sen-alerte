@@ -85,12 +85,11 @@ export function OrganizationSignupStepper() {
     setLoading(true);
     try {
       // 1. Créer le compte utilisateur
-      const redirectUrl = `${window.location.origin}/organization/dashboard`;
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: signupData.email,
         password: signupData.password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: `${window.location.origin}/organization/login`,
           data: {
             name: signupData.name,
             organization_type: signupData.type
@@ -98,7 +97,18 @@ export function OrganizationSignupStepper() {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // Gestion spécifique de l'erreur 429 (Rate Limit)
+        if (authError.message.includes('429') || authError.message.includes('rate limit')) {
+          toast({
+            variant: "destructive",
+            title: "Trop de tentatives",
+            description: "Veuillez attendre 35 secondes avant de réessayer. Supabase limite les inscriptions pour la sécurité.",
+          });
+          return;
+        }
+        throw authError;
+      }
 
       // 2. Créer l'organisation
       const { data: orgData, error: orgError } = await supabase
@@ -144,10 +154,20 @@ export function OrganizationSignupStepper() {
       }, 3000);
 
     } catch (err: any) {
+      let errorMessage = "Une erreur est survenue";
+      
+      if (err.message.includes('duplicate') || err.message.includes('already exists')) {
+        errorMessage = "Cette adresse email est déjà utilisée.";
+      } else if (err.message.includes('network')) {
+        errorMessage = "Erreur de connexion. Vérifiez votre internet.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
       toast({
         variant: "destructive",
         title: "Erreur lors de l'inscription",
-        description: err.message || "Une erreur est survenue"
+        description: errorMessage
       });
     } finally {
       setLoading(false);
