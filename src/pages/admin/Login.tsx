@@ -35,7 +35,7 @@ export default function AdminLogin() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      // Check superadmin credentials
+      // First check superadmin credentials
       const { data: superAdmin, error: superAdminError } = await supabase
         .from("superadmin")
         .select("*")
@@ -71,6 +71,7 @@ export default function AdminLogin() {
           return;
         }
       }
+
 
       // If we get here, credentials are invalid
       toast({

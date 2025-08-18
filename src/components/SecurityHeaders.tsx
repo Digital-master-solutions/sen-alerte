@@ -15,22 +15,9 @@ export function SecurityHeaders() {
 
     // Security headers
     addMetaTag('X-Content-Type-Options', 'nosniff');
-    // Removed X-Frame-Options: DENY to allow embedding in Lovable iframe
+    addMetaTag('X-Frame-Options', 'DENY');
     addMetaTag('X-XSS-Protection', '1; mode=block');
     addMetaTag('Referrer-Policy', 'strict-origin-when-cross-origin');
-    
-    // Add Content Security Policy
-    addMetaTag('Content-Security-Policy', 
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https: blob:; " +
-      "connect-src 'self' https://mjhsvrksrmcemhbglfkm.supabase.co https://nominatim.openstreetmap.org; " +
-      "font-src 'self' data:; " +
-      "object-src 'none'; " +
-      "base-uri 'self'; " +
-      "form-action 'self';"
-    );
 
     // Preconnect to external domains for performance
     const addPreconnect = (href: string) => {

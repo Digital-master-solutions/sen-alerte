@@ -28,18 +28,20 @@ const mainItems = [{
   icon: Tag
 }];
 export function AdminSidebar() {
-  const { state } = useSidebar();
+  const {
+    state
+  } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [adminUser, setAdminUser] = useState<any>(null);
-
   useEffect(() => {
     const admin = localStorage.getItem("adminUser");
     if (admin) setAdminUser(JSON.parse(admin));
   }, []);
-
   const handleLogout = () => {
     localStorage.removeItem("adminUser");
     toast({
