@@ -994,6 +994,10 @@ export type Database = {
           type: string
         }[]
       }
+      update_superadmin_last_login: {
+        Args: { _username: string }
+        Returns: undefined
+      }
       validate_admin_session: {
         Args: Record<PropertyKey, never>
         Returns: boolean

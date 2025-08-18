@@ -64,11 +64,9 @@ export default function AdminLogin() {
       const superAdmin = adminData[0];
 
       // Mettre à jour la dernière connexion
-      await supabase
-        .rpc('authenticate_superadmin', {
-          _username: values.username,
-          _password_raw: values.password
-        });
+      await supabase.rpc('update_superadmin_last_login', {
+        _username: values.username
+      });
 
       localStorage.setItem("adminUser", JSON.stringify({
         ...superAdmin,
