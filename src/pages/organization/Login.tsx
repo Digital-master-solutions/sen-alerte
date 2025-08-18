@@ -35,7 +35,7 @@ export default function OrgLogin() {
       if (error) throw error;
       await afterAuthLink();
       toast({ title: "Connexion réussie" });
-      navigate("/organization/reports", { replace: true });
+      navigate("/organization/dashboard", { replace: true });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erreur", description: err.message || "Impossible de se connecter" });
     } finally {
