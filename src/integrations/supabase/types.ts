@@ -206,17 +206,14 @@ export type Database = {
       }
       categorie: {
         Row: {
-          active: boolean | null
           id: string
           nom: string
         }
         Insert: {
-          active?: boolean | null
           id?: string
           nom: string
         }
         Update: {
-          active?: boolean | null
           id?: string
           nom?: string
         }

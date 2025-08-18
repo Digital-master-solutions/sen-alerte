@@ -23,7 +23,6 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 interface Category {
   id: string;
   nom: string;
-  active: boolean;
 }
 
 export default function AdminCategories() {
@@ -39,7 +38,6 @@ export default function AdminCategories() {
 
   const [formData, setFormData] = useState({
     nom: "",
-    active: true,
   });
 
   useEffect(() => {
@@ -59,12 +57,7 @@ export default function AdminCategories() {
 
       if (error) throw error;
       if (data) {
-        // Add active property if not exists (default to true)
-        const categoriesWithActive = data.map((cat: any) => ({
-          ...cat,
-          active: cat.active !== undefined ? cat.active : true
-        }));
-        setCategories(categoriesWithActive);
+        setCategories(data);
       }
     } catch (error) {
       console.error("Error loading categories:", error);
@@ -99,7 +92,6 @@ export default function AdminCategories() {
         .from("categorie")
         .insert({
           nom: formData.nom,
-          active: formData.active,
         });
 
       if (error) throw error;
@@ -110,7 +102,7 @@ export default function AdminCategories() {
       });
 
       setNewCategoryOpen(false);
-      setFormData({ nom: "", active: true });
+      setFormData({ nom: "" });
       loadCategories();
     } catch (error) {
       console.error("Error creating category:", error);
@@ -130,7 +122,6 @@ export default function AdminCategories() {
         .from("categorie")
         .update({
           nom: formData.nom,
-          active: formData.active,
         })
         .eq("id", editingCategory.id);
 
@@ -142,7 +133,7 @@ export default function AdminCategories() {
       });
 
       setEditingCategory(null);
-      setFormData({ nom: "", active: true });
+      setFormData({ nom: "" });
       loadCategories();
     } catch (error) {
       console.error("Error updating category:", error);
@@ -179,36 +170,10 @@ export default function AdminCategories() {
     }
   };
 
-  const handleToggleStatus = async (categoryId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("categorie")
-        .update({ active: !currentStatus })
-        .eq("id", categoryId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Statut modifié",
-        description: `La catégorie est maintenant ${!currentStatus ? 'active' : 'inactive'}`,
-      });
-
-      loadCategories();
-    } catch (error) {
-      console.error("Error toggling category status:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier le statut de la catégorie",
-        variant: "destructive",
-      });
-    }
-  };
-
   const openEditDialog = (category: Category) => {
     setEditingCategory(category);
     setFormData({
       nom: category.nom,
-      active: category.active !== false,
     });
   };
 
@@ -258,14 +223,6 @@ export default function AdminCategories() {
                   placeholder="Ex: Voirie, Éclairage public..."
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="active"
-                  checked={formData.active}
-                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-                />
-                <Label htmlFor="active">Catégorie active</Label>
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setNewCategoryOpen(false)}>
@@ -280,7 +237,7 @@ export default function AdminCategories() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -288,30 +245,6 @@ export default function AdminCategories() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{categories.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Actives</CardTitle>
-            <Tag className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {categories.filter(c => c.active !== false).length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactives</CardTitle>
-            <Tag className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {categories.filter(c => c.active === false).length}
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -342,7 +275,6 @@ export default function AdminCategories() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nom</TableHead>
-                <TableHead>Statut</TableHead>
                 <TableHead>Utilisation</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -351,17 +283,6 @@ export default function AdminCategories() {
               {paginatedCategories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.nom}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge className={category.active !== false ? "bg-green-500" : "bg-red-500"}>
-                        {category.active !== false ? "Active" : "Inactive"}
-                      </Badge>
-                      <Switch
-                        checked={category.active !== false}
-                        onCheckedChange={() => handleToggleStatus(category.id, category.active !== false)}
-                      />
-                    </div>
-                  </TableCell>
                   <TableCell>
                     <span className="text-muted-foreground">
                       Visible dans le formulaire de signalement
@@ -422,25 +343,17 @@ export default function AdminCategories() {
               Modifier les informations de la catégorie
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-nom">Nom de la catégorie</Label>
-              <Input
-                id="edit-nom"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                placeholder="Ex: Voirie, Éclairage public..."
-              />
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-nom">Nom de la catégorie</Label>
+                <Input
+                  id="edit-nom"
+                  value={formData.nom}
+                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                  placeholder="Ex: Voirie, Éclairage public..."
+                />
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="edit-active"
-                checked={formData.active}
-                onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-              />
-              <Label htmlFor="edit-active">Catégorie active</Label>
-            </div>
-          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingCategory(null)}>
               Annuler
