@@ -57,79 +57,31 @@ export default function AdminUsers() {
     try {
       console.log("Loading users data...");
       
-      // Utiliser la fonction RPC pour récupérer les utilisateurs
-      const { data: usersData, error: usersError } = await supabase
-        .rpc("get_admin_users");
+      // Charger directement depuis la table superadmin
+      const { data: superAdminData, error: superAdminError } = await supabase
+        .from("superadmin")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      console.log("Users RPC result:", { data: usersData, error: usersError });
+      console.log("SuperAdmin data:", { data: superAdminData, error: superAdminError });
 
-      if (usersData && !usersError) {
-        const superAdminData = usersData.find((row: any) => row.user_type === 'superadmin');
-        const adminData = usersData.find((row: any) => row.user_type === 'admin');
-
-        console.log("SuperAdmin data:", superAdminData);
-        console.log("Admin data:", adminData);
-
-        // Traiter les superadmins
-        if (superAdminData && superAdminData.users && Array.isArray(superAdminData.users)) {
-          const superAdminUsers: SuperAdmin[] = (superAdminData.users as any[]).map((user: any) => ({
-            id: user.id,
-            name: user.name,
-            email: user.email || '',
-            username: user.username || '',
-            status: user.status,
-            created_at: user.created_at,
-            last_login: user.last_login || ''
-          }));
-          setSuperAdmins(superAdminUsers);
-        } else {
-          setSuperAdmins([]);
-        }
-
-        // Traiter les admins
-        if (adminData && adminData.users && Array.isArray(adminData.users)) {
-          const adminUsers: AdminUser[] = (adminData.users as any[]).map((user: any) => ({
-            id: user.id,
-            name: user.name,
-            email: user.email || '',
-            username: user.username || user.email || '',
-            department: user.organization_id || '',
-            status: user.status,
-            organization_id: user.organization_id || '',
-            created_at: user.created_at,
-            last_login: user.last_login || ''
-          }));
-          setAdmins(adminUsers);
-        } else {
-          setAdmins([]);
-        }
+      if (!superAdminError && superAdminData) {
+        const superAdminUsers: SuperAdmin[] = superAdminData.map(sa => ({
+          id: sa.id,
+          name: sa.name,
+          email: sa.email || '',
+          username: sa.username || '',
+          status: sa.status,
+          created_at: sa.created_at,
+          last_login: sa.last_login || ''
+        }));
+        setSuperAdmins(superAdminUsers);
       } else {
-        console.log("RPC failed, using fallback approach");
-        // Fallback: charger directement depuis superadmin table
-        const { data: superAdminData, error: superAdminError } = await supabase
-          .from("superadmin")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        console.log("Fallback superadmin data:", { data: superAdminData, error: superAdminError });
-
-        if (!superAdminError && superAdminData) {
-          const superAdminUsers: SuperAdmin[] = superAdminData.map(sa => ({
-            id: sa.id,
-            name: sa.name,
-            email: sa.email || '',
-            username: sa.username || '',
-            status: sa.status,
-            created_at: sa.created_at,
-            last_login: sa.last_login || ''
-          }));
-          setSuperAdmins(superAdminUsers);
-        } else {
-          setSuperAdmins([]);
-        }
-
-        setAdmins([]); // Pas d'admins en fallback
+        setSuperAdmins([]);
       }
+
+      // Pas d'admins dans cette version simplifiée
+      setAdmins([]);
 
     } catch (error) {
       console.error("Error loading users:", error);
@@ -218,9 +170,9 @@ export default function AdminUsers() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Utilisateurs</h1>
+          <h1 className="text-3xl font-bold">Super Administrateurs</h1>
           <p className="text-muted-foreground">
-            Gestion des comptes administrateurs
+            Gestion des comptes super administrateurs
           </p>
         </div>
         <Dialog open={newUserOpen} onOpenChange={setNewUserOpen}>
@@ -298,7 +250,7 @@ export default function AdminUsers() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Super Admins</CardTitle>
@@ -313,24 +265,12 @@ export default function AdminUsers() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {admins.filter(a => a.status === "active").length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Utilisateurs</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {admins.length + superAdmins.length}
+              {superAdmins.length}
             </div>
           </CardContent>
         </Card>
@@ -342,7 +282,7 @@ export default function AdminUsers() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {admins.filter(a => a.status === "active").length + superAdmins.filter(sa => sa.status === "active").length}
+              {superAdmins.filter(sa => sa.status === "active").length}
             </div>
           </CardContent>
         </Card>
@@ -413,71 +353,5 @@ export default function AdminUsers() {
         </CardContent>
       </Card>
 
-      {/* Admins Table */}
-      {admins.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Administrateurs ({filteredAdmins.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Dernière connexion</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAdmins.filter(admin => admin.status === "active").map(admin => (
-                  <TableRow key={admin.id}>
-                    <TableCell className="font-medium">{admin.name}</TableCell>
-                    <TableCell>{admin.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                        Admin
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        Actif
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {admin.last_login ? new Date(admin.last_login).toLocaleDateString() : "Jamais connecté"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingUser(admin)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Modifier
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {filteredAdmins.filter(admin => admin.status === "active").length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Aucun administrateur actif trouvé
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>;
 }
