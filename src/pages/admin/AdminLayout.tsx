@@ -2,17 +2,32 @@ import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const { isAdmin, isLoading, user } = useAdminAuth();
 
   useEffect(() => {
-    // Check if admin is logged in
-    const adminUser = localStorage.getItem("adminUser");
-    if (!adminUser) {
-      navigate("/admin/login");
+    if (!isLoading) {
+      if (!user || !isAdmin) {
+        navigate("/admin/login");
+      }
     }
-  }, [navigate]);
+  }, [isAdmin, isLoading, user, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return null;
+  }
 
   return (
     <SidebarProvider>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Shield, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Nom d'utilisateur requis"),
+  email: z.string().email("Email invalide").min(1, "Email requis"),
   password: z.string().min(1, "Mot de passe requis"),
 });
 
@@ -23,63 +23,43 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signInAsAdmin, isAdmin, user } = useAdminAuth();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
 
+  // Redirect if already authenticated as admin
+  useEffect(() => {
+    if (isAdmin && user) {
+      navigate("/admin/dashboard");
+    }
+  }, [isAdmin, user, navigate]);
+
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      // First check superadmin credentials
-      const { data: superAdmin, error: superAdminError } = await supabase
-        .from("superadmin")
-        .select("*")
-        .eq("username", values.username)
-        .eq("status", "active")
-        .maybeSingle();
+      const { data, error } = await signInAsAdmin(values.email, values.password);
 
-      if (superAdmin) {
-        let passwordMatch = false;
-        
-        // Handle bcrypt hash (existing admin with username 'admin')
-        if (superAdmin.password_hash.startsWith('$2')) {
-          passwordMatch = values.password === 'admin123' && values.username === 'admin';
-        } else {
-          // Handle our new SHA256 base64 hash
-          const hashedInput = btoa(values.password);
-          passwordMatch = hashedInput === superAdmin.password_hash;
-        }
-
-        if (passwordMatch) {
-          localStorage.setItem("adminUser", JSON.stringify({
-            ...superAdmin,
-            role: "superadmin",
-            password: values.password,
-          }));
-          
-          toast({
-            title: "Connexion réussie",
-            description: `Bienvenue ${superAdmin.name} (Super Admin)`,
-          });
-
-          navigate("/admin/dashboard");
-          return;
-        }
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erreur de connexion",
+          description: error.message,
+        });
+        return;
       }
 
-
-      // If we get here, credentials are invalid
       toast({
-        variant: "destructive",
-        title: "Erreur de connexion",
-        description: "Nom d'utilisateur ou mot de passe incorrect",
+        title: "Connexion réussie",
+        description: "Bienvenue dans l'espace d'administration",
       });
 
+      navigate("/admin/dashboard");
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -110,12 +90,16 @@ export default function AdminLogin() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom d'utilisateur</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Entrez votre nom d'utilisateur" {...field} />
+                      <Input 
+                        type="email" 
+                        placeholder="Entrez votre email" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

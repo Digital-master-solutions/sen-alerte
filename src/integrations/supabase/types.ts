@@ -247,13 +247,6 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "categorie_organization_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "public_organizations"
-            referencedColumns: ["id"]
-          },
         ]
       }
       login_logs: {
@@ -442,13 +435,6 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "organization_logs_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "public_organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -660,13 +646,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reports_assigned_organization_id_fkey"
-            columns: ["assigned_organization_id"]
-            isOneToOne: false
-            referencedRelation: "public_organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reports_population_id_fkey"
             columns: ["population_id"]
             isOneToOne: false
@@ -841,49 +820,7 @@ export type Database = {
       }
     }
     Views: {
-      dashboard_stats: {
-        Row: {
-          avg_resolution_hours: number | null
-          in_progress_reports: number | null
-          pending_reports: number | null
-          rejected_reports: number | null
-          resolved_reports: number | null
-          today_reports: number | null
-          total_reports: number | null
-          week_reports: number | null
-        }
-        Relationships: []
-      }
-      public_organizations: {
-        Row: {
-          city: string | null
-          created_at: string | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          status: string | null
-          type: string | null
-        }
-        Insert: {
-          city?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          status?: string | null
-          type?: string | null
-        }
-        Update: {
-          city?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          status?: string | null
-          type?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       _is_superadmin_credentials: {
@@ -937,6 +874,19 @@ export type Database = {
           id: string
           name: string
           username: string
+        }[]
+      }
+      get_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avg_resolution_hours: number
+          in_progress_reports: number
+          pending_reports: number
+          rejected_reports: number
+          resolved_reports: number
+          today_reports: number
+          total_reports: number
+          week_reports: number
         }[]
       }
       get_public_organizations: {

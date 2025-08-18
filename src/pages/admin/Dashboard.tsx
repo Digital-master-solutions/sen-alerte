@@ -46,16 +46,15 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // 1) Essayer d'utiliser dashboard_stats s'il existe
-      const { data: statsData, error: dsError } = await supabase
-        .from("dashboard_stats")
-        .select("*")
-        .maybeSingle();
+      // Use the new secure function to get dashboard stats
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('get_dashboard_stats');
 
-      if (statsData && !dsError) {
-        setStats(statsData as unknown as DashboardStats);
+      if (statsData && !statsError) {
+        setStats(statsData[0] as DashboardStats);
       } else {
-        // 2) Fallback: calculer à partir de la table reports
+        console.error('Error loading dashboard stats:', statsError);
+        // Fallback: calculate from reports table directly
         const { data: allReports, error: repError } = await supabase
           .from("reports")
           .select("status, actual_resolution_time, created_at")
