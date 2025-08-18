@@ -35,43 +35,23 @@ export default function AdminLogin() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      // First check superadmin credentials
-      const { data: superAdmin, error: superAdminError } = await supabase
-        .from("superadmin")
-        .select("*")
-        .eq("username", values.username)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (superAdmin) {
-        let passwordMatch = false;
+      // Simple hardcoded credentials for admin
+      if (values.username === "admin" && values.password === "admin123") {
+        localStorage.setItem("adminUser", JSON.stringify({
+          id: "admin-1",
+          username: "admin",
+          name: "Administrateur",
+          role: "superadmin",
+        }));
         
-        // Handle bcrypt hash (existing admin with username 'admin')
-        if (superAdmin.password_hash.startsWith('$2')) {
-          passwordMatch = values.password === 'admin123' && values.username === 'admin';
-        } else {
-          // Handle our new SHA256 base64 hash
-          const hashedInput = btoa(values.password);
-          passwordMatch = hashedInput === superAdmin.password_hash;
-        }
+        toast({
+          title: "Connexion réussie",
+          description: "Bienvenue Administrateur",
+        });
 
-        if (passwordMatch) {
-          localStorage.setItem("adminUser", JSON.stringify({
-            ...superAdmin,
-            role: "superadmin",
-            password: values.password,
-          }));
-          
-          toast({
-            title: "Connexion réussie",
-            description: `Bienvenue ${superAdmin.name} (Super Admin)`,
-          });
-
-          navigate("/admin/dashboard");
-          return;
-        }
+        navigate("/admin/dashboard");
+        return;
       }
-
 
       // If we get here, credentials are invalid
       toast({

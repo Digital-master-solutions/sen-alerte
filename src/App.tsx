@@ -58,6 +58,7 @@ const App = () => (
           <Route path="/organization/login" element={<OrgLogin />} />
           <Route path="/organization" element={<OrganizationLayout />}>
             <Route path="dashboard" element={<OrgDashboard />} />
+            <Route path="reports" element={<ManagedReports />} />
             <Route path="available-reports" element={<AvailableReports />} />
             <Route path="managed-reports" element={<ManagedReports />} />
             <Route path="notifications" element={<OrgNotifications />} />
