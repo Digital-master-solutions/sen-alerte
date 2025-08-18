@@ -7,11 +7,24 @@ export default function AdminLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if admin is logged in
-    const adminUser = localStorage.getItem("adminUser");
-    if (!adminUser) {
-      navigate("/admin/login");
-    }
+    // Check if admin is logged in on mount and on focus
+    const checkAuth = () => {
+      const adminUser = localStorage.getItem("adminUser");
+      if (!adminUser) {
+        navigate("/admin/login");
+      }
+    };
+
+    // Check auth on mount
+    checkAuth();
+
+    // Check auth when window regains focus
+    const handleFocus = () => checkAuth();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [navigate]);
 
   return (

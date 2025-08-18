@@ -43,12 +43,19 @@ export function AdminSidebar() {
     if (admin) setAdminUser(JSON.parse(admin));
   }, []);
   const handleLogout = () => {
+    // Clear both localStorage and sessionStorage
     localStorage.removeItem("adminUser");
+    sessionStorage.removeItem("adminSession");
+    
+    // Clear the state
+    setAdminUser(null);
+    
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"
     });
-    navigate("/admin/login");
+    
+    navigate("/admin/login", { replace: true });
   };
   const linkClasses = (active: boolean) => ["group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors", active ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-primary"].join(" ");
   return <Sidebar className={collapsed ? "w-16 overflow-hidden border-r border-sidebar-border" : "w-64 overflow-hidden border-r border-sidebar-border"} collapsible="icon">

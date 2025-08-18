@@ -37,12 +37,18 @@ export default function AdminLogin() {
     try {
       // Simple hardcoded credentials for admin
       if (values.username === "admin" && values.password === "admin123") {
-        localStorage.setItem("adminUser", JSON.stringify({
+        const adminData = {
           id: "admin-1",
           username: "admin",
           name: "Administrateur",
           role: "superadmin",
-        }));
+          loginTime: new Date().toISOString(),
+        };
+        
+        localStorage.setItem("adminUser", JSON.stringify(adminData));
+        
+        // Set a flag to prevent auto-logout
+        sessionStorage.setItem("adminSession", "active");
         
         toast({
           title: "Connexion réussie",
