@@ -898,6 +898,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_admin_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_count: number
+          total_count: number
+          user_type: string
+          users: Json
+        }[]
+      }
       get_current_admin: {
         Args: Record<PropertyKey, never>
         Returns: {

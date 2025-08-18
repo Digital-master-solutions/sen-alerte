@@ -55,70 +55,80 @@ export default function AdminUsers() {
   }, []);
   const loadUsers = async () => {
     try {
-      // Charger tous les utilisateurs depuis auth_profiles 
-      const { data: authProfiles, error: authError } = await supabase
-        .from("auth_profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+      console.log("Loading users data...");
+      
+      // Utiliser la fonction RPC pour récupérer les utilisateurs
+      const { data: usersData, error: usersError } = await supabase
+        .rpc("get_admin_users");
 
-      if (authError) throw authError;
+      console.log("Users RPC result:", { data: usersData, error: usersError });
 
-      console.log("Auth profiles data:", authProfiles);
+      if (usersData && !usersError) {
+        const superAdminData = usersData.find((row: any) => row.user_type === 'superadmin');
+        const adminData = usersData.find((row: any) => row.user_type === 'admin');
 
-      // Séparer par type d'utilisateur
-      const adminUsers: AdminUser[] = authProfiles
-        ?.filter(profile => profile.user_type === 'admin')
-        ?.map(profile => ({
-          id: profile.id,
-          name: profile.name,
-          email: profile.email || '',
-          username: profile.email || '', // Using email as username fallback
-          department: profile.organization_id || '',
-          status: profile.status,
-          organization_id: profile.organization_id || '',
-          created_at: profile.created_at,
-          last_login: profile.last_login || ''
-        })) || [];
+        console.log("SuperAdmin data:", superAdminData);
+        console.log("Admin data:", adminData);
 
-      const superAdminUsers: SuperAdmin[] = authProfiles
-        ?.filter(profile => profile.user_type === 'superadmin')
-        ?.map(profile => ({
-          id: profile.id,
-          name: profile.name,
-          email: profile.email || '',
-          username: profile.email || '', // Using email as username fallback
-          status: profile.status,
-          created_at: profile.created_at,
-          last_login: profile.last_login || ''
-        })) || [];
+        // Traiter les superadmins
+        if (superAdminData && superAdminData.users && Array.isArray(superAdminData.users)) {
+          const superAdminUsers: SuperAdmin[] = (superAdminData.users as any[]).map((user: any) => ({
+            id: user.id,
+            name: user.name,
+            email: user.email || '',
+            username: user.username || '',
+            status: user.status,
+            created_at: user.created_at,
+            last_login: user.last_login || ''
+          }));
+          setSuperAdmins(superAdminUsers);
+        } else {
+          setSuperAdmins([]);
+        }
 
-      setAdmins(adminUsers);
-      setSuperAdmins(superAdminUsers);
+        // Traiter les admins
+        if (adminData && adminData.users && Array.isArray(adminData.users)) {
+          const adminUsers: AdminUser[] = (adminData.users as any[]).map((user: any) => ({
+            id: user.id,
+            name: user.name,
+            email: user.email || '',
+            username: user.username || user.email || '',
+            department: user.organization_id || '',
+            status: user.status,
+            organization_id: user.organization_id || '',
+            created_at: user.created_at,
+            last_login: user.last_login || ''
+          }));
+          setAdmins(adminUsers);
+        } else {
+          setAdmins([]);
+        }
+      } else {
+        console.log("RPC failed, using fallback approach");
+        // Fallback: charger directement depuis superadmin table
+        const { data: superAdminData, error: superAdminError } = await supabase
+          .from("superadmin")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      // Also load original superadmin table for comparison
-      const { data: superAdminData, error: superAdminError } = await supabase
-        .from("superadmin")
-        .select("*")
-        .order("created_at", { ascending: false });
+        console.log("Fallback superadmin data:", { data: superAdminData, error: superAdminError });
 
-      if (!superAdminError && superAdminData) {
-        console.log("Original superadmin data:", superAdminData);
-        // Merge with auth_profiles data if needed
-        const originalSuperAdmins: SuperAdmin[] = superAdminData.map(sa => ({
-          id: sa.id,
-          name: sa.name,
-          email: sa.email || '',
-          username: sa.username || '',
-          status: sa.status,
-          created_at: sa.created_at,
-          last_login: sa.last_login || ''
-        }));
-        
-        // Combine both sources, removing duplicates
-        const allSuperAdmins = [...superAdminUsers, ...originalSuperAdmins.filter(
-          osa => !superAdminUsers.find(sa => sa.email === osa.email)
-        )];
-        setSuperAdmins(allSuperAdmins);
+        if (!superAdminError && superAdminData) {
+          const superAdminUsers: SuperAdmin[] = superAdminData.map(sa => ({
+            id: sa.id,
+            name: sa.name,
+            email: sa.email || '',
+            username: sa.username || '',
+            status: sa.status,
+            created_at: sa.created_at,
+            last_login: sa.last_login || ''
+          }));
+          setSuperAdmins(superAdminUsers);
+        } else {
+          setSuperAdmins([]);
+        }
+
+        setAdmins([]); // Pas d'admins en fallback
       }
 
     } catch (error) {
