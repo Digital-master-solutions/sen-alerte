@@ -20,25 +20,43 @@ export default function OrgLogin() {
     document.title = "Connexion Organisation | SenAlert";
   }, []);
 
-  const afterAuthLink = async () => {
-    try {
-      await supabase.rpc("link_org_to_user", { _org_name: "Organisation Démo" });
-    } catch (e) {
-      // ignore if already linked
-    }
-  };
-
   const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // Use custom authentication function
+      const { data: orgData, error } = await supabase
+        .rpc('authenticate_organization', { 
+          org_email: email, 
+          plain_password: password 
+        });
+
       if (error) throw error;
-      await afterAuthLink();
+      
+      if (!orgData || orgData.length === 0) {
+        throw new Error("Email ou mot de passe incorrect, ou compte non approuvé");
+      }
+
+      const organization = orgData[0];
+      
+      // Store organization data in localStorage for session management
+      localStorage.setItem('organization_session', JSON.stringify({
+        id: organization.id,
+        name: organization.name,
+        email: organization.email,
+        type: organization.type,
+        status: organization.status,
+        logged_in_at: new Date().toISOString()
+      }));
+
       toast({ title: "Connexion réussie" });
       navigate("/organization/dashboard", { replace: true });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message || "Impossible de se connecter" });
+      toast({ 
+        variant: "destructive", 
+        title: "Erreur", 
+        description: err.message || "Impossible de se connecter" 
+      });
     } finally {
       setLoading(false);
     }

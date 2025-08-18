@@ -84,7 +84,15 @@ export function OrganizationSignupStepper() {
     
     setLoading(true);
     try {
-      // 1. Créer l'organisation d'abord (sans user_id pour éviter les conflits RLS)
+      // Hash the password
+      const { data: hashedPassword, error: hashError } = await supabase
+        .rpc('hash_password', { plain_password: signupData.password });
+
+      if (hashError) {
+        throw new Error("Erreur lors du traitement du mot de passe");
+      }
+
+      // Create organization with hashed password
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .insert({
@@ -94,20 +102,17 @@ export function OrganizationSignupStepper() {
           phone: signupData.phone,
           address: signupData.address,
           city: signupData.city,
-          status: 'pending',
-          supabase_user_id: null // Sera lié après confirmation email
+          password_hash: hashedPassword,
+          status: 'pending'
         })
         .select()
         .single();
 
       if (orgError) {
-        if (orgError.message.includes('violates row-level security')) {
-          throw new Error("Erreur de sécurité. Veuillez réessayer dans quelques instants.");
-        }
         throw orgError;
       }
 
-      // 2. Associer les catégories
+      // Associate categories with organization
       if (signupData.selectedCategories.length > 0) {
         const categoryAssociations = signupData.selectedCategories.map(categoryId => ({
           organization_id: orgData.id,
@@ -121,38 +126,10 @@ export function OrganizationSignupStepper() {
         if (categoryError) throw categoryError;
       }
 
-      // 3. Créer le compte utilisateur en dernier
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: signupData.email,
-        password: signupData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/organization/login`,
-          data: {
-            name: signupData.name,
-            organization_type: signupData.type,
-            organization_id: orgData.id // Stocker l'ID org pour le lier plus tard
-          }
-        }
-      });
-
-      if (authError) {
-        // Gestion spécifique de l'erreur 429 (Rate Limit)
-        if (authError.message.includes('429') || authError.message.includes('rate limit')) {
-          toast({
-            variant: "destructive",
-            title: "Trop de tentatives",
-            description: "Veuillez attendre 35 secondes avant de réessayer. Supabase limite les inscriptions pour la sécurité.",
-          });
-          return;
-        }
-        throw authError;
-      }
-
-
       setIsCompleted(true);
       toast({
         title: "Inscription réussie !",
-        description: "Votre demande a été envoyée. Vérifiez votre email pour confirmer votre compte.",
+        description: "Votre demande a été envoyée. Elle sera examinée par les administrateurs.",
       });
 
       // Redirection après animation
