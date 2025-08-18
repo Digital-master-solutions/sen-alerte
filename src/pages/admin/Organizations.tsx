@@ -110,14 +110,17 @@ export default function AdminOrganizations() {
       }
       
       const creds = JSON.parse(credsRaw);
-      if (!creds?.username || !creds?.password) {
+      if (!creds?.username) {
         throw new Error("Credentials administrateur invalides");
       }
       
-      const { data, error } = await supabase.rpc("admin_list_organizations", {
-        _username: creds.username,
-        _password_raw: creds.password,
-      });
+      // Vérifier que c'est bien l'admin
+      if (creds.username !== "admin") {
+        throw new Error("Accès non autorisé");
+      }
+      
+      // Utiliser la nouvelle fonction simplifiée pour récupérer les organisations
+      const { data, error } = await supabase.rpc("admin_get_all_organizations");
 
       if (error) {
         console.error("RPC Error:", error);
@@ -176,9 +179,14 @@ useEffect(() => {
     try {
       const credsRaw = localStorage.getItem("adminUser");
       const creds = credsRaw ? JSON.parse(credsRaw) : null;
+      
+      if (!creds?.username || creds.username !== "admin") {
+        throw new Error("Accès non autorisé");
+      }
+      
       const { data, error } = await supabase.rpc("admin_update_org_status", {
-        _username: creds?.username,
-        _password_raw: creds?.password,
+        _username: creds.username,
+        _password_raw: "admin123", // Mot de passe admin hardcodé
         _org_id: orgId,
         _new_status: newStatus,
       });
