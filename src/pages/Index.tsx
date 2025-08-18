@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Plus, Home, Bell, Info, FileText, MapPin, Users, Settings } from "lucide-react";
+import { Menu, Plus, Home, Bell, Info, FileText, MapPin, Users, Settings, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import { Logo } from "@/components/ui/logo";
@@ -72,6 +72,21 @@ const Index = () => {
                     <span className="font-medium">À propos</span>
                   </Button>
                 </nav>
+                
+                {/* Section Organisation */}
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-3">Espace Organisation</h3>
+                  <nav className="space-y-2">
+                    <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/organization/login")}>
+                      <Users className="h-5 w-5" />
+                      <span className="font-medium">Connexion Organisation</span>
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/organization/signup")}>
+                      <UserPlus className="h-5 w-5" />
+                      <span className="font-medium">Inscription Organisation</span>
+                    </Button>
+                  </nav>
+                </div>
                 <div className="mt-8 pt-6 border-t">
                   <div className="flex items-center gap-3 text-sm">
                     <MapPin className="h-5 w-5 text-primary" />
