@@ -206,6 +206,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categorie_organization_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "public_organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       login_logs: {
@@ -396,6 +403,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organization_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "public_organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organizations: {
@@ -409,13 +423,11 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           name: string
-          password_hash: string | null
           permissions: string[] | null
           phone: string | null
           status: string | null
           supabase_user_id: string | null
           type: string
-          username: string | null
         }
         Insert: {
           address?: string | null
@@ -427,13 +439,11 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           name: string
-          password_hash?: string | null
           permissions?: string[] | null
           phone?: string | null
           status?: string | null
           supabase_user_id?: string | null
           type: string
-          username?: string | null
         }
         Update: {
           address?: string | null
@@ -445,13 +455,11 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           name?: string
-          password_hash?: string | null
           permissions?: string[] | null
           phone?: string | null
           status?: string | null
           supabase_user_id?: string | null
           type?: string
-          username?: string | null
         }
         Relationships: []
       }
@@ -608,6 +616,13 @@ export type Database = {
             columns: ["assigned_organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_assigned_organization_id_fkey"
+            columns: ["assigned_organization_id"]
+            isOneToOne: false
+            referencedRelation: "public_organizations"
             referencedColumns: ["id"]
           },
           {
@@ -798,6 +813,36 @@ export type Database = {
         }
         Relationships: []
       }
+      public_organizations: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          status: string | null
+          type: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          status?: string | null
+          type?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          status?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _is_superadmin_credentials: {
@@ -824,13 +869,11 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           name: string
-          password_hash: string | null
           permissions: string[] | null
           phone: string | null
           status: string | null
           supabase_user_id: string | null
           type: string
-          username: string | null
         }[]
       }
       admin_update_org_status: {
