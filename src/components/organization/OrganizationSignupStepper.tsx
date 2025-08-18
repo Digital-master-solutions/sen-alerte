@@ -84,7 +84,44 @@ export function OrganizationSignupStepper() {
     
     setLoading(true);
     try {
-      // 1. Créer le compte utilisateur
+      // 1. Créer l'organisation d'abord (sans user_id pour éviter les conflits RLS)
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .insert({
+          name: signupData.name,
+          type: signupData.type,
+          email: signupData.email,
+          phone: signupData.phone,
+          address: signupData.address,
+          city: signupData.city,
+          status: 'pending',
+          supabase_user_id: null // Sera lié après confirmation email
+        })
+        .select()
+        .single();
+
+      if (orgError) {
+        if (orgError.message.includes('violates row-level security')) {
+          throw new Error("Erreur de sécurité. Veuillez réessayer dans quelques instants.");
+        }
+        throw orgError;
+      }
+
+      // 2. Associer les catégories
+      if (signupData.selectedCategories.length > 0) {
+        const categoryAssociations = signupData.selectedCategories.map(categoryId => ({
+          organization_id: orgData.id,
+          categorie_id: categoryId
+        }));
+
+        const { error: categoryError } = await supabase
+          .from('categorie_organization')
+          .insert(categoryAssociations);
+
+        if (categoryError) throw categoryError;
+      }
+
+      // 3. Créer le compte utilisateur en dernier
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: signupData.email,
         password: signupData.password,
@@ -92,7 +129,8 @@ export function OrganizationSignupStepper() {
           emailRedirectTo: `${window.location.origin}/organization/login`,
           data: {
             name: signupData.name,
-            organization_type: signupData.type
+            organization_type: signupData.type,
+            organization_id: orgData.id // Stocker l'ID org pour le lier plus tard
           }
         }
       });
@@ -110,37 +148,6 @@ export function OrganizationSignupStepper() {
         throw authError;
       }
 
-      // 2. Créer l'organisation
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
-          name: signupData.name,
-          type: signupData.type,
-          email: signupData.email,
-          phone: signupData.phone,
-          address: signupData.address,
-          city: signupData.city,
-          status: 'pending',
-          supabase_user_id: authData.user?.id
-        })
-        .select()
-        .single();
-
-      if (orgError) throw orgError;
-
-      // 3. Associer les catégories
-      if (signupData.selectedCategories.length > 0) {
-        const categoryAssociations = signupData.selectedCategories.map(categoryId => ({
-          organization_id: orgData.id,
-          categorie_id: categoryId
-        }));
-
-        const { error: categoryError } = await supabase
-          .from('categorie_organization')
-          .insert(categoryAssociations);
-
-        if (categoryError) throw categoryError;
-      }
 
       setIsCompleted(true);
       toast({
@@ -165,6 +172,8 @@ export function OrganizationSignupStepper() {
         errorMessage = "Type d'organisation non valide. Veuillez sélectionner un type dans la liste.";
       } else if (err.message.includes('Bad Request') || err.message.includes('400')) {
         errorMessage = "Données invalides. Vérifiez que tous les champs sont correctement remplis.";
+      } else if (err.message.includes('violates row-level security')) {
+        errorMessage = "Erreur de permissions. Veuillez réessayer dans quelques instants.";
       } else if (err.message) {
         errorMessage = err.message;
       }
