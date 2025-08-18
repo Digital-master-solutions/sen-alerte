@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { LayoutDashboard, FileText, Building2, Users, LogOut, Shield, Tag, UserCog } from "lucide-react";
@@ -5,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Logo } from "@/components/ui/logo";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 const mainItems = [{
   title: "Tableau de bord",
   url: "/admin/dashboard",
@@ -33,24 +33,20 @@ export function AdminSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { adminData, signOut, logAdminAction } = useAdminAuth();
+  const [adminUser, setAdminUser] = useState<any>(null);
 
-  const handleLogout = async () => {
-    try {
-      await logAdminAction('logout');
-      await signOut();
-      toast({
-        title: "Déconnexion",
-        description: "Vous avez été déconnecté avec succès"
-      });
-      navigate("/admin/login");
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Erreur lors de la déconnexion"
-      });
-    }
+  useEffect(() => {
+    const admin = localStorage.getItem("adminUser");
+    if (admin) setAdminUser(JSON.parse(admin));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminUser");
+    toast({
+      title: "Déconnexion",
+      description: "Vous avez été déconnecté avec succès"
+    });
+    navigate("/admin/login");
   };
   const linkClasses = (active: boolean) => ["group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors", active ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-primary"].join(" ");
   return <Sidebar className={collapsed ? "w-16 overflow-hidden border-r border-sidebar-border" : "w-64 overflow-hidden border-r border-sidebar-border"} collapsible="icon">
@@ -63,10 +59,10 @@ export function AdminSidebar() {
               showText={!collapsed}
               className={collapsed ? "justify-center" : ""}
             />
-            {!collapsed && adminData && (
+            {!collapsed && adminUser && (
               <div className="ml-auto">
                 <div className="text-xs text-sidebar-foreground/60">
-                  Admin: {adminData.name}
+                  Admin: {adminUser.name ? String(adminUser.name) : String(adminUser.username)}
                 </div>
               </div>
             )}
