@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OrganizationSignupStepper } from "@/components/organization/OrganizationSignupStepper";
 
 export default function OrgLogin() {
   const navigate = useNavigate();
@@ -92,22 +93,18 @@ export default function OrgLogin() {
             </TabsContent>
 
             <TabsContent value="signup" className="mt-4">
-              <form onSubmit={onSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email2">Email</Label>
-                  <Input id="email2" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password2">Mot de passe</Label>
-                  <Input id="password2" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Création..." : "Créer mon compte"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Après confirmation email, vous serez redirigé et votre compte sera lié à "Organisation Démo" automatiquement.
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Vous souhaitez inscrire votre organisation ? 
                 </p>
-              </form>
+                <Button 
+                  onClick={() => window.location.href = '/organization/signup'}
+                  className="w-full"
+                  variant="outline"
+                >
+                  Créer un compte organisation
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
