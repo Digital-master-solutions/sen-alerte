@@ -55,28 +55,18 @@ export default function AdminUsers() {
   }, []);
   const loadUsers = async () => {
     try {
-      setLoading(true);
-      
-      // Load super admins from superadmin table
-      const { data: superAdminData, error: superAdminError } = await supabase
-        .from("superadmin")
-        .select("*")
-        .order("created_at", { ascending: false });
-        
-      if (superAdminError) {
-        console.error("Error loading superadmins:", superAdminError);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les super administrateurs",
-          variant: "destructive"
-        });
-      } else {
-        setSuperAdmins(superAdminData || []);
-      }
-      
-      // Clear admins list since we're not using it anymore
+      // Plus d'admins classiques: on vide la liste
       setAdmins([]);
-      
+
+      // Load super admins
+      const {
+        data: superAdminData,
+        error: superAdminError
+      } = await supabase.from("superadmin").select("*").order("created_at", {
+        ascending: false
+      });
+      if (superAdminError) throw superAdminError;
+      if (superAdminData) setSuperAdmins(superAdminData);
     } catch (error) {
       console.error("Error loading users:", error);
       toast({

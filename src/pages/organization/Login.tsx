@@ -35,7 +35,7 @@ export default function OrgLogin() {
       if (error) throw error;
       await afterAuthLink();
       toast({ title: "Connexion réussie" });
-      navigate("/organization/dashboard", { replace: true });
+      navigate("/organization/reports", { replace: true });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erreur", description: err.message || "Impossible de se connecter" });
     } finally {
@@ -47,7 +47,7 @@ export default function OrgLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/organization/dashboard`;
+      const redirectUrl = `${window.location.origin}/organization/reports`;
       const { error } = await supabase.auth.signUp({
         email,
         password,
