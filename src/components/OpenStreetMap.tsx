@@ -11,15 +11,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-interface Report {
-  id: string;
-  latitude: number;
-  longitude: number;
-  type: string;
-  description: string;
-  status: string;
-  created_at: string;
-}
 
 interface OpenStreetMapProps {
   className?: string;
@@ -30,7 +21,6 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
-  const [reports, setReports] = useState<Report[]>([]);
 
   useEffect(() => {
     // Get user's current location
@@ -51,27 +41,6 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       setUserPosition([14.693425, -17.447938]);
     }
 
-    // Load reports from Supabase
-    const loadReports = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('reports')
-          .select('id, latitude, longitude, type, description, status, created_at')
-          .not('latitude', 'is', null)
-          .not('longitude', 'is', null);
-
-        if (error) {
-          console.error('Error loading reports:', error);
-          return;
-        }
-
-        setReports(data || []);
-      } catch (error) {
-        console.error('Error loading reports:', error);
-      }
-    };
-
-    loadReports();
   }, []);
 
   useEffect(() => {
@@ -195,41 +164,6 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     userMarker.bindPopup('<strong>Votre position actuelle</strong>');
     markersRef.current.push(userMarker);
 
-    // Add report markers
-    reports.forEach((report) => {
-      const reportMarker = L.marker([report.latitude, report.longitude], {
-        icon: L.icon({
-          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-          iconSize: [20, 32],
-          iconAnchor: [10, 32],
-          popupAnchor: [1, -28],
-          shadowSize: [32, 32],
-          className: 'report-marker'
-        })
-      }).addTo(mapInstanceRef.current!);
-
-      const statusColor = report.status === 'resolu' ? 'green' : 
-                         report.status === 'en-cours' ? 'orange' : 'red';
-      
-      reportMarker.bindPopup(`
-        <div style="min-width: 200px;">
-          <h3 style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">${report.type}</h3>
-          <p style="font-size: 12px; color: #666; margin-bottom: 12px;">${report.description}</p>
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
-            <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px;">
-              ${report.status}
-            </span>
-            <span style="color: #666;">
-              ${new Date(report.created_at).toLocaleDateString()}
-            </span>
-          </div>
-        </div>
-      `);
-      
-      markersRef.current.push(reportMarker);
-    });
 
     // Cleanup function
     return () => {
@@ -238,7 +172,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [userPosition, reports]);
+  }, [userPosition]);
 
   if (!userPosition) {
     return (
@@ -257,9 +191,6 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         .current-location-marker {
           background: transparent !important;
           border: none !important;
-        }
-        .report-marker {
-          filter: hue-rotate(240deg) saturate(1.2);
         }
         @keyframes pulse {
           0% {

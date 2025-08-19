@@ -24,7 +24,6 @@ const IncidentsSection = () => {
         const { data, error } = await supabase
           .from('reports')
           .select('id, type, description, status, created_at, address, department')
-          .eq('department', 'Dakar')
           .order('created_at', { ascending: false })
           .limit(5);
 
@@ -88,7 +87,7 @@ const IncidentsSection = () => {
         <div className="container">
           <div className="text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h2 className="text-2xl font-bold text-foreground">Aucun incident signalé dans le département de Dakar</h2>
+            <h2 className="text-2xl font-bold text-foreground">Aucun incident signalé</h2>
             <p className="text-muted-foreground max-w-md mx-auto">
               Soyez le premier à signaler un problème !
             </p>
@@ -109,7 +108,7 @@ const IncidentsSection = () => {
             </h2>
           </div>
           <p className="text-xl text-muted-foreground">
-            Département de Dakar • {reports.length} signalement{reports.length > 1 ? 's' : ''} cette semaine
+            {reports.length} signalement{reports.length > 1 ? 's' : ''} récent{reports.length > 1 ? 's' : ''}
           </p>
         </div>
 
