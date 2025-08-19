@@ -54,20 +54,17 @@ export default function ManagedReports() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const { data: s } = await supabase.auth.getSession();
-      const uid = s.session?.user.id;
-      if (!uid) throw new Error("Non authentifié");
+      const orgSession = localStorage.getItem('organization_session');
+      if (!orgSession) throw new Error("Non authentifié");
 
-      const { data: orgRow, error: orgErr } = await supabase
-        .from("organizations")
-        .select("id,name,email")
-        .eq("supabase_user_id", uid)
-        .maybeSingle();
-      if (orgErr) throw orgErr;
-      if (!orgRow) throw new Error("Organisation introuvable");
-      setOrg(orgRow);
+      const session = JSON.parse(orgSession);
+      console.log("Loading organization data from session:", session);
+      
+      if (!session.id) throw new Error("Organisation introuvable");
+      const orgData = { id: session.id, name: session.name, email: session.email };
+      setOrg(orgData);
 
-      await managedReports.loadReports(orgRow.id);
+      await managedReports.loadReports(session.id);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
     } finally {
