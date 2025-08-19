@@ -61,7 +61,7 @@ export const useAvailableReports = () => {
     try {
       console.log("Attempting to claim report:", report.id, "for organization:", organization.id);
       
-      // Utiliser une approche plus simple - essayer directement l'update
+      // Utiliser une approche directe - mettre à jour le signalement
       const { data: updatedReports, error } = await supabase
         .from("reports")
         .update({ 
@@ -70,7 +70,7 @@ export const useAvailableReports = () => {
           updated_at: new Date().toISOString()
         })
         .eq("id", report.id)
-        .is("assigned_organization_id", null)
+        .eq("assigned_organization_id", null) // S'assurer qu'il est toujours disponible
         .select();
       
       if (error) {
@@ -78,7 +78,7 @@ export const useAvailableReports = () => {
         throw error;
       }
       
-      // Vérifier si l'update a affecté au moins une ligne
+      // Vérifier si l'update a réussi
       if (!updatedReports || updatedReports.length === 0) {
         console.warn("No rows were updated - report may already be assigned");
         toast({ 
@@ -102,7 +102,7 @@ export const useAvailableReports = () => {
       // Retirer immédiatement le signalement de la liste disponible
       setReports(prev => prev.filter(r => r.id !== report.id));
       
-      // Retourner le signalement mis à jour depuis la base
+      // Retourner le signalement mis à jour
       return updatedReport;
       
     } catch (error: any) {

@@ -72,10 +72,11 @@ export default function OrganizationDashboard() {
       setStats({ total, pending, inProgress, resolved });
 
 
-      // Compter les notifications envoyées
+      // Compter les notifications pour les signalements de cette organisation
       const { count } = await supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true })
+        .in("report_id", repAll?.map(r => r.id) || []);
       setNotifCount(count || 0);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
