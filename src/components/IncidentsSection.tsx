@@ -26,7 +26,7 @@ const IncidentsSection = () => {
           .select('id, type, description, status, created_at, address, department')
           .eq('department', 'Dakar')
           .order('created_at', { ascending: false })
-          .limit(6);
+          .limit(5);
 
         if (error) {
           console.error('Error loading reports:', error);

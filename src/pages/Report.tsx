@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,6 +57,8 @@ export default function Report() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   useEffect(() => {
     document.title = "Signaler un incident · SenAlert";
@@ -74,18 +76,48 @@ export default function Report() {
     },
   });
 
-  const categories = useMemo(
-    () => [
-      "Problème de voirie",
-      "Éclairage public défaillant",
-      "Propreté urbaine",
-      "Mobilier urbain cassé",
-      "Espaces verts mal entretenus",
-      "Signalisation manquante",
-      "Problèmes électriques",
-    ],
-    []
-  );
+  // Charger les catégories depuis la base de données
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categorie')
+          .select('nom')
+          .order('nom');
+
+        if (error) {
+          console.error('Error loading categories:', error);
+          // Fallback aux catégories hardcodées
+          setCategories([
+            "Problème de voirie",
+            "Éclairage public défaillant",
+            "Propreté urbaine",
+            "Mobilier urbain cassé",
+            "Espaces verts mal entretenus",
+            "Signalisation manquante",
+            "Problèmes électriques",
+          ]);
+        } else {
+          setCategories(data?.map(cat => cat.nom) || []);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        setCategories([
+          "Problème de voirie",
+          "Éclairage public défaillant",
+          "Propreté urbaine",
+          "Mobilier urbain cassé",
+          "Espaces verts mal entretenus",
+          "Signalisation manquante",
+          "Problèmes électriques",
+        ]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   // Récupérer la géolocalisation automatiquement au chargement
   useEffect(() => {
