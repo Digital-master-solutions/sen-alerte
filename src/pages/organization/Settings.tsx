@@ -49,14 +49,18 @@ export default function OrgSettings() {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const uid = session.session?.user.id;
-      if (!uid) throw new Error("Non authentifié");
+      const orgSession = localStorage.getItem('organization_session');
+      if (!orgSession) throw new Error("Non authentifié");
+
+      const session = JSON.parse(orgSession);
+      console.log("Loading organization profile from session:", session);
+      
+      if (!session.id) throw new Error("Organisation introuvable");
 
       const { data: orgRow, error } = await supabase
         .from("organizations")
         .select("*")
-        .eq("supabase_user_id", uid)
+        .eq("id", session.id)
         .maybeSingle();
       
       if (error) throw error;

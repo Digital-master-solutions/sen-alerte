@@ -56,23 +56,19 @@ export default function OrgNotifications() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data: s } = await supabase.auth.getSession();
-      const uid = s.session?.user.id;
-      if (!uid) throw new Error("Non authentifié");
+      const orgSession = localStorage.getItem('organization_session');
+      if (!orgSession) throw new Error("Non authentifié");
 
-      const { data: orgRow, error: orgErr } = await supabase
-        .from("organizations")
-        .select("id,name")
-        .eq("supabase_user_id", uid)
-        .maybeSingle();
-      if (orgErr) throw orgErr;
-      if (!orgRow) throw new Error("Organisation introuvable");
-      setOrg(orgRow);
+      const session = JSON.parse(orgSession);
+      console.log("Loading organization data from session:", session);
+      
+      if (!session.id) throw new Error("Organisation introuvable");
+      setOrg({ id: session.id, name: session.name });
 
       const { data, error } = await supabase
         .from("reports")
         .select("id,anonymous_code,type,description,created_at,status,address,department")
-        .eq("assigned_organization_id", orgRow.id)
+        .eq("assigned_organization_id", session.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       setReports(data || []);
