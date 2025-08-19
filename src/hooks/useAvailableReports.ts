@@ -33,6 +33,8 @@ export const useAvailableReports = () => {
   const loadReports = async (organization: Organization) => {
     setLoading(true);
     try {
+      console.log("Loading available reports for organization:", organization.id);
+      
       const { data, error } = await supabase
         .from("reports")
         .select("*")
@@ -40,8 +42,11 @@ export const useAvailableReports = () => {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
+      
+      console.log("Loaded available reports:", data?.length || 0);
       setReports(data || []);
     } catch (error: any) {
+      console.error("Error loading available reports:", error);
       toast({ 
         variant: "destructive", 
         title: "Erreur", 
