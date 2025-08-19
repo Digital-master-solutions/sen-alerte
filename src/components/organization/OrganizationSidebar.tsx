@@ -43,19 +43,20 @@ export function OrganizationSidebar() {
   const [orgUser, setOrgUser] = useState<any>(null);
 
   useEffect(() => {
-    const loadOrgInfo = async () => {
+    const loadOrgInfo = () => {
       try {
-        const { data: s } = await supabase.auth.getSession();
-        const uid = s.session?.user.id;
-        if (!uid) return;
-
-        const { data: orgRow } = await supabase
-          .from("organizations")
-          .select("id,name")
-          .eq("supabase_user_id", uid)
-          .maybeSingle();
+        const orgSession = localStorage.getItem('organization_session');
+        if (!orgSession) {
+          console.log("No organization session found");
+          return;
+        }
         
-        if (orgRow) setOrgUser(orgRow);
+        const session = JSON.parse(orgSession);
+        console.log("Organization session found:", session);
+        setOrgUser({
+          id: session.id,
+          name: session.name
+        });
       } catch (e) {
         console.error("Error loading org info:", e);
       }
@@ -63,8 +64,8 @@ export function OrganizationSidebar() {
     loadOrgInfo();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    localStorage.removeItem('organization_session');
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"
