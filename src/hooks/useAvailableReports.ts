@@ -44,6 +44,15 @@ export const useAvailableReports = () => {
       if (error) throw error;
       
       console.log("Loaded available reports:", data?.length || 0);
+      console.log("Sample report data:", data?.[0]);
+      
+      // Log détaillé des assignations pour debugging
+      data?.forEach((report, index) => {
+        if (index < 3) { // Log seulement les 3 premiers pour éviter le spam
+          console.log(`Report ${report.id}: assigned_organization_id =`, report.assigned_organization_id, typeof report.assigned_organization_id);
+        }
+      });
+      
       setReports(data || []);
     } catch (error: any) {
       console.error("Error loading available reports:", error);
@@ -59,28 +68,30 @@ export const useAvailableReports = () => {
 
   const claimReport = async (report: Report, organization: Organization) => {
     try {
-      console.log("Attempting to claim report:", report.id, "for organization:", organization.id);
+      console.log("=== CLAIMING REPORT PROCESS START ===");
+      console.log("Report ID:", report.id);
+      console.log("Organization ID:", organization.id);
+      console.log("Report current assigned_organization_id:", report.assigned_organization_id);
+      console.log("Type of assigned_organization_id:", typeof report.assigned_organization_id);
+      console.log("Is null?", report.assigned_organization_id === null);
+      console.log("Is undefined?", report.assigned_organization_id === undefined);
       
-      // Utiliser une approche directe - mettre à jour le signalement
-      const { data: updatedReports, error } = await supabase
+      // Vérification préalable de l'état du rapport
+      const { data: currentReport, error: checkError } = await supabase
         .from("reports")
-        .update({ 
-          assigned_organization_id: organization.id,
-          status: 'en-cours',
-          updated_at: new Date().toISOString()
-        })
+        .select("assigned_organization_id, status")
         .eq("id", report.id)
-        .eq("assigned_organization_id", null) // S'assurer qu'il est toujours disponible
-        .select();
-      
-      if (error) {
-        console.error("Database update error:", error);
-        throw error;
+        .single();
+        
+      if (checkError) {
+        console.error("Error checking current report state:", checkError);
+        throw checkError;
       }
       
-      // Vérifier si l'update a réussi
-      if (!updatedReports || updatedReports.length === 0) {
-        console.warn("No rows were updated - report may already be assigned");
+      console.log("Current report state in DB:", currentReport);
+      
+      if (currentReport.assigned_organization_id !== null) {
+        console.warn("Report is already assigned in database:", currentReport.assigned_organization_id);
         toast({ 
           variant: "destructive", 
           title: "Signalement déjà assigné", 
@@ -91,8 +102,44 @@ export const useAvailableReports = () => {
         return null;
       }
       
+      console.log("Report is available, proceeding with claim...");
+      
+      // Mettre à jour le signalement avec une condition stricte
+      const { data: updatedReports, error } = await supabase
+        .from("reports")
+        .update({ 
+          assigned_organization_id: organization.id,
+          status: 'en-cours',
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", report.id)
+        .is("assigned_organization_id", null) // Condition stricte pour éviter les conflits
+        .select();
+      
+      if (error) {
+        console.error("Database update error:", error);
+        console.log("Error details:", error.details, error.hint, error.code);
+        throw error;
+      }
+      
+      console.log("Update query result:", updatedReports);
+      
+      // Vérifier si l'update a réussi
+      if (!updatedReports || updatedReports.length === 0) {
+        console.warn("No rows were updated - report may have been claimed by another organization");
+        toast({ 
+          variant: "destructive", 
+          title: "Signalement déjà assigné", 
+          description: "Ce signalement a été pris en charge par une autre organisation entre-temps" 
+        });
+        // Retirer le signalement de la liste car il n'est plus disponible
+        setReports(prev => prev.filter(r => r.id !== report.id));
+        return null;
+      }
+      
       const updatedReport = updatedReports[0];
       console.log("Report successfully claimed:", updatedReport);
+      console.log("=== CLAIMING REPORT PROCESS SUCCESS ===");
       
       toast({ 
         title: "Signalement pris en charge", 
@@ -106,11 +153,27 @@ export const useAvailableReports = () => {
       return updatedReport;
       
     } catch (error: any) {
+      console.error("=== CLAIMING REPORT PROCESS FAILED ===");
       console.error("Error claiming report:", error);
+      console.log("Error name:", error.name);
+      console.log("Error message:", error.message);
+      console.log("Error code:", error.code);
+      console.log("Error details:", error.details);
+      
+      let errorMessage = "Impossible de prendre en charge ce signalement";
+      
+      if (error.code === "42501") {
+        errorMessage = "Permissions insuffisantes pour prendre en charge ce signalement";
+      } else if (error.message?.includes("violates row-level security")) {
+        errorMessage = "Sécurité : impossible de modifier ce signalement";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({ 
         variant: "destructive", 
         title: "Erreur", 
-        description: error.message || "Impossible de prendre en charge ce signalement" 
+        description: errorMessage
       });
       return null;
     }

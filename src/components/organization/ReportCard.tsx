@@ -108,34 +108,52 @@ export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSele
               onReportSelect={onReportSelect}
             />
             
-            {type === "available" && onClaim && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    size="sm"
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    <Hand className="h-4 w-4 mr-1" />
-                    Gérer
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmer la prise en charge</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir prendre en charge ce signalement "{report.type}" ? 
-                      Une fois assigné, il ne sera plus disponible pour les autres organisations.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onClaim(report)}>
-                      Confirmer la prise en charge
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+            {type === "available" && onClaim && (() => {
+              // Log détaillé pour debugging
+              console.log(`ReportCard - Report ${report.id}:`);
+              console.log("- assigned_organization_id:", report.assigned_organization_id);
+              console.log("- type of assigned_organization_id:", typeof report.assigned_organization_id);
+              console.log("- is null:", report.assigned_organization_id === null);
+              console.log("- is undefined:", report.assigned_organization_id === undefined);
+              console.log("- should show button:", !report.assigned_organization_id);
+              
+              // Vérifier que le rapport n'est vraiment pas assigné
+              const isReallyAvailable = report.assigned_organization_id === null || report.assigned_organization_id === undefined;
+              
+              if (!isReallyAvailable) {
+                console.warn(`Report ${report.id} appears to be assigned but is in available list`);
+                return null;
+              }
+              
+              return (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      size="sm"
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <Hand className="h-4 w-4 mr-1" />
+                      Gérer
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmer la prise en charge</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Êtes-vous sûr de vouloir prendre en charge ce signalement "{report.type}" ? 
+                        Une fois assigné, il ne sera plus disponible pour les autres organisations.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onClaim(report)}>
+                        Confirmer la prise en charge
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              );
+            })()}
 
             {type === "managed" && onStatusUpdate && (
               <Select 
