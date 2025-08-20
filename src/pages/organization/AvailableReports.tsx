@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useReportsStore } from "@/stores";
+import { useReportsStore, useAuthStore } from "@/stores";
 import { Search, RefreshCw, FileText, ArrowRight } from "lucide-react";
 import { ReportCard } from "@/components/organization/ReportCard";
 import { Link } from "react-router-dom";
@@ -55,20 +55,19 @@ export default function AvailableReports() {
     loadAll();
   }, []);
 
+  const { user, userType } = useAuthStore();
+
   const loadAll = async () => {
     setLoading(true);
     try {
-      const orgSession = localStorage.getItem('organization_session');
-      if (!orgSession) throw new Error("Non authentifié");
+      if (userType !== 'organization' || !user) {
+        throw new Error("Non authentifié");
+      }
 
-      const session = JSON.parse(orgSession);
-      console.log("Loading organization data from session:", session);
-      
-      if (!session.id) throw new Error("Organisation introuvable");
-      const orgData = { id: session.id, name: session.name, email: session.email };
+      const orgData = { id: user.id, name: user.name, email: user.email };
       setOrg(orgData);
 
-      await loadAvailableReports(orgData.id);
+      await loadAvailableReports(user.id);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
     } finally {

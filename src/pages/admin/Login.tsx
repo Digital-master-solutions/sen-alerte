@@ -88,13 +88,6 @@ export default function AdminLogin() {
       };
       
       setAuth(adminUser, 'admin');
-      
-      // Keep localStorage for backward compatibility
-      localStorage.setItem("adminUser", JSON.stringify({
-        ...adminUser,
-        role: "superadmin",
-        password: values.password,
-      }));
 
       await supabase.rpc('update_superadmin_last_login', {
         _username: values.username
