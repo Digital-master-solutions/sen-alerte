@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types pour l'authentification unifiée
 export interface AdminUser {
@@ -48,6 +49,11 @@ export interface AuthState {
   setLoading: (loading: boolean) => void;
   updateToken: (token: string, refreshToken?: string, expiresIn?: number) => void;
   isSessionValid: () => boolean;
+
+  // JWT Authentication
+  loginWithJWT: (email: string, password: string, userType: 'admin' | 'organization') => Promise<boolean>;
+  refreshTokens: () => Promise<boolean>;
+  scheduleTokenRefresh: () => void;
 
   // Migration depuis localStorage (backward compatibility)
   migrateFromLegacyAuth: () => void;
@@ -111,6 +117,90 @@ export const useAuthStore = create<AuthState>()(
         return Date.now() < sessionExpiry;
       },
 
+      // JWT Authentication
+      loginWithJWT: async (email, password, userType) => {
+        try {
+          set((state) => { state.isLoading = true; });
+
+          const { data, error } = await supabase.functions.invoke('auth-login', {
+            body: { email, password, userType }
+          });
+
+          if (error) throw error;
+          if (!data.success) throw new Error(data.error);
+
+          const { user, token, refreshToken, expiresIn } = data;
+          
+          set((state) => {
+            state.user = user;
+            state.userType = userType;
+            state.token = token;
+            state.refreshToken = refreshToken;
+            state.isAuthenticated = true;
+            state.isLoading = false;
+            state.sessionExpiry = Date.now() + expiresIn * 1000;
+          });
+
+          // Schedule auto-refresh
+          get().scheduleTokenRefresh();
+
+          return true;
+        } catch (error) {
+          console.error('JWT login error:', error);
+          set((state) => { 
+            state.isLoading = false;
+            state.isAuthenticated = false;
+          });
+          return false;
+        }
+      },
+
+      refreshTokens: async () => {
+        try {
+          const { refreshToken } = get();
+          if (!refreshToken) return false;
+
+          const { data, error } = await supabase.functions.invoke('auth-refresh', {
+            body: { refreshToken }
+          });
+
+          if (error) throw error;
+          if (!data.success) throw new Error(data.error);
+
+          const { user, token, refreshToken: newRefreshToken, expiresIn } = data;
+          
+          set((state) => {
+            state.user = user;
+            state.token = token;
+            state.refreshToken = newRefreshToken;
+            state.sessionExpiry = Date.now() + expiresIn * 1000;
+          });
+
+          // Schedule next refresh
+          get().scheduleTokenRefresh();
+
+          return true;
+        } catch (error) {
+          console.error('Token refresh error:', error);
+          get().logout();
+          return false;
+        }
+      },
+
+      scheduleTokenRefresh: () => {
+        const { sessionExpiry } = get();
+        if (!sessionExpiry) return;
+
+        // Refresh 2 minutes before expiry
+        const refreshTime = sessionExpiry - Date.now() - (2 * 60 * 1000);
+        
+        if (refreshTime > 0) {
+          setTimeout(() => {
+            get().refreshTokens();
+          }, refreshTime);
+        }
+      },
+
       // Migration depuis l'ancien système
       migrateFromLegacyAuth: () => {
         const adminUser = localStorage.getItem('adminUser');
@@ -171,6 +261,9 @@ export const useAuthInit = () => {
   const migrateFromLegacyAuth = useAuthStore((state) => state.migrateFromLegacyAuth);
   const isSessionValid = useAuthStore((state) => state.isSessionValid);
   const logout = useAuthStore((state) => state.logout);
+  const scheduleTokenRefresh = useAuthStore((state) => state.scheduleTokenRefresh);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const token = useAuthStore((state) => state.token);
 
   // Migration automatique au premier chargement
   useEffect(() => {
@@ -179,6 +272,9 @@ export const useAuthInit = () => {
     // Vérifier la validité de la session
     if (!isSessionValid()) {
       logout();
+    } else if (isAuthenticated && token) {
+      // Schedule refresh for existing JWT sessions
+      scheduleTokenRefresh();
     }
-  }, [migrateFromLegacyAuth, isSessionValid, logout]);
+  }, [migrateFromLegacyAuth, isSessionValid, logout, scheduleTokenRefresh, isAuthenticated, token]);
 };
