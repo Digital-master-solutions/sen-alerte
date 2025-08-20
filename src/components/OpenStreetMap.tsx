@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { supabase } from '@/integrations/supabase/client';
+import { useLocationStore } from '@/stores/locationStore';
 
 // Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -20,31 +20,19 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  const { currentLocation, requestLocation } = useLocationStore();
 
   useEffect(() => {
-    // Get user's current location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserPosition([latitude, longitude]);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          // Default to Dakar center if geolocation fails
-          setUserPosition([14.693425, -17.447938]);
-        }
-      );
-    } else {
-      // Default to Dakar center if geolocation is not supported
-      setUserPosition([14.693425, -17.447938]);
+    // Request location if not available
+    if (!currentLocation) {
+      requestLocation();
     }
-
-  }, []);
+  }, [currentLocation, requestLocation]);
 
   useEffect(() => {
-    if (!mapRef.current || !userPosition) return;
+    if (!mapRef.current || !currentLocation) return;
+
+    const userPosition: [number, number] = [currentLocation.latitude, currentLocation.longitude];
 
     // Initialize map
     if (!mapInstanceRef.current) {
@@ -102,16 +90,11 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           L.DomEvent.on(recenterBtn, 'click', function(e) {
             L.DomEvent.preventDefault(e);
             if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition(
-                (position) => {
-                  const { latitude, longitude } = position.coords;
-                  map.setView([latitude, longitude], 15);
-                  setUserPosition([latitude, longitude]);
-                },
-                (error) => {
-                  console.error('Error getting location:', error);
+              requestLocation().then(() => {
+                if (currentLocation) {
+                  map.setView([currentLocation.latitude, currentLocation.longitude], 15);
                 }
-              );
+              });
             }
           });
           
@@ -172,9 +155,9 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [userPosition]);
+  }, [currentLocation, requestLocation]);
 
-  if (!userPosition) {
+  if (!currentLocation) {
     return (
       <div className={`flex items-center justify-center bg-muted ${className}`}>
         <p className="text-muted-foreground">Chargement de la carte...</p>
