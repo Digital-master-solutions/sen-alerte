@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrganizationSignupStepper } from "@/components/organization/OrganizationSignupStepper";
+import { useAuthStore } from "@/stores";
 
 export default function OrgLogin() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function OrgLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { setAuth } = useAuthStore();
 
   useEffect(() => {
     document.title = "Connexion Organisation | SenAlert";
@@ -39,13 +41,22 @@ export default function OrgLogin() {
 
       const organization = orgData[0];
       
-      // Store organization data in localStorage for session management
-      localStorage.setItem('organization_session', JSON.stringify({
+      // Store organization data in Zustand store AND localStorage for backward compatibility
+      const orgUser = {
         id: organization.id,
         name: organization.name,
         email: organization.email,
         type: organization.type,
         status: organization.status,
+        created_at: organization.created_at
+      };
+      
+      // Set in Zustand store
+      setAuth(orgUser, 'organization');
+      
+      // Keep localStorage for backward compatibility
+      localStorage.setItem('organization_session', JSON.stringify({
+        ...orgUser,
         logged_in_at: new Date().toISOString()
       }));
 

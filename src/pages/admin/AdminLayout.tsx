@@ -2,17 +2,22 @@ import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { useAuthStore } from "@/stores";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const { isAuthenticated, userType, isSessionValid } = useAuthStore();
 
   useEffect(() => {
-    // Check if admin is logged in
-    const adminUser = localStorage.getItem("adminUser");
-    if (!adminUser) {
-      navigate("/admin/login");
+    // Check authentication with Zustand store first, fallback to localStorage
+    if (!isAuthenticated || userType !== 'admin' || !isSessionValid()) {
+      // Fallback: check legacy localStorage
+      const adminUser = localStorage.getItem("adminUser");
+      if (!adminUser) {
+        navigate("/admin/login");
+      }
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated, userType, isSessionValid]);
 
   return (
     <SidebarProvider>

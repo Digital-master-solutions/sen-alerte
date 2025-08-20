@@ -5,8 +5,8 @@ import { LayoutDashboard, FileText, Building2, Bell, LogOut, Settings, CheckCirc
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/ui/logo";
+import { useAuthStore, Organization } from "@/stores";
 
 const mainItems = [{
   title: "Tableau de bord",
@@ -40,32 +40,44 @@ export function OrganizationSidebar() {
   const {
     toast
   } = useToast();
-  const [orgUser, setOrgUser] = useState<any>(null);
+  const { user, userType, logout } = useAuthStore();
+  const [legacyOrgUser, setLegacyOrgUser] = useState<any>(null);
+
+  // Get user data from Zustand store or fallback to localStorage
+  const orgUser = (userType === 'organization' ? user as Organization : null) || legacyOrgUser;
 
   useEffect(() => {
-    const loadOrgInfo = () => {
-      try {
-        const orgSession = localStorage.getItem('organization_session');
-        if (!orgSession) {
-          console.log("No organization session found");
-          return;
+    // Fallback: load from localStorage if not in Zustand store
+    if (!user && userType !== 'organization') {
+      const loadOrgInfo = () => {
+        try {
+          const orgSession = localStorage.getItem('organization_session');
+          if (!orgSession) {
+            console.log("No organization session found");
+            return;
+          }
+          
+          const session = JSON.parse(orgSession);
+          console.log("Organization session found:", session);
+          setLegacyOrgUser({
+            id: session.id,
+            name: session.name
+          });
+        } catch (e) {
+          console.error("Error loading org info:", e);
         }
-        
-        const session = JSON.parse(orgSession);
-        console.log("Organization session found:", session);
-        setOrgUser({
-          id: session.id,
-          name: session.name
-        });
-      } catch (e) {
-        console.error("Error loading org info:", e);
-      }
-    };
-    loadOrgInfo();
-  }, []);
+      };
+      loadOrgInfo();
+    }
+  }, [user, userType]);
 
   const handleLogout = () => {
-    localStorage.removeItem('organization_session');
+    // Use Zustand logout if authenticated via store, otherwise clear localStorage
+    if (user && userType === 'organization') {
+      logout();
+    } else {
+      localStorage.removeItem('organization_session');
+    }
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"

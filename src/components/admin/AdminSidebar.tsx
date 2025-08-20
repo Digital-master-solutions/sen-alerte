@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Logo } from "@/components/ui/logo";
+import { useAuthStore, AdminUser } from "@/stores";
 const mainItems = [{
   title: "Tableau de bord",
   url: "/admin/dashboard",
@@ -37,13 +38,27 @@ export function AdminSidebar() {
   const {
     toast
   } = useToast();
-  const [adminUser, setAdminUser] = useState<any>(null);
+  const { user, userType, logout } = useAuthStore();
+  const [legacyAdminUser, setLegacyAdminUser] = useState<any>(null);
+  
+  // Get user data from Zustand store or fallback to localStorage
+  const adminUser = (userType === 'admin' ? user as AdminUser : null) || legacyAdminUser;
+  
   useEffect(() => {
-    const admin = localStorage.getItem("adminUser");
-    if (admin) setAdminUser(JSON.parse(admin));
-  }, []);
+    // Fallback: load from localStorage if not in Zustand store
+    if (!user && userType !== 'admin') {
+      const admin = localStorage.getItem("adminUser");
+      if (admin) setLegacyAdminUser(JSON.parse(admin));
+    }
+  }, [user, userType]);
+  
   const handleLogout = () => {
-    localStorage.removeItem("adminUser");
+    // Use Zustand logout if authenticated via store, otherwise clear localStorage
+    if (user && userType === 'admin') {
+      logout();
+    } else {
+      localStorage.removeItem("adminUser");
+    }
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"

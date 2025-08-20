@@ -2,17 +2,20 @@ import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { OrganizationSidebar } from "@/components/organization/OrganizationSidebar";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthStore } from "@/stores";
 
 export default function OrganizationLayout() {
   const navigate = useNavigate();
+  const { isAuthenticated, userType, isSessionValid } = useAuthStore();
 
   useEffect(() => {
     document.title = "Espace Organisation | SenAlert";
   }, []);
 
   useEffect(() => {
-    const checkAuth = () => {
+    // Check authentication with Zustand store first, fallback to localStorage
+    if (!isAuthenticated || userType !== 'organization' || !isSessionValid()) {
+      // Fallback: check legacy localStorage for backward compatibility
       const orgSession = localStorage.getItem('organization_session');
       if (!orgSession) {
         navigate("/organization/login");
@@ -34,9 +37,8 @@ export default function OrganizationLayout() {
         localStorage.removeItem('organization_session');
         navigate("/organization/login");
       }
-    };
-    checkAuth();
-  }, [navigate]);
+    }
+  }, [navigate, isAuthenticated, userType, isSessionValid]);
 
   return (
     <SidebarProvider>
