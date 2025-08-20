@@ -67,12 +67,6 @@ export default function OrgLogin() {
       };
       
       setAuth(orgUser, 'organization');
-      
-      // Keep localStorage for backward compatibility
-      localStorage.setItem('organization_session', JSON.stringify({
-        ...orgUser,
-        logged_in_at: new Date().toISOString()
-      }));
 
       toast({ title: "Connexion réussie" });
       navigate("/organization/dashboard", { replace: true });
