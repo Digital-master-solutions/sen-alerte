@@ -37,22 +37,35 @@ export default function AdminLogin() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      console.log("Tentative de connexion pour:", values.username);
+      console.log("Tentative de connexion JWT pour:", values.username);
       
-      // Utiliser la fonction RPC pour bypasser les politiques RLS
+      // Try JWT login first
+      try {
+        const { loginWithJWT } = useAuthStore.getState();
+        const result = await loginWithJWT(values.username, values.password, 'admin');
+        
+        if (result) {
+          const { user } = useAuthStore.getState();
+          toast({
+            title: "Connexion réussie",
+            description: `Bienvenue ${user?.name} (Super Admin)`,
+          });
+          navigate("/admin/dashboard");
+          return;
+        }
+      } catch (jwtError) {
+        console.warn("JWT login failed, trying fallback:", jwtError);
+      }
+      
+      // Fallback to RPC authentication
+      console.log("Using RPC fallback authentication");
       const { data: adminData, error: authError } = await supabase
         .rpc('authenticate_superadmin', {
           _username: values.username,
           _password_raw: values.password
         });
 
-      console.log("Résultat de l'authentification:", adminData);
-      console.log("Erreur d'authentification:", authError);
-
-      if (authError) {
-        console.error("Erreur lors de l'authentification:", authError);
-        throw authError;
-      }
+      if (authError) throw authError;
 
       if (!adminData || adminData.length === 0) {
         toast({
@@ -64,8 +77,6 @@ export default function AdminLogin() {
       }
 
       const superAdmin = adminData[0];
-
-      // Store admin user data in Zustand store AND localStorage for backward compatibility
       const adminUser = {
         id: superAdmin.id,
         username: superAdmin.username,
@@ -76,7 +87,6 @@ export default function AdminLogin() {
         last_login: superAdmin.last_login
       };
       
-      // Set in Zustand store
       setAuth(adminUser, 'admin');
       
       // Keep localStorage for backward compatibility
@@ -86,7 +96,6 @@ export default function AdminLogin() {
         password: values.password,
       }));
 
-      // Mettre à jour la dernière connexion
       await supabase.rpc('update_superadmin_last_login', {
         _username: values.username
       });

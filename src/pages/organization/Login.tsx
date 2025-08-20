@@ -26,7 +26,24 @@ export default function OrgLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Use custom authentication function
+      console.log("Tentative de connexion JWT pour organisation:", email);
+      
+      // Try JWT login first
+      try {
+        const { loginWithJWT } = useAuthStore.getState();
+        const result = await loginWithJWT(email, password, 'organization');
+        
+        if (result) {
+          toast({ title: "Connexion réussie" });
+          navigate("/organization/dashboard", { replace: true });
+          return;
+        }
+      } catch (jwtError) {
+        console.warn("JWT login failed, trying fallback:", jwtError);
+      }
+      
+      // Fallback to RPC authentication  
+      console.log("Using RPC fallback authentication");
       const { data: orgData, error } = await supabase
         .rpc('authenticate_organization', { 
           org_email: email, 
@@ -40,8 +57,6 @@ export default function OrgLogin() {
       }
 
       const organization = orgData[0];
-      
-      // Store organization data in Zustand store AND localStorage for backward compatibility
       const orgUser = {
         id: organization.id,
         name: organization.name,
@@ -51,7 +66,6 @@ export default function OrgLogin() {
         created_at: organization.created_at
       };
       
-      // Set in Zustand store
       setAuth(orgUser, 'organization');
       
       // Keep localStorage for backward compatibility

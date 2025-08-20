@@ -82,6 +82,12 @@ export interface ReportsState {
   getReportById: (id: string) => Report | null;
   invalidateCache: () => void;
   getFilteredReports: (reportType: 'available' | 'managed' | 'user') => Report[];
+
+  // Actions for data loading
+  loadAvailableReports: (organizationId: string) => Promise<void>;
+  loadManagedReports: (organizationId: string) => Promise<void>;
+  claimReport: (reportId: string, organizationId: string) => Promise<Report | null>;
+  updateReportStatus: (reportId: string, newStatus: string) => Promise<void>;
 }
 
 export const useReportsStore = create<ReportsState>()(
@@ -270,6 +276,152 @@ export const useReportsStore = create<ReportsState>()(
 
           return true;
         });
+      },
+
+      // Loading actions
+      loadAvailableReports: async (organizationId) => {
+        set((state) => { state.isLoadingAvailable = true; state.availableReportsError = null; });
+        
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const { data, error } = await supabase
+            .from("reports")
+            .select("*")
+            .is("assigned_organization_id", null)
+            .order("created_at", { ascending: false });
+          
+          if (error) throw error;
+          
+          set((state) => {
+            state.availableReports = (data || []).map(item => ({
+              ...item,
+              updated_at: item.updated_at || item.created_at,
+              estimated_resolution_time: String(item.estimated_resolution_time || ''),
+              actual_resolution_time: String(item.actual_resolution_time || '')
+            }));
+            state.isLoadingAvailable = false;
+          });
+        } catch (error: any) {
+          set((state) => {
+            state.availableReportsError = error.message;
+            state.isLoadingAvailable = false;
+          });
+          throw error;
+        }
+      },
+
+      loadManagedReports: async (organizationId) => {
+        set((state) => { state.isLoadingManaged = true; state.managedReportsError = null; });
+        
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const { data, error } = await supabase
+            .from("reports")
+            .select("*")
+            .eq("assigned_organization_id", organizationId)
+            .order("created_at", { ascending: false });
+          
+          if (error) throw error;
+          
+          set((state) => {
+            state.managedReports = (data || []).map(item => ({
+              ...item,
+              updated_at: item.updated_at || item.created_at,
+              estimated_resolution_time: String(item.estimated_resolution_time || ''),
+              actual_resolution_time: String(item.actual_resolution_time || '')
+            }));
+            state.isLoadingManaged = false;
+          });
+        } catch (error: any) {
+          set((state) => {
+            state.managedReportsError = error.message;
+            state.isLoadingManaged = false;
+          });
+          throw error;
+        }
+      },
+
+      claimReport: async (reportId, organizationId) => {
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          
+          // Check current state
+          const { data: currentReport, error: checkError } = await supabase
+            .from("reports")
+            .select("assigned_organization_id, status")
+            .eq("id", reportId)
+            .single();
+            
+          if (checkError) throw checkError;
+          
+          if (currentReport.assigned_organization_id !== null) {
+            throw new Error("Ce signalement a déjà été pris en charge par une autre organisation");
+          }
+          
+          // Update with strict condition
+          const { data: updatedReports, error } = await supabase
+            .from("reports")
+            .update({ 
+              assigned_organization_id: organizationId,
+              status: 'en-cours',
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", reportId)
+            .is("assigned_organization_id", null)
+            .select();
+          
+          if (error) throw error;
+          
+          if (!updatedReports || updatedReports.length === 0) {
+            throw new Error("Ce signalement a été pris en charge par une autre organisation entre-temps");
+          }
+          
+          const rawReport = updatedReports[0];
+          const updatedReport: Report = {
+            ...rawReport,
+            updated_at: rawReport.updated_at || rawReport.created_at,
+            estimated_resolution_time: String(rawReport.estimated_resolution_time || ''),
+            actual_resolution_time: String(rawReport.actual_resolution_time || '')
+          };
+          
+          // Update store state
+          set((state) => {
+            // Remove from available
+            state.availableReports = state.availableReports.filter(r => r.id !== reportId);
+            // Add to managed
+            const exists = state.managedReports.find(r => r.id === reportId);
+            if (!exists) {
+              state.managedReports.unshift(updatedReport);
+            }
+          });
+          
+          return updatedReport;
+        } catch (error: any) {
+          throw error;
+        }
+      },
+
+      updateReportStatus: async (reportId, newStatus) => {
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          
+          const { error } = await supabase
+            .from("reports")
+            .update({ status: newStatus })
+            .eq("id", reportId);
+          
+          if (error) throw error;
+          
+          // Update local state
+          set((state) => {
+            const report = state.managedReports.find(r => r.id === reportId);
+            if (report) {
+              report.status = newStatus;
+            }
+          });
+        } catch (error: any) {
+          throw error;
+        }
       },
     })),
     {
