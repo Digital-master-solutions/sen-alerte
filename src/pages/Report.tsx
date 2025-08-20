@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, Play, Pause, Trash2 } from "lucide-react";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useLocationStore } from "@/stores/locationStore";
 
 const schema = z.object({
   description: z.string().min(10, "Décrivez le problème (min 10 caractères)"),
@@ -39,11 +40,9 @@ const MAX_AUDIO_SECONDS = 120; // informatif; on ne valide pas la durée ici
 
 export default function Report() {
   const navigate = useNavigate();
-  const [geoLoading, setGeoLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
-  const [hasLocation, setHasLocation] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -59,6 +58,15 @@ export default function Report() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Location store integration
+  const { 
+    currentLocation, 
+    isLocationLoading, 
+    requestLocation, 
+    setLastReportLocation,
+    addToAddressCache 
+  } = useLocationStore();
 
   useEffect(() => {
     document.title = "Signaler un incident · SenAlert";
@@ -121,38 +129,28 @@ export default function Report() {
 
   // Récupérer la géolocalisation automatiquement au chargement
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          form.setValue("latitude", pos.coords.latitude);
-          form.setValue("longitude", pos.coords.longitude);
-          setHasLocation(true);
-          toast.success("Position détectée automatiquement");
-        },
-        () => {
-          // Silencieux si pas de permission
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
+    if (!currentLocation) {
+      requestLocation();
     }
-  }, []);
+  }, [currentLocation, requestLocation]);
 
-  const onUseGeolocation = () => {
-    setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        form.setValue("latitude", pos.coords.latitude);
-        form.setValue("longitude", pos.coords.longitude);
-        setHasLocation(true);
-        toast.success("Position détectée");
-        setGeoLoading(false);
-      },
-      () => {
-        toast.error("Impossible d'obtenir la position");
-        setGeoLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+  // Sync current location with form when available
+  useEffect(() => {
+    if (currentLocation) {
+      form.setValue("latitude", currentLocation.latitude);
+      form.setValue("longitude", currentLocation.longitude);
+    }
+  }, [currentLocation, form]);
+
+  const onUseGeolocation = async () => {
+    const location = await requestLocation();
+    if (location) {
+      form.setValue("latitude", location.latitude);
+      form.setValue("longitude", location.longitude);
+      toast.success("Position détectée");
+    } else {
+      toast.error("Impossible d'obtenir la position");
+    }
   };
 
   // Fonctions pour la caméra
@@ -358,6 +356,21 @@ export default function Report() {
       });
       if (insertErr) throw insertErr;
 
+      // Store location in cache for future use
+      if (values.latitude && values.longitude) {
+        const location = {
+          latitude: values.latitude,
+          longitude: values.longitude,
+          address: currentLocation?.address
+        };
+        setLastReportLocation(location);
+        
+        // Add to address cache if available
+        if (currentLocation?.address) {
+          addToAddressCache(currentLocation.address, location);
+        }
+      }
+
       setGeneratedCode(code);
       setShowSuccess(true);
     } catch (e: any) {
@@ -452,10 +465,12 @@ export default function Report() {
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <MapPin className="h-5 w-5 text-yellow-600" />
                   <span className="text-gray-700">
-                    {hasLocation ? "Position détectée" : "Département de Guédiawaye, Guédiawaye"}
+                    {currentLocation ? 
+                      (currentLocation.address || `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`) 
+                      : "Localisation en cours..."}
                   </span>
                 </div>
-                {!hasLocation && (
+                {!currentLocation && (
                   <>
                     <div className="grid sm:grid-cols-2 gap-3">
                       <Input 
@@ -473,9 +488,9 @@ export default function Report() {
                         {...form.register("longitude", { valueAsNumber: true })} 
                       />
                     </div>
-                    <Button type="button" variant="outline" onClick={onUseGeolocation} disabled={geoLoading} className="h-12">
+                    <Button type="button" variant="outline" onClick={onUseGeolocation} disabled={isLocationLoading} className="h-12">
                       <Crosshair className="mr-2 h-4 w-4" /> 
-                      {geoLoading ? "Détection..." : "Utiliser ma position"}
+                      {isLocationLoading ? "Détection..." : "Utiliser ma position"}
                     </Button>
                   </>
                 )}

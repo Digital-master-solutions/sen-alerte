@@ -9,13 +9,9 @@ export default function AdminLayout() {
   const { isAuthenticated, userType, isSessionValid } = useAuthStore();
 
   useEffect(() => {
-    // Check authentication with Zustand store first, fallback to localStorage
+    // Check authentication with Zustand store only - no localStorage fallback
     if (!isAuthenticated || userType !== 'admin' || !isSessionValid()) {
-      // Fallback: check legacy localStorage
-      const adminUser = localStorage.getItem("adminUser");
-      if (!adminUser) {
-        navigate("/admin/login");
-      }
+      navigate("/admin/login");
     }
   }, [navigate, isAuthenticated, userType, isSessionValid]);
 

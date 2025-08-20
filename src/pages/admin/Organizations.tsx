@@ -56,43 +56,12 @@ export default function AdminOrganizations() {
 
   const checkAuthAndLoadOrganizations = async () => {
     try {
-      const credsRaw = localStorage.getItem("adminUser");
-      if (!credsRaw) {
-        toast({
-          title: "Session expirée",
-          description: "Veuillez vous reconnecter",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const creds = JSON.parse(credsRaw);
-      if (!creds?.username || !creds?.password || !creds?.role) {
-        toast({
-          title: "Credentials invalides",
-          description: "Veuillez vous reconnecter",
-          variant: "destructive",
-        });
-        localStorage.removeItem("adminUser");
-        return;
-      }
-
-      // Vérifier que l'utilisateur est bien un superadmin
-      if (creds.role !== "superadmin") {
-        toast({
-          title: "Accès refusé",
-          description: "Vous n'avez pas les droits d'accès à cette page",
-          variant: "destructive",
-        });
-        return;
-      }
-
       await loadOrganizations();
     } catch (error: any) {
       console.error("Auth check error:", error);
       toast({
         title: "Erreur d'authentification",
-        description: "Impossible de vérifier vos droits d'accès",
+        description: "Impossible de charger les organisations",
         variant: "destructive",
       });
     }
@@ -104,23 +73,14 @@ export default function AdminOrganizations() {
 
   const loadOrganizations = async () => {
     try {
-      const credsRaw = localStorage.getItem("adminUser");
-      if (!credsRaw) {
-        throw new Error("Session administrateur expirée");
-      }
-      
-      const creds = JSON.parse(credsRaw);
-      if (!creds?.username || !creds?.password) {
-        throw new Error("Credentials administrateur invalides");
-      }
-      
-      const { data, error } = await supabase.rpc("admin_list_organizations", {
-        _username: creds.username,
-        _password_raw: creds.password,
-      });
+      // Direct access via JWT authentication - no localStorage needed
+      const { data, error } = await supabase
+        .from("organizations")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("RPC Error:", error);
+        console.error("Error:", error);
         throw new Error(`Erreur de base de données: ${error.message}`);
       }
       
@@ -174,14 +134,11 @@ useEffect(() => {
 
   const updateOrganizationStatus = async (orgId: string, newStatus: string) => {
     try {
-      const credsRaw = localStorage.getItem("adminUser");
-      const creds = credsRaw ? JSON.parse(credsRaw) : null;
-      const { data, error } = await supabase.rpc("admin_update_org_status", {
-        _username: creds?.username,
-        _password_raw: creds?.password,
-        _org_id: orgId,
-        _new_status: newStatus,
-      });
+      // Direct update via JWT authentication
+      const { error } = await supabase
+        .from("organizations")
+        .update({ status: newStatus })
+        .eq("id", orgId);
 
       if (error) throw error;
 

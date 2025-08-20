@@ -13,30 +13,9 @@ export default function OrganizationLayout() {
   }, []);
 
   useEffect(() => {
-    // Check authentication with Zustand store first, fallback to localStorage
+    // Check authentication with Zustand store only - no localStorage fallback
     if (!isAuthenticated || userType !== 'organization' || !isSessionValid()) {
-      // Fallback: check legacy localStorage for backward compatibility
-      const orgSession = localStorage.getItem('organization_session');
-      if (!orgSession) {
-        navigate("/organization/login");
-        return;
-      }
-      
-      try {
-        const session = JSON.parse(orgSession);
-        // Vérifier que la session n'est pas expirée (optionnel, ici 24h)
-        const loginTime = new Date(session.logged_in_at);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
-        
-        if (hoursDiff > 24) {
-          localStorage.removeItem('organization_session');
-          navigate("/organization/login");
-        }
-      } catch (error) {
-        localStorage.removeItem('organization_session');
-        navigate("/organization/login");
-      }
+      navigate("/organization/login");
     }
   }, [navigate, isAuthenticated, userType, isSessionValid]);
 

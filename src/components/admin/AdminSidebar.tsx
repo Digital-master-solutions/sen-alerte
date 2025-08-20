@@ -39,26 +39,12 @@ export function AdminSidebar() {
     toast
   } = useToast();
   const { user, userType, logout } = useAuthStore();
-  const [legacyAdminUser, setLegacyAdminUser] = useState<any>(null);
   
-  // Get user data from Zustand store or fallback to localStorage
-  const adminUser = (userType === 'admin' ? user as AdminUser : null) || legacyAdminUser;
-  
-  useEffect(() => {
-    // Fallback: load from localStorage if not in Zustand store
-    if (!user && userType !== 'admin') {
-      const admin = localStorage.getItem("adminUser");
-      if (admin) setLegacyAdminUser(JSON.parse(admin));
-    }
-  }, [user, userType]);
+  // Get user data from Zustand store only - no localStorage fallback
+  const adminUser = userType === 'admin' ? user as AdminUser : null;
   
   const handleLogout = () => {
-    // Use Zustand logout if authenticated via store, otherwise clear localStorage
-    if (user && userType === 'admin') {
-      logout();
-    } else {
-      localStorage.removeItem("adminUser");
-    }
+    logout();
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"

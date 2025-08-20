@@ -41,43 +41,12 @@ export function OrganizationSidebar() {
     toast
   } = useToast();
   const { user, userType, logout } = useAuthStore();
-  const [legacyOrgUser, setLegacyOrgUser] = useState<any>(null);
 
-  // Get user data from Zustand store or fallback to localStorage
-  const orgUser = (userType === 'organization' ? user as Organization : null) || legacyOrgUser;
-
-  useEffect(() => {
-    // Fallback: load from localStorage if not in Zustand store
-    if (!user && userType !== 'organization') {
-      const loadOrgInfo = () => {
-        try {
-          const orgSession = localStorage.getItem('organization_session');
-          if (!orgSession) {
-            console.log("No organization session found");
-            return;
-          }
-          
-          const session = JSON.parse(orgSession);
-          console.log("Organization session found:", session);
-          setLegacyOrgUser({
-            id: session.id,
-            name: session.name
-          });
-        } catch (e) {
-          console.error("Error loading org info:", e);
-        }
-      };
-      loadOrgInfo();
-    }
-  }, [user, userType]);
+  // Get user data from Zustand store only - no localStorage fallback
+  const orgUser = userType === 'organization' ? user as Organization : null;
 
   const handleLogout = () => {
-    // Use Zustand logout if authenticated via store, otherwise clear localStorage
-    if (user && userType === 'organization') {
-      logout();
-    } else {
-      localStorage.removeItem('organization_session');
-    }
+    logout();
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"
