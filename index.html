@@ -64,10 +64,22 @@
     }
     </script>
 
-    <!-- Security headers and Google Fonts -->
+    <!-- Critical resource hints for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://mjhsvrksrmcemhbglfkm.supabase.co">
+    <link rel="preconnect" href="https://nominatim.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+    
+    <!-- Preload critical fonts with display=swap -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v19/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2" as="font" type="font/woff2" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="/src/index.css" as="style">
+    
+    <!-- Preload hero image/map tiles -->
+    <link rel="preload" href="https://tile.openstreetmap.org/10/512/512.png" as="image">
     
     <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://mjhsvrksrmcemhbglfkm.supabase.co https://nominatim.openstreetmap.org wss://mjhsvrksrmcemhbglfkm.supabase.co;" />
@@ -75,6 +87,7 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- Load main script with defer for better performance -->
+    <script type="module" src="/src/main.tsx" defer></script>
   </body>
 </html>

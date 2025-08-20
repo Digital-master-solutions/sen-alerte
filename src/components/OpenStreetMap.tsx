@@ -159,15 +159,24 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
   if (!currentLocation) {
     return (
-      <div className={`flex items-center justify-center bg-muted ${className}`}>
-        <p className="text-muted-foreground">Chargement de la carte...</p>
+      <div className={`flex items-center justify-center bg-muted ${className}`} style={{ height: '100%', minHeight: '400px' }}>
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-muted-foreground/20 border-t-primary rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Chargement de la carte...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={className}>
-      <div ref={mapRef} style={{ height: '100%', width: '100%' }} className="rounded-lg" />
+      <div 
+        ref={mapRef} 
+        style={{ height: '100%', width: '100%' }} 
+        className="rounded-lg"
+        role="img"
+        aria-label="Carte interactive de Dakar pour les signalements"
+      />
       
       {/* Custom styles for markers and controls */}
       <style>{`
