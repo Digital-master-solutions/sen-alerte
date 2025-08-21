@@ -14,8 +14,6 @@ import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, Play, Pause, Tra
 import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useLocationStore } from "@/stores/locationStore";
-import { AudioPlayer } from "@/components/AudioPlayer";
-import { PhotoPreview } from "@/components/PhotoPreview";
 
 const schema = z.object({
   description: z.string().min(10, "Décrivez le problème (min 10 caractères)"),
@@ -195,13 +193,11 @@ export default function Report() {
         // Convert to blob and create file
         canvas.toBlob((blob) => {
           if (blob) {
-            console.log('Photo captured - Blob size:', blob.size, 'Type:', blob.type);
             const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
             form.setValue("photo", file as any);
             
-            // Create preview URL with debugging
+            // Create preview URL
             const url = URL.createObjectURL(blob);
-            console.log('Photo URL created:', url);
             setCapturedPhoto(url);
             
             toast.success("Photo capturée");
@@ -237,14 +233,12 @@ export default function Report() {
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/webm' });
-        console.log('Audio recording completed - Blob size:', blob.size, 'Type:', blob.type);
         setRecordedAudio(blob);
         const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
         form.setValue("audio", file as any);
         
-        // Create audio URL for playback with debugging
+        // Create audio URL for playback
         const url = URL.createObjectURL(blob);
-        console.log('Audio URL created:', url);
         setAudioUrl(url);
         
         stream.getTracks().forEach(track => track.stop());
@@ -259,7 +253,6 @@ export default function Report() {
       }, 1000);
 
     } catch (error) {
-      console.error('Microphone access error:', error);
       toast.error("Impossible d'accéder au microphone");
     }
   };
@@ -281,8 +274,22 @@ export default function Report() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Fonctions pour la lecture audio
+  const playAudio = () => {
+    if (audioRef.current && audioUrl) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const pauseAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
   const deleteAudio = () => {
-    console.log('Deleting audio recording');
     setRecordedAudio(null);
     setAudioUrl(null);
     setIsPlaying(false);
@@ -543,11 +550,9 @@ export default function Report() {
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) {
-                      console.log('Photo selected from gallery - Size:', f.size, 'Type:', f.type);
                       form.setValue("photo", f as any);
                       // Create preview for uploaded image
                       const url = URL.createObjectURL(f);
-                      console.log('Gallery photo URL created:', url);
                       setCapturedPhoto(url);
                       toast.success("Photo sélectionnée");
                     }
@@ -555,17 +560,30 @@ export default function Report() {
                 />
 
                 {/* Preview de la photo capturée/sélectionnée */}
-                <PhotoPreview 
-                  photoUrl={capturedPhoto}
-                  onDelete={() => {
-                    console.log('Deleting photo preview');
-                    setCapturedPhoto(null);
-                    form.setValue("photo", undefined);
-                    if (capturedPhoto) {
-                      URL.revokeObjectURL(capturedPhoto);
-                    }
-                  }}
-                />
+                {capturedPhoto && (
+                  <div className="relative">
+                    <img 
+                      src={capturedPhoto} 
+                      alt="Photo capturée" 
+                      className="w-full h-48 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setCapturedPhoto(null);
+                        form.setValue("photo", undefined);
+                        if (capturedPhoto) {
+                          URL.revokeObjectURL(capturedPhoto);
+                        }
+                      }}
+                      className="absolute top-2 right-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
 
                 {/* Interface caméra */}
                 {showCamera && (
@@ -639,11 +657,52 @@ export default function Report() {
                 )}
 
                 {recordedAudio && !isRecording && (
-                  <AudioPlayer 
-                    audioUrl={audioUrl}
-                    onDelete={deleteAudio}
-                    duration={formatTime(recordingTime)}
-                  />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center space-x-3 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-green-700 font-medium">Enregistrement terminé</span>
+                      </div>
+                      <span className="text-green-600 font-mono">{formatTime(recordingTime)}</span>
+                    </div>
+                    
+                    {/* Audio player controls */}
+                    <div className="flex items-center justify-center space-x-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={isPlaying ? pauseAudio : playAudio}
+                        className="flex items-center space-x-2"
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                        <span>{isPlaying ? "Pause" : "Écouter"}</span>
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={deleteAudio}
+                        className="flex items-center space-x-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Supprimer</span>
+                      </Button>
+                    </div>
+                    
+                    {/* Hidden audio element */}
+                    {audioUrl && (
+                      <audio
+                        ref={audioRef}
+                        src={audioUrl}
+                        onEnded={() => setIsPlaying(false)}
+                        className="hidden"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
 
