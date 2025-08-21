@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/stores";
 import {
   FileText,
   Clock,
@@ -47,23 +48,22 @@ export default function OrganizationDashboard() {
     load();
   }, []);
 
+  const { user, userType } = useAuthStore();
+
   const load = async () => {
     setLoading(true);
     try {
-      const orgSession = localStorage.getItem('organization_session');
-      if (!orgSession) throw new Error("Non authentifié");
+      if (userType !== 'organization' || !user) {
+        throw new Error("Non authentifié");
+      }
 
-      const session = JSON.parse(orgSession);
-      console.log("Loading organization data from session:", session);
-      
-      if (!session.id) throw new Error("Organisation introuvable");
-      setOrg({ id: session.id, name: session.name });
+      setOrg({ id: user.id, name: user.name });
 
       // Charger les statistiques des signalements
       const { data: repAll } = await supabase
         .from("reports")
         .select("id,status")
-        .eq("assigned_organization_id", session.id);
+        .eq("assigned_organization_id", user.id);
 
       const total = repAll?.length || 0;
       const pending = repAll?.filter(r => r.status === 'en-attente').length || 0;

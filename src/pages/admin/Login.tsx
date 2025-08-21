@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, Eye, EyeOff } from "lucide-react";
+import { useAuthStore } from "@/stores";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Nom d'utilisateur requis"),
@@ -23,6 +24,7 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setAuth } = useAuthStore();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -35,22 +37,35 @@ export default function AdminLogin() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      console.log("Tentative de connexion pour:", values.username);
+      console.log("Tentative de connexion JWT pour:", values.username);
       
-      // Utiliser la fonction RPC pour bypasser les politiques RLS
+      // Try JWT login first
+      try {
+        const { loginWithJWT } = useAuthStore.getState();
+        const result = await loginWithJWT(values.username, values.password, 'admin');
+        
+        if (result) {
+          const { user } = useAuthStore.getState();
+          toast({
+            title: "Connexion réussie",
+            description: `Bienvenue ${user?.name} (Super Admin)`,
+          });
+          navigate("/admin/dashboard");
+          return;
+        }
+      } catch (jwtError) {
+        console.warn("JWT login failed, trying fallback:", jwtError);
+      }
+      
+      // Fallback to RPC authentication
+      console.log("Using RPC fallback authentication");
       const { data: adminData, error: authError } = await supabase
         .rpc('authenticate_superadmin', {
           _username: values.username,
           _password_raw: values.password
         });
 
-      console.log("Résultat de l'authentification:", adminData);
-      console.log("Erreur d'authentification:", authError);
-
-      if (authError) {
-        console.error("Erreur lors de l'authentification:", authError);
-        throw authError;
-      }
+      if (authError) throw authError;
 
       if (!adminData || adminData.length === 0) {
         toast({
@@ -62,17 +77,21 @@ export default function AdminLogin() {
       }
 
       const superAdmin = adminData[0];
+      const adminUser = {
+        id: superAdmin.id,
+        username: superAdmin.username,
+        name: superAdmin.name,
+        email: superAdmin.email,
+        status: superAdmin.status,
+        created_at: superAdmin.created_at,
+        last_login: superAdmin.last_login
+      };
+      
+      setAuth(adminUser, 'admin');
 
-      // Mettre à jour la dernière connexion
       await supabase.rpc('update_superadmin_last_login', {
         _username: values.username
       });
-
-      localStorage.setItem("adminUser", JSON.stringify({
-        ...superAdmin,
-        role: "superadmin",
-        password: values.password,
-      }));
       
       toast({
         title: "Connexion réussie",

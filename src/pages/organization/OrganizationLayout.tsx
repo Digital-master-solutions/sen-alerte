@@ -2,41 +2,22 @@ import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { OrganizationSidebar } from "@/components/organization/OrganizationSidebar";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthStore } from "@/stores";
 
 export default function OrganizationLayout() {
   const navigate = useNavigate();
+  const { isAuthenticated, userType, isSessionValid } = useAuthStore();
 
   useEffect(() => {
     document.title = "Espace Organisation | SenAlert";
   }, []);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const orgSession = localStorage.getItem('organization_session');
-      if (!orgSession) {
-        navigate("/organization/login");
-        return;
-      }
-      
-      try {
-        const session = JSON.parse(orgSession);
-        // Vérifier que la session n'est pas expirée (optionnel, ici 24h)
-        const loginTime = new Date(session.logged_in_at);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
-        
-        if (hoursDiff > 24) {
-          localStorage.removeItem('organization_session');
-          navigate("/organization/login");
-        }
-      } catch (error) {
-        localStorage.removeItem('organization_session');
-        navigate("/organization/login");
-      }
-    };
-    checkAuth();
-  }, [navigate]);
+    // Check authentication with Zustand store only - no localStorage fallback
+    if (!isAuthenticated || userType !== 'organization' || !isSessionValid()) {
+      navigate("/organization/login");
+    }
+  }, [navigate, isAuthenticated, userType, isSessionValid]);
 
   return (
     <SidebarProvider>

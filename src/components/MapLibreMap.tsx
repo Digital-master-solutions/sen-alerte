@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import maplibregl, { Map as MlMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocationStore } from "@/stores/locationStore";
 
 interface MapLibreMapProps {
   className?: string;
@@ -10,14 +11,23 @@ interface MapLibreMapProps {
 const MapLibreMap: React.FC<MapLibreMapProps> = ({ className }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MlMap | null>(null);
+  const { currentLocation, defaultLocation, requestLocation } = useLocationStore();
+
+  useEffect(() => {
+    // Request location if not available
+    if (!currentLocation) {
+      requestLocation();
+    }
+  }, [currentLocation, requestLocation]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const location = currentLocation || defaultLocation;
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: "https://demotiles.maplibre.org/style.json",
-      center: [-14.4524, 14.4974], // Sénégal approx
+      center: [location.longitude, location.latitude], 
       zoom: 5.2,
     });
     mapRef.current = map;
@@ -65,7 +75,7 @@ const MapLibreMap: React.FC<MapLibreMapProps> = ({ className }) => {
       markers.forEach((m) => m.remove());
       map.remove();
     };
-  }, []);
+  }, [currentLocation, defaultLocation]);
 
   return (
     <div className={className}>

@@ -123,7 +123,7 @@ const Index = () => {
       </header>
 
       <main>
-        {/* Carte interactive */}
+        {/* Carte interactive - Largest Contentful Paint element */}
         <section className="relative h-[50vh] min-h-[400px] z-0">
           <OpenStreetMap className="absolute inset-0" />
           

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrganizationSignupStepper } from "@/components/organization/OrganizationSignupStepper";
+import { useAuthStore } from "@/stores";
 
 export default function OrgLogin() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function OrgLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { setAuth } = useAuthStore();
 
   useEffect(() => {
     document.title = "Connexion Organisation | SenAlert";
@@ -24,7 +26,24 @@ export default function OrgLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Use custom authentication function
+      console.log("Tentative de connexion JWT pour organisation:", email);
+      
+      // Try JWT login first
+      try {
+        const { loginWithJWT } = useAuthStore.getState();
+        const result = await loginWithJWT(email, password, 'organization');
+        
+        if (result) {
+          toast({ title: "Connexion réussie" });
+          navigate("/organization/dashboard", { replace: true });
+          return;
+        }
+      } catch (jwtError) {
+        console.warn("JWT login failed, trying fallback:", jwtError);
+      }
+      
+      // Fallback to RPC authentication  
+      console.log("Using RPC fallback authentication");
       const { data: orgData, error } = await supabase
         .rpc('authenticate_organization', { 
           org_email: email, 
@@ -38,16 +57,16 @@ export default function OrgLogin() {
       }
 
       const organization = orgData[0];
-      
-      // Store organization data in localStorage for session management
-      localStorage.setItem('organization_session', JSON.stringify({
+      const orgUser = {
         id: organization.id,
         name: organization.name,
         email: organization.email,
         type: organization.type,
         status: organization.status,
-        logged_in_at: new Date().toISOString()
-      }));
+        created_at: organization.created_at
+      };
+      
+      setAuth(orgUser, 'organization');
 
       toast({ title: "Connexion réussie" });
       navigate("/organization/dashboard", { replace: true });

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/stores";
 import {
   Settings as SettingsIcon,
   Building2,
@@ -46,21 +47,19 @@ export default function OrgSettings() {
     loadProfile();
   }, []);
 
+  const { user, userType } = useAuthStore();
+
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const orgSession = localStorage.getItem('organization_session');
-      if (!orgSession) throw new Error("Non authentifié");
-
-      const session = JSON.parse(orgSession);
-      console.log("Loading organization profile from session:", session);
-      
-      if (!session.id) throw new Error("Organisation introuvable");
+      if (userType !== 'organization' || !user) {
+        throw new Error("Non authentifié");
+      }
 
       const { data: orgRow, error } = await supabase
         .from("organizations")
         .select("*")
-        .eq("id", session.id)
+        .eq("id", user.id)
         .maybeSingle();
       
       if (error) throw error;

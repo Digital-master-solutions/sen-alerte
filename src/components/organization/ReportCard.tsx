@@ -43,24 +43,16 @@ export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSele
         setLocation(report.department);
       } else if (report.latitude && report.longitude) {
         try {
-          // Utiliser l'API Nominatim d'OpenStreetMap pour le géocodage inverse
+          // Utiliser notre Edge Function pour éviter les problèmes CORS
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${report.latitude}&lon=${report.longitude}&zoom=16&addressdetails=1&accept-language=fr`
+            `https://mjhsvrksrmcemhbglfkm.supabase.co/functions/v1/geocode-reverse?lat=${report.latitude}&lon=${report.longitude}`
           );
-          const data = await response.json();
           
-          if (data && data.address) {
-            // Extraire le quartier ou la zone
-            const quartier = data.address.suburb || 
-                           data.address.neighbourhood || 
-                           data.address.quarter ||
-                           data.address.city_district ||
-                           data.address.village ||
-                           data.address.town ||
-                           data.address.city ||
-                           "Zone inconnue";
-            setLocation(quartier);
+          if (response.ok) {
+            const data = await response.json();
+            setLocation(data.location || `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`);
           } else {
+            // Fallback en cas d'erreur
             setLocation(`${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`);
           }
         } catch (error) {

@@ -10,9 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, Play, Pause, Trash2 } from "lucide-react";
+import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square } from "lucide-react";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AudioPlayer from "@/components/AudioPlayer";
+import PhotoPreview from "@/components/PhotoPreview";
+import { useLocationStore } from "@/stores/locationStore";
 
 const schema = z.object({
   description: z.string().min(10, "Décrivez le problème (min 10 caractères)"),
@@ -39,11 +42,9 @@ const MAX_AUDIO_SECONDS = 120; // informatif; on ne valide pas la durée ici
 
 export default function Report() {
   const navigate = useNavigate();
-  const [geoLoading, setGeoLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
-  const [hasLocation, setHasLocation] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -54,11 +55,18 @@ export default function Report() {
   const [showCamera, setShowCamera] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Location store integration
+  const { 
+    currentLocation, 
+    isLocationLoading, 
+    requestLocation, 
+    setLastReportLocation,
+    addToAddressCache 
+  } = useLocationStore();
 
   useEffect(() => {
     document.title = "Signaler un incident · SenAlert";
@@ -121,38 +129,28 @@ export default function Report() {
 
   // Récupérer la géolocalisation automatiquement au chargement
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          form.setValue("latitude", pos.coords.latitude);
-          form.setValue("longitude", pos.coords.longitude);
-          setHasLocation(true);
-          toast.success("Position détectée automatiquement");
-        },
-        () => {
-          // Silencieux si pas de permission
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
+    if (!currentLocation) {
+      requestLocation();
     }
-  }, []);
+  }, [currentLocation, requestLocation]);
 
-  const onUseGeolocation = () => {
-    setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        form.setValue("latitude", pos.coords.latitude);
-        form.setValue("longitude", pos.coords.longitude);
-        setHasLocation(true);
-        toast.success("Position détectée");
-        setGeoLoading(false);
-      },
-      () => {
-        toast.error("Impossible d'obtenir la position");
-        setGeoLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+  // Sync current location with form when available
+  useEffect(() => {
+    if (currentLocation) {
+      form.setValue("latitude", currentLocation.latitude);
+      form.setValue("longitude", currentLocation.longitude);
+    }
+  }, [currentLocation, form]);
+
+  const onUseGeolocation = async () => {
+    const location = await requestLocation();
+    if (location) {
+      form.setValue("latitude", location.latitude);
+      form.setValue("longitude", location.longitude);
+      toast.success("Position détectée");
+    } else {
+      toast.error("Impossible d'obtenir la position");
+    }
   };
 
   // Fonctions pour la caméra
@@ -179,6 +177,7 @@ export default function Report() {
   };
 
   const capturePhoto = () => {
+    console.log("Capturing photo...");
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
@@ -186,6 +185,7 @@ export default function Report() {
       // Set canvas dimensions to match video
       canvas.width = video.videoWidth || 640;
       canvas.height = video.videoHeight || 480;
+      console.log("Canvas dimensions:", canvas.width, canvas.height);
       
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -195,15 +195,19 @@ export default function Report() {
         // Convert to blob and create file
         canvas.toBlob((blob) => {
           if (blob) {
+            console.log("Photo blob created:", blob.size, "bytes");
             const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
             form.setValue("photo", file as any);
             
             // Create preview URL
             const url = URL.createObjectURL(blob);
+            console.log("Photo preview URL created:", url);
             setCapturedPhoto(url);
             
             toast.success("Photo capturée");
             stopCamera();
+          } else {
+            console.error("Failed to create photo blob");
           }
         }, 'image/jpeg', 0.8);
       }
@@ -235,12 +239,14 @@ export default function Report() {
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/webm' });
+        console.log("Audio blob created:", blob.size, "bytes, type:", blob.type);
         setRecordedAudio(blob);
         const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
         form.setValue("audio", file as any);
         
         // Create audio URL for playback
         const url = URL.createObjectURL(blob);
+        console.log("Audio URL created:", url);
         setAudioUrl(url);
         
         stream.getTracks().forEach(track => track.stop());
@@ -276,25 +282,10 @@ export default function Report() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Fonctions pour la lecture audio
-  const playAudio = () => {
-    if (audioRef.current && audioUrl) {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const pauseAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
   const deleteAudio = () => {
+    console.log("Deleting audio...");
     setRecordedAudio(null);
     setAudioUrl(null);
-    setIsPlaying(false);
     form.setValue("audio", undefined);
     setRecordingTime(0);
     if (audioUrl) {
@@ -357,6 +348,21 @@ export default function Report() {
         status: "en-attente",
       });
       if (insertErr) throw insertErr;
+
+      // Store location in cache for future use
+      if (values.latitude && values.longitude) {
+        const location = {
+          latitude: values.latitude,
+          longitude: values.longitude,
+          address: currentLocation?.address
+        };
+        setLastReportLocation(location);
+        
+        // Add to address cache if available
+        if (currentLocation?.address) {
+          addToAddressCache(currentLocation.address, location);
+        }
+      }
 
       setGeneratedCode(code);
       setShowSuccess(true);
@@ -452,10 +458,12 @@ export default function Report() {
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <MapPin className="h-5 w-5 text-yellow-600" />
                   <span className="text-gray-700">
-                    {hasLocation ? "Position détectée" : "Département de Guédiawaye, Guédiawaye"}
+                    {currentLocation ? 
+                      (currentLocation.address || `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`) 
+                      : "Localisation en cours..."}
                   </span>
                 </div>
-                {!hasLocation && (
+                {!currentLocation && (
                   <>
                     <div className="grid sm:grid-cols-2 gap-3">
                       <Input 
@@ -473,9 +481,9 @@ export default function Report() {
                         {...form.register("longitude", { valueAsNumber: true })} 
                       />
                     </div>
-                    <Button type="button" variant="outline" onClick={onUseGeolocation} disabled={geoLoading} className="h-12">
+                    <Button type="button" variant="outline" onClick={onUseGeolocation} disabled={isLocationLoading} className="h-12">
                       <Crosshair className="mr-2 h-4 w-4" /> 
-                      {geoLoading ? "Détection..." : "Utiliser ma position"}
+                      {isLocationLoading ? "Détection..." : "Utiliser ma position"}
                     </Button>
                   </>
                 )}
@@ -535,9 +543,11 @@ export default function Report() {
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) {
+                      console.log("Photo selected from gallery:", f.name, f.size, "bytes");
                       form.setValue("photo", f as any);
                       // Create preview for uploaded image
                       const url = URL.createObjectURL(f);
+                      console.log("Gallery photo URL created:", url);
                       setCapturedPhoto(url);
                       toast.success("Photo sélectionnée");
                     }
@@ -545,30 +555,18 @@ export default function Report() {
                 />
 
                 {/* Preview de la photo capturée/sélectionnée */}
-                {capturedPhoto && (
-                  <div className="relative">
-                    <img 
-                      src={capturedPhoto} 
-                      alt="Photo capturée" 
-                      className="w-full h-48 object-cover rounded-lg border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        setCapturedPhoto(null);
-                        form.setValue("photo", undefined);
-                        if (capturedPhoto) {
-                          URL.revokeObjectURL(capturedPhoto);
-                        }
-                      }}
-                      className="absolute top-2 right-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
+                <PhotoPreview 
+                  photoUrl={capturedPhoto}
+                  onDelete={() => {
+                    console.log("Deleting photo...");
+                    setCapturedPhoto(null);
+                    form.setValue("photo", undefined);
+                    if (capturedPhoto) {
+                      URL.revokeObjectURL(capturedPhoto);
+                    }
+                  }}
+                  alt="Photo capturée"
+                />
 
                 {/* Interface caméra */}
                 {showCamera && (
@@ -642,52 +640,11 @@ export default function Report() {
                 )}
 
                 {recordedAudio && !isRecording && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-center space-x-3 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-green-700 font-medium">Enregistrement terminé</span>
-                      </div>
-                      <span className="text-green-600 font-mono">{formatTime(recordingTime)}</span>
-                    </div>
-                    
-                    {/* Audio player controls */}
-                    <div className="flex items-center justify-center space-x-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={isPlaying ? pauseAudio : playAudio}
-                        className="flex items-center space-x-2"
-                      >
-                        {isPlaying ? (
-                          <Pause className="w-4 h-4" />
-                        ) : (
-                          <Play className="w-4 h-4" />
-                        )}
-                        <span>{isPlaying ? "Pause" : "Écouter"}</span>
-                      </Button>
-                      
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={deleteAudio}
-                        className="flex items-center space-x-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Supprimer</span>
-                      </Button>
-                    </div>
-                    
-                    {/* Hidden audio element */}
-                    {audioUrl && (
-                      <audio
-                        ref={audioRef}
-                        src={audioUrl}
-                        onEnded={() => setIsPlaying(false)}
-                        className="hidden"
-                      />
-                    )}
-                  </div>
+                  <AudioPlayer 
+                    audioUrl={audioUrl}
+                    onDelete={deleteAudio}
+                    recordingTime={recordingTime}
+                  />
                 )}
               </div>
 

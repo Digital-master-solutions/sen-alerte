@@ -1,9 +1,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Play, Pause, Volume2, X, ZoomIn } from "lucide-react";
+import { Eye, X, ZoomIn } from "lucide-react";
 import { getStatusBadge } from "./getStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
+import SimpleAudioPlayer from "@/components/SimpleAudioPlayer";
 
 interface Report {
   id: string;
@@ -30,9 +31,7 @@ interface ReportDetailsDialogProps {
 export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDialogProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -55,22 +54,6 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
 
     loadMedia();
   }, [report.photo_url, report.audio_url]);
-
-  const toggleAudio = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-    }
-  };
-
-  const handleAudioEnded = () => {
-    setIsPlaying(false);
-  };
 
   return (
     <Dialog>
@@ -128,32 +111,8 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
           {audioUrl && (
             <div>
               <strong>Enregistrement audio:</strong>
-              <div className="mt-2 flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={toggleAudio}
-                  className="shrink-0"
-                >
-                  {isPlaying ? (
-                    <Pause className="h-4 w-4 mr-1" />
-                  ) : (
-                    <Play className="h-4 w-4 mr-1" />
-                  )}
-                  {isPlaying ? "Pause" : "Écouter"}
-                </Button>
-                <Volume2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Enregistrement vocal du signalement
-                </span>
-                <audio
-                  ref={audioRef}
-                  src={audioUrl}
-                  onEnded={handleAudioEnded}
-                  className="hidden"
-                  preload="metadata"
-                />
+              <div className="mt-2">
+                <SimpleAudioPlayer audioUrl={audioUrl} label="Enregistrement vocal du signalement" />
               </div>
             </div>
           )}

@@ -526,6 +526,45 @@ export type Database = {
         }
         Relationships: []
       }
+      refresh_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          is_revoked: boolean
+          last_used_at: string | null
+          token_hash: string
+          user_agent: string | null
+          user_id: string
+          user_type: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          is_revoked?: boolean
+          last_used_at?: string | null
+          token_hash: string
+          user_agent?: string | null
+          user_id: string
+          user_type: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_revoked?: boolean
+          last_used_at?: string | null
+          token_hash?: string
+          user_agent?: string | null
+          user_id?: string
+          user_type?: string
+        }
+        Relationships: []
+      }
       report_assignments: {
         Row: {
           admin_id: string | null
@@ -821,6 +860,59 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          device_info: Json | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          is_active: boolean
+          last_activity_at: string
+          refresh_token_id: string | null
+          session_token_hash: string
+          user_agent: string | null
+          user_id: string
+          user_type: string
+        }
+        Insert: {
+          created_at?: string
+          device_info?: Json | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_activity_at?: string
+          refresh_token_id?: string | null
+          session_token_hash: string
+          user_agent?: string | null
+          user_id: string
+          user_type: string
+        }
+        Update: {
+          created_at?: string
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_activity_at?: string
+          refresh_token_id?: string | null
+          session_token_hash?: string
+          user_agent?: string | null
+          user_id?: string
+          user_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_refresh_token_id_fkey"
+            columns: ["refresh_token_id"]
+            isOneToOne: false
+            referencedRelation: "refresh_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -909,6 +1001,10 @@ export type Database = {
           status: string
           username: string
         }[]
+      }
+      cleanup_expired_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_orphaned_files: {
         Args: Record<PropertyKey, never>
@@ -1009,6 +1105,10 @@ export type Database = {
       migrate_superadmins_to_auth: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      revoke_all_user_tokens: {
+        Args: { _user_id: string; _user_type: string }
+        Returns: undefined
       }
       search_public_organizations: {
         Args: {

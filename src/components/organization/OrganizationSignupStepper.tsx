@@ -8,15 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { BasicInfoStep } from "./signup-steps/BasicInfoStep";
 import { LocationStep } from "./signup-steps/LocationStep";
-import { CategorySelector } from "./signup-steps/CategorySelector";
 import { AccountCreationStep } from "./signup-steps/AccountCreationStep";
 import { SimpleSuccessAnimation } from "./SimpleSuccessAnimation";
 
 const STEPS = [
   { id: 1, title: "Informations de base", component: BasicInfoStep },
   { id: 2, title: "Localisation", component: LocationStep },
-  { id: 3, title: "Catégories gérées", component: CategorySelector },
-  { id: 4, title: "Création du compte", component: AccountCreationStep },
+  { id: 3, title: "Création du compte", component: AccountCreationStep },
 ];
 
 export interface SignupData {
@@ -26,7 +24,6 @@ export interface SignupData {
   phone: string;
   address: string;
   city: string;
-  selectedCategories: string[];
   password: string;
 }
 
@@ -44,7 +41,6 @@ export function OrganizationSignupStepper() {
     phone: "",
     address: "",
     city: "",
-    selectedCategories: [],
     password: ""
   });
 
@@ -71,8 +67,6 @@ export function OrganizationSignupStepper() {
       case 2:
         return !!(signupData.address && signupData.city);
       case 3:
-        return signupData.selectedCategories.length > 0;
-      case 4:
         return signupData.password.length >= 6;
       default:
         return false;
@@ -110,20 +104,6 @@ export function OrganizationSignupStepper() {
 
       if (orgError) {
         throw orgError;
-      }
-
-      // Associate categories with organization
-      if (signupData.selectedCategories.length > 0) {
-        const categoryAssociations = signupData.selectedCategories.map(categoryId => ({
-          organization_id: orgData.id,
-          categorie_id: categoryId
-        }));
-
-        const { error: categoryError } = await supabase
-          .from('categorie_organization')
-          .insert(categoryAssociations);
-
-        if (categoryError) throw categoryError;
       }
 
       setIsCompleted(true);

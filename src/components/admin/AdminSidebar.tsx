@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Logo } from "@/components/ui/logo";
+import { useAuthStore, AdminUser } from "@/stores";
 const mainItems = [{
   title: "Tableau de bord",
   url: "/admin/dashboard",
@@ -37,13 +38,13 @@ export function AdminSidebar() {
   const {
     toast
   } = useToast();
-  const [adminUser, setAdminUser] = useState<any>(null);
-  useEffect(() => {
-    const admin = localStorage.getItem("adminUser");
-    if (admin) setAdminUser(JSON.parse(admin));
-  }, []);
+  const { user, userType, logout } = useAuthStore();
+  
+  // Get user data from Zustand store only - no localStorage fallback
+  const adminUser = userType === 'admin' ? user as AdminUser : null;
+  
   const handleLogout = () => {
-    localStorage.removeItem("adminUser");
+    logout();
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"

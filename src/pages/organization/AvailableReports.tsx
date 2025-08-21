@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useAvailableReports } from "@/hooks/useAvailableReports";
-import { useManagedReports } from "@/hooks/useManagedReports";
+import { useReportsStore, useAuthStore } from "@/stores";
 import { Search, RefreshCw, FileText, ArrowRight } from "lucide-react";
 import { ReportCard } from "@/components/organization/ReportCard";
 import { Link } from "react-router-dom";
@@ -17,7 +16,7 @@ interface Org {
   email: string;
 }
 
-interface Report {
+interface LocalReport {
   id: string;
   type: string;
   description: string;
@@ -39,32 +38,36 @@ export default function AvailableReports() {
   const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<LocalReport | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 8;
 
-  const availableReports = useAvailableReports();
-  const managedReports = useManagedReports();
+  const { 
+    availableReports, 
+    isLoadingAvailable,
+    loadAvailableReports,
+    claimReport,
+    addReport
+  } = useReportsStore();
 
   useEffect(() => {
     document.title = "Signalements disponibles | Organisation";
     loadAll();
   }, []);
 
+  const { user, userType } = useAuthStore();
+
   const loadAll = async () => {
     setLoading(true);
     try {
-      const orgSession = localStorage.getItem('organization_session');
-      if (!orgSession) throw new Error("Non authentifié");
+      if (userType !== 'organization' || !user) {
+        throw new Error("Non authentifié");
+      }
 
-      const session = JSON.parse(orgSession);
-      console.log("Loading organization data from session:", session);
-      
-      if (!session.id) throw new Error("Organisation introuvable");
-      const orgData = { id: session.id, name: session.name, email: session.email };
+      const orgData = { id: user.id, name: user.name, email: user.email };
       setOrg(orgData);
 
-      await availableReports.loadReports(orgData);
+      await loadAvailableReports(user.id);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
     } finally {
@@ -72,28 +75,35 @@ export default function AvailableReports() {
     }
   };
 
-  const handleClaimReport = async (report: Report) => {
+  const handleClaimReport = async (report: LocalReport) => {
     if (!org) return;
     
-    const updatedReport = await availableReports.claimReport(report, org);
-    if (updatedReport) {
-      managedReports.addReport(updatedReport);
+    try {
+      const updatedReport = await claimReport(report.id, org.id);
+      if (updatedReport) {
+        toast({
+          title: "Signalement pris en charge",
+          description: `Le signalement "${report.type}" a été assigné à votre organisation.`,
+        });
+      }
+    } catch (error: any) {
       toast({
-        title: "Signalement pris en charge",
-        description: `Le signalement "${report.type}" a été assigné à votre organisation.`,
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message || "Impossible de prendre en charge ce signalement"
       });
     }
   };
 
   const filteredReports = useMemo(() => {
-    return availableReports.reports.filter(r =>
+    return availableReports.filter(r =>
       r.type.toLowerCase().includes(search.toLowerCase()) ||
       r.description.toLowerCase().includes(search.toLowerCase()) ||
       r.department?.toLowerCase().includes(search.toLowerCase())
     );
-  }, [availableReports.reports, search]);
+  }, [availableReports, search]);
 
-  if (loading || availableReports.loading) {
+  if (loading || isLoadingAvailable) {
     return (
       <div className="p-6 space-y-6">
         <div className="animate-pulse space-y-6">
@@ -183,10 +193,10 @@ export default function AvailableReports() {
         {paginatedReports.map((report) => (
           <ReportCard
             key={report.id}
-            report={report}
+            report={report as any}
             type="available"
             onClaim={handleClaimReport}
-            onReportSelect={setSelectedReport}
+            onReportSelect={(report) => setSelectedReport(report as LocalReport)}
           />
         ))}
         

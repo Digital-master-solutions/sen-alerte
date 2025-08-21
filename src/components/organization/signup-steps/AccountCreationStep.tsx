@@ -120,7 +120,6 @@ export function AccountCreationStep({ data, updateData }: AccountCreationStepPro
           <p><strong>Organisation :</strong> {data.name} ({data.type})</p>
           <p><strong>Email :</strong> {data.email}</p>
           <p><strong>Localisation :</strong> {data.address}, {data.city}</p>
-          <p><strong>Catégories :</strong> {data.selectedCategories.length} sélectionnée(s)</p>
         </div>
       </div>
 

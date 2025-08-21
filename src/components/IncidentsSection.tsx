@@ -71,10 +71,53 @@ const IncidentsSection = () => {
 
   if (loading) {
     return (
-      <section className="py-12 bg-secondary/20">
+      <section className="py-16 bg-background">
         <div className="container">
-          <div className="text-center">
-            <p className="text-muted-foreground">Chargement des incidents...</p>
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <AlertCircle className="h-8 w-8 text-primary" />
+              <h2 className="text-4xl font-bold text-foreground">
+                Incidents récents
+              </h2>
+            </div>
+            <p className="text-xl text-muted-foreground">
+              Chargement des signalements...
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i} className="bg-white border-0 shadow-md">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <div className="h-5 w-5 bg-muted animate-pulse rounded" />
+                      </div>
+                      <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+                    </div>
+                    <div className="h-6 w-20 bg-muted animate-pulse rounded-full" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+                      <div className="h-4 w-40 bg-muted animate-pulse rounded" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+                      <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>

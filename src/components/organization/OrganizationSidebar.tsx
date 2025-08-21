@@ -5,8 +5,8 @@ import { LayoutDashboard, FileText, Building2, Bell, LogOut, Settings, CheckCirc
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/ui/logo";
+import { useAuthStore, Organization } from "@/stores";
 
 const mainItems = [{
   title: "Tableau de bord",
@@ -40,32 +40,13 @@ export function OrganizationSidebar() {
   const {
     toast
   } = useToast();
-  const [orgUser, setOrgUser] = useState<any>(null);
+  const { user, userType, logout } = useAuthStore();
 
-  useEffect(() => {
-    const loadOrgInfo = () => {
-      try {
-        const orgSession = localStorage.getItem('organization_session');
-        if (!orgSession) {
-          console.log("No organization session found");
-          return;
-        }
-        
-        const session = JSON.parse(orgSession);
-        console.log("Organization session found:", session);
-        setOrgUser({
-          id: session.id,
-          name: session.name
-        });
-      } catch (e) {
-        console.error("Error loading org info:", e);
-      }
-    };
-    loadOrgInfo();
-  }, []);
+  // Get user data from Zustand store only - no localStorage fallback
+  const orgUser = userType === 'organization' ? user as Organization : null;
 
   const handleLogout = () => {
-    localStorage.removeItem('organization_session');
+    logout();
     toast({
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"

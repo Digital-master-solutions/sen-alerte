@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 import { SecurityHeaders } from "@/components/SecurityHeaders";
+import { useAuthInit, useLocationInit, useSettingsInit } from "@/stores";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { Suspense, lazy } from "react";
@@ -34,9 +35,17 @@ const NotificationsPage = lazy(() => import("./pages/Notifications"));
 const AboutPage = lazy(() => import("./pages/About"));
 const NotFoundPage = lazy(() => import("./pages/NotFound"));
 
+const AppInitializer = () => {
+  useAuthInit();
+  useLocationInit();
+  useSettingsInit();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <AppInitializer />
       <Toaster />
       <Sonner />
       <BrowserRouter>

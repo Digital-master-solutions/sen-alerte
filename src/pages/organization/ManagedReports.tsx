@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useManagedReports } from "@/hooks/useManagedReports";
+import { useReportsStore, useAuthStore } from "@/stores";
 import { Search, RefreshCw, CheckCircle, Filter, ArrowLeft } from "lucide-react";
 import { ReportCard } from "@/components/organization/ReportCard";
 import { Link } from "react-router-dom";
@@ -17,7 +17,7 @@ interface Org {
   email: string;
 }
 
-interface Report {
+interface LocalReport {
   id: string;
   type: string;
   description: string;
@@ -40,31 +40,35 @@ export default function ManagedReports() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<LocalReport | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 8;
 
-  const managedReports = useManagedReports();
+  const { 
+    managedReports, 
+    isLoadingManaged,
+    loadManagedReports,
+    updateReportStatus
+  } = useReportsStore();
 
   useEffect(() => {
     document.title = "Mes signalements | Organisation";
     loadAll();
   }, []);
 
+  const { user, userType } = useAuthStore();
+
   const loadAll = async () => {
     setLoading(true);
     try {
-      const orgSession = localStorage.getItem('organization_session');
-      if (!orgSession) throw new Error("Non authentifié");
+      if (userType !== 'organization' || !user) {
+        throw new Error("Non authentifié");
+      }
 
-      const session = JSON.parse(orgSession);
-      console.log("Loading organization data from session:", session);
-      
-      if (!session.id) throw new Error("Organisation introuvable");
-      const orgData = { id: session.id, name: session.name, email: session.email };
+      const orgData = { id: user.id, name: user.name, email: user.email };
       setOrg(orgData);
 
-      await managedReports.loadReports(session.id);
+      await loadManagedReports(user.id);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erreur", description: e.message });
     } finally {
@@ -73,11 +77,23 @@ export default function ManagedReports() {
   };
 
   const handleStatusUpdate = async (reportId: string, newStatus: string) => {
-    await managedReports.updateStatus(reportId, newStatus);
+    try {
+      await updateReportStatus(reportId, newStatus);
+      toast({ 
+        title: "Statut mis à jour", 
+        description: `Signalement marqué comme ${newStatus}` 
+      });
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Erreur", 
+        description: error.message 
+      });
+    }
   };
 
   const filteredReports = useMemo(() => {
-    let filtered = managedReports.reports;
+    let filtered = managedReports;
     
     if (search) {
       filtered = filtered.filter(r =>
@@ -92,9 +108,9 @@ export default function ManagedReports() {
     }
     
     return filtered;
-  }, [managedReports.reports, search, statusFilter]);
+  }, [managedReports, search, statusFilter]);
 
-  if (loading || managedReports.loading) {
+  if (loading || isLoadingManaged) {
     return (
       <div className="p-6 space-y-6">
         <div className="animate-pulse space-y-6">
@@ -130,10 +146,10 @@ export default function ManagedReports() {
 
   // Stats
   const stats = {
-    total: managedReports.reports.length,
-    pending: managedReports.reports.filter(r => r.status === "en-attente").length,
-    inProgress: managedReports.reports.filter(r => r.status === "en-cours").length,
-    resolved: managedReports.reports.filter(r => r.status === "resolu").length,
+    total: managedReports.length,
+    pending: managedReports.filter(r => r.status === "en-attente").length,
+    inProgress: managedReports.filter(r => r.status === "en-cours").length,
+    resolved: managedReports.filter(r => r.status === "resolu").length,
   };
 
   return (
@@ -234,10 +250,10 @@ export default function ManagedReports() {
         {paginatedReports.map((report) => (
           <ReportCard
             key={report.id}
-            report={report}
+            report={report as any}
             type="managed"
             onStatusUpdate={handleStatusUpdate}
-            onReportSelect={setSelectedReport}
+            onReportSelect={(report) => setSelectedReport(report as LocalReport)}
           />
         ))}
         
@@ -247,12 +263,12 @@ export default function ManagedReports() {
               <CheckCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
               <h3 className="text-lg font-semibold mb-2">Aucun signalement géré</h3>
               <p className="text-muted-foreground mb-4">
-                {managedReports.reports.length === 0 
+                {managedReports.length === 0 
                   ? "Vous ne gérez actuellement aucun signalement."
                   : "Aucun signalement ne correspond à vos critères de recherche."
                 }
               </p>
-              {managedReports.reports.length === 0 && (
+              {managedReports.length === 0 && (
                 <Button asChild>
                   <Link to="/organization/available-reports">
                     Voir les signalements disponibles
