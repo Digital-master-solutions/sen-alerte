@@ -44,12 +44,29 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         keyboard: false // Désactiver les contrôles clavier
       }).setView(userPosition, 15);
 
-      // Add OpenStreetMap tiles with proper error handling
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Add reliable tile layer with fallback servers for production
+      const primaryTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19,
+        crossOrigin: true
+      });
+
+      // Add fallback tile layer
+      const fallbackTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
         crossOrigin: true
-      }).addTo(mapInstanceRef.current);
+      });
+
+      // Try primary first, fallback if it fails
+      primaryTileLayer.addTo(mapInstanceRef.current);
+      
+      primaryTileLayer.on('tileerror', () => {
+        console.warn('Primary tile server failed, switching to fallback');
+        mapInstanceRef.current?.removeLayer(primaryTileLayer);
+        fallbackTileLayer.addTo(mapInstanceRef.current!);
+      });
 
       // Add custom controls with recenter button
       const customControl = L.Control.extend({
