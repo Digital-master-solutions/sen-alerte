@@ -103,6 +103,10 @@ export function OrganizationSignupStepper() {
         .single();
 
       if (orgError) {
+        // Handle unique constraint violation for email
+        if (orgError.code === '23505' && orgError.message.includes('organizations_email_unique')) {
+          throw new Error("Cette adresse email est déjà utilisée par une autre organisation.");
+        }
         throw orgError;
       }
 

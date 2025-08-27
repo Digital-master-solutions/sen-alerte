@@ -141,7 +141,7 @@ const IncidentsSection = () => {
   }
 
   return (
-    <section className="py-16 bg-background">
+    <section className="pt-8 pb-16 bg-background">
       <div className="container">
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
