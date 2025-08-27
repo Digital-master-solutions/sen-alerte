@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square } from "lucide-react";
+import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, ArrowLeft } from "lucide-react";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -69,9 +69,12 @@ export default function Report() {
   } = useLocationStore();
 
   useEffect(() => {
-    document.title = "Signaler un incident · SenAlert";
+    document.title = "Signaler un incident · SenAlert - Alert urbaine Sénégal";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Signalez un problème urbain au Sénégal: voirie, éclairage, propreté, etc.");
+    if (meta) meta.setAttribute("content", "Alert: Signalez rapidement un problème urbain au Sénégal. Plateforme d'alert citoyenne pour voirie, éclairage, propreté. SenAlert, votre système d'alert municipal.");
+    
+    const keywords = document.querySelector('meta[name="keywords"]');
+    if (keywords) keywords.setAttribute("content", "alert, alert urbaine, signalement alert, SenAlert, alert Sénégal, alert municipal, alert citoyen");
   }, []);
 
   const form = useForm<FormValues>({
@@ -384,6 +387,18 @@ export default function Report() {
     <>
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-3xl px-4 py-10">
+          {/* Header avec bouton retour */}
+          <div className="mb-6">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')}
+              className="mb-4 p-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour à l'accueil
+            </Button>
+          </div>
+          
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle>Signaler un incident</CardTitle>

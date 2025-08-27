@@ -10,9 +10,9 @@ interface SEOHeadProps {
 }
 
 export function SEOHead({ 
-  title = "SenAlert · Plateforme d'alertes urbaines au Sénégal",
-  description = "Signalez et suivez les problèmes urbains au Sénégal (voirie, éclairage, propreté). Plateforme collaborative citoyens et organisations municipales.",
-  keywords = ["Sénégal", "alertes urbaines", "signalement", "voirie", "éclairage public"],
+  title = "SenAlert · Plateforme d'alert urbaine au Sénégal",
+  description = "Alert: Signalez et suivez les problèmes urbains au Sénégal. Système d'alert pour voirie, éclairage, propreté. Plateforme alert citoyenne et municipale.",
+  keywords = ["alert", "alert urbaine", "SenAlert", "alert Sénégal", "signalement", "voirie", "éclairage public"],
   image = "https://senalert.sn/og-image.png",
   type = "website"
 }: SEOHeadProps) {
