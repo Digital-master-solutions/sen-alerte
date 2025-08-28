@@ -39,7 +39,7 @@ const Index = () => {
         keywords={["Sénégal", "alertes urbaines", "signalement", "voirie", "éclairage public", "propreté", "municipalité", "citoyens", "infrastructure", "Dakar"]}
       />
       
-      <header className="w-full border-b bg-background shadow-sm">
+      <header className="w-full border-b bg-secondary/30 backdrop-blur-sm shadow-sm">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Sheet>
