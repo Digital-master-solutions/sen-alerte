@@ -177,7 +177,7 @@ const About = () => {
                   <Phone className="h-6 w-6 text-blue-600" />
                 </div>
                 <h4 className="font-semibold mb-2">Téléphone</h4>
-                <p className="text-sm text-gray-600">+221 33 XXX XX XX</p>
+                <p className="text-sm text-gray-600">+221 78 328 55 88</p>
               </CardContent>
             </Card>
 
@@ -187,7 +187,7 @@ const About = () => {
                   <Mail className="h-6 w-6 text-green-600" />
                 </div>
                 <h4 className="font-semibold mb-2">Email</h4>
-                <p className="text-sm text-gray-600">contact@senalert.sn</p>
+                <p className="text-sm text-gray-600">digitalmsolution2025@gmail.com</p>
               </CardContent>
             </Card>
 
