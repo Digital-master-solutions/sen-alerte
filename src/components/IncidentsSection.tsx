@@ -71,7 +71,7 @@ const IncidentsSection = () => {
 
   if (loading) {
     return (
-      <section className="py-16 bg-background">
+      <section className="py-16 bg-secondary/20">
         <div className="container">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -87,7 +87,7 @@ const IncidentsSection = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i} className="bg-white border-0 shadow-md">
+              <Card key={i} className="bg-white/90 backdrop-blur-sm border-0 shadow-md">
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -141,7 +141,7 @@ const IncidentsSection = () => {
   }
 
   return (
-    <section className="pt-8 pb-16 bg-background">
+    <section className="pt-8 pb-16 bg-secondary/20">
       <div className="container">
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -157,7 +157,7 @@ const IncidentsSection = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {reports.map((report) => (
-            <Card key={report.id} className="bg-white hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:scale-105">
+            <Card key={report.id} className="bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:scale-105">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">

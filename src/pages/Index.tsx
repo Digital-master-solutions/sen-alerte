@@ -39,7 +39,7 @@ const Index = () => {
         keywords={["Sénégal", "alertes urbaines", "signalement", "voirie", "éclairage public", "propreté", "municipalité", "citoyens", "infrastructure", "Dakar"]}
       />
       
-      <header className="w-full border-b bg-background shadow-sm">
+      <header className="w-full border-b bg-secondary/30 backdrop-blur-sm shadow-sm">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Sheet>
@@ -198,7 +198,14 @@ const Index = () => {
               <div className="pt-4 border-t border-footer-foreground/20">
                 <div className="flex items-center gap-2 text-sm mb-2">
                   <span className="text-footer-foreground/80">Fièrement développé par</span>
-                  <span className="text-yellow-400 font-semibold">Digital Master Solution</span>
+                  <a 
+                    href="https://dms-sn.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-yellow-400 font-semibold hover:text-yellow-300 transition-colors"
+                  >
+                    Digital Master Solution
+                  </a>
                 </div>
                 <div className="text-sm text-footer-foreground/70">
                   © {new Date().getFullYear()} SenAlert. Tous droits réservés.
