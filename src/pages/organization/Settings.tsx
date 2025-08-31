@@ -8,15 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores";
-import {
-  Settings as SettingsIcon,
-  Building2,
-  Key,
-  Save,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
-
+import { Settings as SettingsIcon, Building2, Key, Save, Loader2, RefreshCw } from "lucide-react";
 interface OrgProfile {
   id: string;
   name: string;
@@ -30,122 +22,139 @@ interface OrgProfile {
   last_login?: string;
   is_active: boolean;
 }
-
 export default function OrgSettings() {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<OrgProfile | null>(null);
   const [passwords, setPasswords] = useState({
     current: "",
     new: "",
-    confirm: "",
+    confirm: ""
   });
-
   useEffect(() => {
     document.title = "Paramètres | Organisation";
     loadProfile();
   }, []);
-
-  const { user, userType } = useAuthStore();
-
+  const {
+    user,
+    userType
+  } = useAuthStore();
   const loadProfile = async () => {
     setLoading(true);
     try {
       if (userType !== 'organization' || !user) {
         throw new Error("Non authentifié");
       }
-
-      const { data: orgRow, error } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-      
+      const {
+        data: orgRow,
+        error
+      } = await supabase.from("organizations").select("*").eq("id", user.id).maybeSingle();
       if (error) throw error;
       if (!orgRow) throw new Error("Organisation introuvable");
-      
       setProfile(orgRow);
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Erreur", description: e.message });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: e.message
+      });
     } finally {
       setLoading(false);
     }
   };
-
   const saveProfile = async () => {
     if (!profile) return;
-    
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("organizations")
-        .update({
-          name: profile.name,
-          email: profile.email,
-          phone: profile.phone,
-          address: profile.address,
-          city: profile.city,
-        })
-        .eq("id", profile.id);
-      
+      const {
+        error
+      } = await supabase.from("organizations").update({
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        address: profile.address,
+        city: profile.city
+      }).eq("id", profile.id);
       if (error) throw error;
-      
-      toast({ title: "Profil mis à jour", description: "Vos informations ont été sauvegardées" });
+      toast({
+        title: "Profil mis à jour",
+        description: "Vos informations ont été sauvegardées"
+      });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Erreur", description: e.message });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: e.message
+      });
     } finally {
       setSaving(false);
     }
   };
-
   const changePassword = async () => {
     if (!passwords.new || !passwords.confirm) {
-      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir tous les champs" });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs"
+      });
       return;
     }
-    
     if (passwords.new !== passwords.confirm) {
-      toast({ variant: "destructive", title: "Erreur", description: "Les mots de passe ne correspondent pas" });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas"
+      });
       return;
     }
-    
     if (passwords.new.length < 6) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le mot de passe doit faire au moins 6 caractères" });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Le mot de passe doit faire au moins 6 caractères"
+      });
       return;
     }
-    
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      const {
+        error
+      } = await supabase.auth.updateUser({
         password: passwords.new
       });
-      
       if (error) throw error;
-      
-      setPasswords({ current: "", new: "", confirm: "" });
-      toast({ title: "Mot de passe changé", description: "Votre nouveau mot de passe est actif" });
+      setPasswords({
+        current: "",
+        new: "",
+        confirm: ""
+      });
+      toast({
+        title: "Mot de passe changé",
+        description: "Votre nouveau mot de passe est actif"
+      });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Erreur", description: e.message });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: e.message
+      });
     } finally {
       setSaving(false);
     }
   };
-
   if (loading) {
-    return (
-      <div className="p-6 space-y-6">
+    return <div className="p-6 space-y-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-1/4" />
           <div className="h-96 bg-muted rounded" />
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!profile) {
-    return (
-      <div className="p-6">
+    return <div className="p-6">
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Organisation introuvable</CardTitle>
@@ -154,12 +163,9 @@ export default function OrgSettings() {
             <p className="text-muted-foreground">Impossible de charger votre profil d'organisation.</p>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="p-6 space-y-8 bg-background min-h-screen">
+  return <div className="p-6 space-y-8 bg-background min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -208,14 +214,8 @@ export default function OrgSettings() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Statut</Label>
-                    <p className={`text-sm mt-1 ${
-                      profile.status === 'approved' ? 'text-green-600' : 
-                      profile.status === 'pending' ? 'text-yellow-600' : 
-                      'text-red-600'
-                    }`}>
-                      {profile.status === 'approved' ? 'Approuvé' :
-                       profile.status === 'pending' ? 'En attente' :
-                       profile.status === 'rejected' ? 'Rejeté' : profile.status}
+                    <p className={`text-sm mt-1 ${profile.status === 'approved' ? 'text-green-600' : profile.status === 'pending' ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {profile.status === 'approved' ? 'Approuvé' : profile.status === 'pending' ? 'En attente' : profile.status === 'rejected' ? 'Rejeté' : profile.status}
                     </p>
                   </div>
                 </div>
@@ -226,15 +226,7 @@ export default function OrgSettings() {
                       {new Date(profile.created_at).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Dernière connexion</Label>
-                    <p className="text-sm text-foreground mt-1">
-                      {profile.last_login ? 
-                        new Date(profile.last_login).toLocaleDateString('fr-FR') : 
-                        'Jamais connecté'
-                      }
-                    </p>
-                  </div>
+                  
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Compte actif</Label>
@@ -260,69 +252,48 @@ export default function OrgSettings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="name">Nom de l'organisation *</Label>
-                    <Input
-                      id="name"
-                      value={profile.name}
-                      onChange={(e) => setProfile({...profile, name: e.target.value})}
-                      className="mt-1"
-                    />
+                    <Input id="name" value={profile.name} onChange={e => setProfile({
+                    ...profile,
+                    name: e.target.value
+                  })} className="mt-1" />
                   </div>
                   <div>
                     <Label htmlFor="email">Email de contact *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({...profile, email: e.target.value})}
-                      className="mt-1"
-                    />
+                    <Input id="email" type="email" value={profile.email} onChange={e => setProfile({
+                    ...profile,
+                    email: e.target.value
+                  })} className="mt-1" />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="phone">Téléphone</Label>
-                    <Input
-                      id="phone"
-                      value={profile.phone || ""}
-                      onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                      className="mt-1"
-                      placeholder="Ex: +33 1 23 45 67 89"
-                    />
+                    <Input id="phone" value={profile.phone || ""} onChange={e => setProfile({
+                    ...profile,
+                    phone: e.target.value
+                  })} className="mt-1" placeholder="Ex: +33 1 23 45 67 89" />
                   </div>
                   <div>
                     <Label htmlFor="city">Ville</Label>
-                    <Input
-                      id="city"
-                      value={profile.city || ""}
-                      onChange={(e) => setProfile({...profile, city: e.target.value})}
-                      className="mt-1"
-                    />
+                    <Input id="city" value={profile.city || ""} onChange={e => setProfile({
+                    ...profile,
+                    city: e.target.value
+                  })} className="mt-1" />
                   </div>
                 </div>
                 
                 <div>
                   <Label htmlFor="address">Adresse</Label>
-                  <Input
-                    id="address"
-                    value={profile.address || ""}
-                    onChange={(e) => setProfile({...profile, address: e.target.value})}
-                    className="mt-1"
-                    placeholder="Adresse complète"
-                  />
+                  <Input id="address" value={profile.address || ""} onChange={e => setProfile({
+                  ...profile,
+                  address: e.target.value
+                })} className="mt-1" placeholder="Adresse complète" />
                 </div>
                 
                 <div className="flex justify-end pt-6 border-t border-border">
-                  <Button 
-                    onClick={saveProfile} 
-                    disabled={saving}
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    {saving ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
+                  <Button onClick={saveProfile} disabled={saving} className="bg-primary hover:bg-primary/90">
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Sauvegarder
                   </Button>
                 </div>
@@ -346,24 +317,18 @@ export default function OrgSettings() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="current_password">Mot de passe actuel</Label>
-                  <Input
-                    id="current_password"
-                    type="password"
-                    value={passwords.current}
-                    onChange={(e) => setPasswords({...passwords, current: e.target.value})}
-                    className="mt-1"
-                  />
+                  <Input id="current_password" type="password" value={passwords.current} onChange={e => setPasswords({
+                  ...passwords,
+                  current: e.target.value
+                })} className="mt-1" />
                 </div>
                 
                 <div>
                   <Label htmlFor="new_password">Nouveau mot de passe</Label>
-                  <Input
-                    id="new_password"
-                    type="password"
-                    value={passwords.new}
-                    onChange={(e) => setPasswords({...passwords, new: e.target.value})}
-                    className="mt-1"
-                  />
+                  <Input id="new_password" type="password" value={passwords.new} onChange={e => setPasswords({
+                  ...passwords,
+                  new: e.target.value
+                })} className="mt-1" />
                   <p className="text-sm text-muted-foreground mt-1">
                     Minimum 6 caractères
                   </p>
@@ -371,28 +336,16 @@ export default function OrgSettings() {
                 
                 <div>
                   <Label htmlFor="confirm_password">Confirmer le nouveau mot de passe</Label>
-                  <Input
-                    id="confirm_password"
-                    type="password"
-                    value={passwords.confirm}
-                    onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
-                    className="mt-1"
-                  />
+                  <Input id="confirm_password" type="password" value={passwords.confirm} onChange={e => setPasswords({
+                  ...passwords,
+                  confirm: e.target.value
+                })} className="mt-1" />
                 </div>
               </div>
               
               <div className="flex justify-end pt-6 border-t border-border">
-                <Button 
-                  onClick={changePassword} 
-                  disabled={saving || !passwords.new || !passwords.confirm}
-                  variant="default"
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {saving ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Key className="mr-2 h-4 w-4" />
-                  )}
+                <Button onClick={changePassword} disabled={saving || !passwords.new || !passwords.confirm} variant="default" className="bg-primary hover:bg-primary/90">
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
                   Changer le mot de passe
                 </Button>
               </div>
@@ -400,6 +353,5 @@ export default function OrgSettings() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 }
