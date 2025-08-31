@@ -26,15 +26,15 @@ export default function OrganizationLayout() {
         
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="h-16 border-b bg-background flex items-center px-6">
-            <SidebarTrigger className="mr-4" />
+          <header className="h-14 sm:h-16 border-b bg-background flex items-center px-4 sm:px-6">
+            <SidebarTrigger className="mr-2 sm:mr-4" />
             <div className="flex-1">
-              <h1 className="text-xl font-semibold">Espace Organisation</h1>
+              <h1 className="text-lg sm:text-xl font-semibold">Espace Organisation</h1>
             </div>
           </header>
           
           {/* Main Content */}
-          <main className="flex-1 overflow-auto bg-muted/10">
+          <main className="flex-1 overflow-auto bg-muted/10 p-4 sm:p-6">
             <Outlet />
           </main>
         </div>

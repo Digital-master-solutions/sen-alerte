@@ -69,32 +69,32 @@ export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSele
   return (
     <Card className="border-border hover:shadow-md transition-shadow">
       <CardContent className="p-4">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-3">
-              <h3 className="font-semibold text-lg text-foreground">{report.type}</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <h3 className="font-semibold text-base sm:text-lg text-foreground">{report.type}</h3>
               {getStatusBadge(report.status)}
             </div>
             
-            <p className="text-muted-foreground line-clamp-2">{report.description}</p>
+            <p className="text-muted-foreground line-clamp-2 text-sm sm:text-base">{report.description}</p>
             
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {location || "Chargement..."}
+                <MapPin className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{location || "Chargement..."}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+                <Clock className="h-4 w-4 flex-shrink-0" />
                 {new Date(report.created_at).toLocaleDateString()}
               </div>
               <div className="flex items-center gap-1">
-                <User className="h-4 w-4" />
-                {report.anonymous_code || "Anonyme"}
+                <User className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{report.anonymous_code || "Anonyme"}</span>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <ReportDetailsDialog 
               report={report} 
               onReportSelect={onReportSelect}
@@ -122,7 +122,7 @@ export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSele
                   <AlertDialogTrigger asChild>
                     <Button 
                       size="sm"
-                      className="bg-primary hover:bg-primary/90"
+                      className="bg-primary hover:bg-primary/90 w-full sm:w-auto min-h-[40px]"
                     >
                       <Hand className="h-4 w-4 mr-1" />
                       Gérer
@@ -152,7 +152,7 @@ export function ReportCard({ report, type, onClaim, onStatusUpdate, onReportSele
                 value={report.status} 
                 onValueChange={(newStatus) => onStatusUpdate(report.id, newStatus)}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32 min-h-[40px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

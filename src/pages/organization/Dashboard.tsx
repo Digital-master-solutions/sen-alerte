@@ -122,15 +122,15 @@ export default function OrganizationDashboard() {
   const resolutionRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
 
   return (
-    <div className="p-6 space-y-8 bg-background min-h-screen">
+    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 bg-background min-h-screen">
       {/* Header */}
       <div className="space-y-2">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Bienvenue, {org.name}</h1>
-            <p className="text-muted-foreground">Vue d'ensemble de vos activités récentes</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Bienvenue, {org.name}</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Vue d'ensemble de vos activités récentes</p>
           </div>
-          <Button onClick={load} variant="outline">
+          <Button onClick={load} variant="outline" className="w-full sm:w-auto">
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
           </Button>

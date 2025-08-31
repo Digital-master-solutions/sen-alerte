@@ -165,16 +165,16 @@ export default function OrgSettings() {
         </Card>
       </div>;
   }
-  return <div className="p-6 space-y-8 bg-background min-h-screen">
+  return <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 bg-background min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Paramètres</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Paramètres</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Gestion de votre profil d'organisation • {profile.name}
           </p>
         </div>
-        <Button onClick={loadProfile} variant="outline">
+        <Button onClick={loadProfile} variant="outline" className="w-full sm:w-auto">
           <RefreshCw className="h-4 w-4 mr-2" />
           Actualiser
         </Button>
