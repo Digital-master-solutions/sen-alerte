@@ -63,7 +63,7 @@ export function OrganizationSidebar() {
     <Sidebar className={collapsed ? "w-16 overflow-hidden border-r border-sidebar-border" : "w-64 overflow-hidden border-r border-sidebar-border"} collapsible="icon">
       <SidebarContent className="bg-sidebar-background text-sidebar-foreground">
         {/* En-tête simple */}
-        <SidebarHeader className="sticky top-0 z-10 bg-sidebar-background border-b border-sidebar-border p-4">
+        <SidebarHeader className="sticky top-0 z-10 bg-sidebar-background border-b border-sidebar-border p-3 sm:p-4">
           <div className="flex items-center gap-3">
             <Logo 
               size={collapsed ? "sm" : "md"} 
@@ -72,7 +72,7 @@ export function OrganizationSidebar() {
             />
             {!collapsed && orgUser && (
               <div className="ml-auto">
-                <div className="text-xs text-sidebar-foreground/60">
+                <div className="text-xs text-sidebar-foreground/60 truncate max-w-[120px]" title={orgUser.name}>
                   {orgUser.name}
                 </div>
               </div>
