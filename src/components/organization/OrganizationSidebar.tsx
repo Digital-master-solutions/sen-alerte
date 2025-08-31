@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Logo } from "@/components/ui/logo";
 import { useAuthStore, Organization } from "@/stores";
+import { useMobileOptimization } from "@/hooks/use-mobile";
 
 const mainItems = [{
   title: "Tableau de bord",
@@ -32,7 +33,8 @@ const mainItems = [{
 
 export function OrganizationSidebar() {
   const {
-    state
+    state,
+    setOpenMobile
   } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
@@ -41,6 +43,7 @@ export function OrganizationSidebar() {
     toast
   } = useToast();
   const { user, userType, logout } = useAuthStore();
+  const { isMobile } = useMobileOptimization();
 
   // Get user data from Zustand store only - no localStorage fallback
   const orgUser = userType === 'organization' ? user as Organization : null;
@@ -52,6 +55,13 @@ export function OrganizationSidebar() {
       description: "Vous avez été déconnecté avec succès"
     });
     navigate("/organization/login");
+  };
+
+  // Fonction pour fermer la sidebar mobile quand on clique sur un lien
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   const linkClasses = (active: boolean) => [
@@ -95,6 +105,7 @@ export function OrganizationSidebar() {
                         to={item.url}
                         className={({ isActive }) => linkClasses(isActive)}
                         title={item.title}
+                        onClick={handleNavClick}
                       >
                         <item.icon className={`h-5 w-5 ${collapsed ? "mx-auto" : ""}`} />
                         {!collapsed && <span className="font-medium">{item.title}</span>}
@@ -109,7 +120,16 @@ export function OrganizationSidebar() {
 
         {/* Pied avec déconnexion */}
         <SidebarFooter className="sticky bottom-0 bg-sidebar-background border-t border-sidebar-border p-3">
-          <Button onClick={handleLogout} variant="ghost" className={`w-full ${collapsed ? "justify-center" : "justify-start"} text-destructive hover:text-destructive hover:bg-destructive/10`}>
+          <Button 
+            onClick={() => {
+              handleLogout();
+              if (isMobile) {
+                setOpenMobile(false);
+              }
+            }} 
+            variant="ghost" 
+            className={`w-full ${collapsed ? "justify-center" : "justify-start"} text-destructive hover:text-destructive hover:bg-destructive/10`}
+          >
             <LogOut className={`h-4 w-4 ${collapsed ? "" : "mr-2"}`} />
             {!collapsed && <span className="font-medium">Déconnexion</span>}
           </Button>

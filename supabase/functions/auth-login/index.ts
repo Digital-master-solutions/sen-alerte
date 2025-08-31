@@ -1,11 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { create } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { create, verify } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 interface AuthRequest {
   email: string;
@@ -39,6 +39,7 @@ serve(async (req) => {
     console.log(`Authentication attempt for ${userType}: ${email}`);
 
     let userData = null;
+    let errorMessage = null;
 
     if (userType === 'admin') {
       // Authenticate superadmin
@@ -52,7 +53,14 @@ serve(async (req) => {
         throw new Error('Invalid credentials');
       }
       
-      userData = data[0];
+      const admin = data[0];
+      
+      // Check if there's an error message from the authentication function
+      if (admin.error_message) {
+        throw new Error(admin.error_message);
+      }
+      
+      userData = admin;
       
       // Update last login
       await supabase.rpc('update_superadmin_last_login', {
@@ -68,10 +76,32 @@ serve(async (req) => {
 
       if (error) throw error;
       if (!data || data.length === 0) {
-        throw new Error('Invalid credentials or account not approved');
+        // Vérifier si l'organisation existe pour déterminer le type d'erreur
+        const { data: orgExists } = await supabase
+          .from('organizations')
+          .select('id, status, is_active')
+          .eq('email', email)
+          .single();
+
+        if (!orgExists) {
+          throw new Error('Email ou mot de passe incorrect');
+        } else if (orgExists.status !== 'approved') {
+          throw new Error('Votre compte n\'est pas encore approuvé. Veuillez contacter l\'administrateur.');
+        } else if (!orgExists.is_active) {
+          throw new Error('Votre compte a été désactivé. Veuillez contacter l\'administrateur.');
+        } else {
+          throw new Error('Email ou mot de passe incorrect');
+        }
       }
       
-      userData = data[0];
+      const org = data[0];
+      
+      // Check if there's an error message from the authentication function
+      if (org.error_message) {
+        throw new Error(org.error_message);
+      }
+      
+      userData = org;
     }
 
     if (!userData) {
@@ -93,73 +123,103 @@ serve(async (req) => {
 
     // Generate refresh token
     const refreshTokenHash = crypto.randomUUID();
-    const refreshExpiry = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)); // 7 days
+    const refreshTokenExpiry = new Date();
+    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 days
 
-    // Store refresh token
-    const { error: tokenError } = await supabase
+    // Store refresh token in database
+    const { error: refreshError } = await supabase
       .from('refresh_tokens')
       .insert({
+        token_hash: refreshTokenHash,
         user_id: userData.id,
         user_type: userType,
-        token_hash: refreshTokenHash,
-        expires_at: refreshExpiry.toISOString(),
-        user_agent: req.headers.get('user-agent'),
-        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip')
+        expires_at: refreshTokenExpiry.toISOString(),
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        user_agent: req.headers.get('user-agent')
       });
 
-    if (tokenError) {
-      console.error('Error storing refresh token:', tokenError);
-      throw tokenError;
+    if (refreshError) {
+      console.error('Error storing refresh token:', refreshError);
+      throw new Error('Failed to create session');
     }
 
     // Create user session
-    const sessionToken = crypto.randomUUID();
-    const sessionExpiry = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)); // 7 days
+    const sessionTokenHash = crypto.randomUUID();
+    const sessionExpiry = new Date();
+    sessionExpiry.setMinutes(sessionExpiry.getMinutes() + 15); // 15 minutes
 
     const { error: sessionError } = await supabase
       .from('user_sessions')
       .insert({
+        session_token_hash: sessionTokenHash,
         user_id: userData.id,
         user_type: userType,
-        session_token_hash: sessionToken,
         expires_at: sessionExpiry.toISOString(),
-        user_agent: req.headers.get('user-agent'),
+        last_activity_at: new Date().toISOString(),
         ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
-        refresh_token_id: refreshTokenHash
+        user_agent: req.headers.get('user-agent'),
+        device_info: {
+          userAgent: req.headers.get('user-agent'),
+          ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip')
+        }
       });
 
     if (sessionError) {
-      console.error('Error creating session:', sessionError);
-      throw sessionError;
+      console.error('Error creating user session:', sessionError);
+      throw new Error('Failed to create session');
     }
 
-    console.log(`Authentication successful for ${userType}: ${userData.name}`);
-
-    return new Response(JSON.stringify({
-      success: true,
-      user: {
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        type: userType,
-        status: userData.status,
-        created_at: userData.created_at
-      },
-      token: jwt,
-      refreshToken: refreshTokenHash,
-      expiresIn: 900 // 15 minutes
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        user: {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          userType,
+          status: userData.status
+        },
+        token: jwt,
+        refreshToken: refreshTokenHash,
+        expiresIn: 15 * 60 // 15 minutes in seconds
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
 
   } catch (error) {
-    console.error('Auth login error:', error);
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error.message || 'Authentication failed' 
-    }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Authentication error:', error);
+    
+    let errorMessage = 'Authentication failed';
+    let statusCode = 401;
+    
+    if (error.message.includes("n'est pas encore approuvé")) {
+      errorMessage = "Votre compte n'est pas encore approuvé. Veuillez contacter l'administrateur.";
+      statusCode = 403;
+    } else if (error.message.includes("a été désactivé")) {
+      errorMessage = "Votre compte a été désactivé. Veuillez contacter l'administrateur.";
+      statusCode = 403;
+    } else if (error.message.includes("Mot de passe incorrect")) {
+      errorMessage = "Mot de passe incorrect";
+      statusCode = 401;
+    } else if (error.message.includes("Aucune organisation trouvée") || error.message.includes("Nom d'utilisateur incorrect")) {
+      errorMessage = "Identifiants incorrects";
+      statusCode = 401;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: errorMessage
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode,
+      }
+    );
   }
 });
