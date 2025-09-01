@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -23,6 +23,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 interface Category {
   id: string;
   nom: string;
+  usage_count?: number;
 }
 
 export default function AdminCategories() {
@@ -32,6 +33,7 @@ export default function AdminCategories() {
   const [searchTerm, setSearchTerm] = useState("");
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -52,12 +54,20 @@ export default function AdminCategories() {
     try {
       const { data, error } = await supabase
         .from("categorie")
-        .select("*")
+        .select(`
+          *,
+          reports:reports(count)
+        `)
         .order("nom", { ascending: true });
 
       if (error) throw error;
       if (data) {
-        setCategories(data);
+        // Transformer les données pour inclure le nombre d'utilisations
+        const categoriesWithUsage = data.map(category => ({
+          ...category,
+          usage_count: category.reports?.[0]?.count || 0
+        }));
+        setCategories(categoriesWithUsage);
       }
     } catch (error) {
       console.error("Error loading categories:", error);
@@ -87,11 +97,21 @@ export default function AdminCategories() {
   const paginatedCategories = filteredCategories.slice((page - 1) * pageSize, page * pageSize);
 
   const handleCreateCategory = async () => {
+    if (!formData.nom.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom de la catégorie est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const { error } = await supabase
         .from("categorie")
         .insert({
-          nom: formData.nom,
+          nom: formData.nom.trim(),
         });
 
       if (error) throw error;
@@ -111,17 +131,29 @@ export default function AdminCategories() {
         description: "Impossible de créer la catégorie",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdateCategory = async () => {
     if (!editingCategory) return;
 
+    if (!formData.nom.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom de la catégorie est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const { error } = await supabase
         .from("categorie")
         .update({
-          nom: formData.nom,
+          nom: formData.nom.trim(),
         })
         .eq("id", editingCategory.id);
 
@@ -142,11 +174,38 @@ export default function AdminCategories() {
         description: "Impossible de modifier la catégorie",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return;
+
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer la catégorie "${category.nom}" ?`)) {
+      return;
+    }
+
     try {
+      // Vérifier d'abord si la catégorie est utilisée dans des signalements
+      const { data: reports, error: checkError } = await supabase
+        .from("reports")
+        .select("id")
+        .eq("type", category.nom)
+        .limit(1);
+
+      if (checkError) throw checkError;
+
+      if (reports && reports.length > 0) {
+        toast({
+          title: "Impossible de supprimer",
+          description: "Cette catégorie est utilisée dans des signalements existants",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("categorie")
         .delete()
@@ -225,11 +284,11 @@ export default function AdminCategories() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setNewCategoryOpen(false)}>
+              <Button variant="outline" onClick={() => setNewCategoryOpen(false)} disabled={isSubmitting}>
                 Annuler
               </Button>
-              <Button onClick={handleCreateCategory}>
-                Créer la catégorie
+              <Button onClick={handleCreateCategory} disabled={isSubmitting}>
+                {isSubmitting ? "Création..." : "Créer la catégorie"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -285,7 +344,7 @@ export default function AdminCategories() {
                   <TableCell className="font-medium">{category.nom}</TableCell>
                   <TableCell>
                     <span className="text-muted-foreground">
-                      Visible dans le formulaire de signalement
+                      {category.usage_count || 0} signalement{(category.usage_count || 0) > 1 ? 's' : ''}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
@@ -355,11 +414,11 @@ export default function AdminCategories() {
               </div>
             </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingCategory(null)}>
+            <Button variant="outline" onClick={() => setEditingCategory(null)} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button onClick={handleUpdateCategory}>
-              Enregistrer les modifications
+            <Button onClick={handleUpdateCategory} disabled={isSubmitting}>
+              {isSubmitting ? "Modification..." : "Enregistrer les modifications"}
             </Button>
           </DialogFooter>
         </DialogContent>
