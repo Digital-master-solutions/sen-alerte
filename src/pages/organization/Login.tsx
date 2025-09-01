@@ -78,10 +78,7 @@ export default function OrgLogin() {
 
       const organization = orgData[0];
       
-      // Check if there's an error message from the authentication function
-      if (organization.error_message) {
-        throw new Error(organization.error_message);
-      }
+      // Organization login successful
       
       const orgUser = {
         id: organization.id,

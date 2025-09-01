@@ -15,7 +15,10 @@ import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlayer from "@/components/AudioPlayer";
 import PhotoPreview from "@/components/PhotoPreview";
+import MobileCameraCapture from "@/components/MobileCameraCapture";
+import MobileAudioRecorder from "@/components/MobileAudioRecorder";
 import { useLocationStore } from "@/stores/locationStore";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const schema = z.object({
   description: z.string().min(10, "Décrivez le problème (min 10 caractères)"),
@@ -58,6 +61,8 @@ export default function Report() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [showMobileAudio, setShowMobileAudio] = useState(false);
+  const isMobile = useIsMobile();
   
   // Location store integration
   const { 
@@ -156,27 +161,9 @@ export default function Report() {
     }
   };
 
-  // Fonctions pour la caméra
+  // Fonctions pour la caméra avec gestion mobile
   const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }, 
-        audio: false 
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setShowCamera(true);
-    } catch (error) {
-      console.error("Camera error:", error);
-      toast.error("Impossible d'accéder à la caméra");
-    }
+    setShowCamera(true);
   };
 
   const capturePhoto = () => {
@@ -225,47 +212,9 @@ export default function Report() {
     setShowCamera(false);
   };
 
-  // Fonctions pour l'enregistrement audio
+  // Fonctions pour l'enregistrement audio avec gestion mobile
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      streamRef.current = stream;
-      
-      const chunks: BlobPart[] = [];
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        console.log("Audio blob created:", blob.size, "bytes, type:", blob.type);
-        setRecordedAudio(blob);
-        const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
-        form.setValue("audio", file as any);
-        
-        // Create audio URL for playback
-        const url = URL.createObjectURL(blob);
-        console.log("Audio URL created:", url);
-        setAudioUrl(url);
-        
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      
-      intervalRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-
-    } catch (error) {
-      toast.error("Impossible d'accéder au microphone");
-    }
+    setIsRecording(true);
   };
 
   const stopRecording = () => {
@@ -583,36 +532,16 @@ export default function Report() {
                   alt="Photo capturée"
                 />
 
-                {/* Interface caméra */}
+                {/* Interface caméra mobile */}
                 {showCamera && (
-                  <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-                    <div className="relative max-w-lg w-full">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full aspect-video rounded-lg object-cover"
-                      />
-                      <canvas ref={canvasRef} className="hidden" />
-                      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-6">
-                        <Button
-                          type="button"
-                          onClick={capturePhoto}
-                          className="bg-white text-black hover:bg-gray-200 rounded-full w-16 h-16 flex items-center justify-center"
-                        >
-                          <Camera className="w-8 h-8" />
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={stopCamera}
-                          className="bg-red-500 text-white hover:bg-red-600 rounded-full w-16 h-16 flex items-center justify-center"
-                        >
-                          <span className="text-2xl">✕</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                  <MobileCameraCapture
+                    onCapture={(file, previewUrl) => {
+                      form.setValue("photo", file as any);
+                      setCapturedPhoto(previewUrl);
+                      setShowCamera(false);
+                    }}
+                    onClose={() => setShowCamera(false)}
+                  />
                 )}
               </div>
 
@@ -620,12 +549,12 @@ export default function Report() {
               <div className="space-y-4">
                 <h3 className="text-base font-medium text-gray-900">Message vocal (optionnel)</h3>
                 
-                {!isRecording && !recordedAudio && (
+                 {!isRecording && !recordedAudio && (
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full h-16 border-2 border-dashed border-red-300 hover:border-red-400 bg-red-50"
-                    onClick={startRecording}
+                    onClick={() => setShowMobileAudio(true)}
                   >
                     <div className="flex items-center space-x-3">
                       <Mic className="w-5 h-5 text-red-600" />
@@ -685,6 +614,19 @@ export default function Report() {
           </Card>
         </div>
       </div>
+
+      {/* Interface audio mobile */}
+      {showMobileAudio && (
+        <MobileAudioRecorder
+          onRecordingComplete={(file, audioUrl) => {
+            form.setValue("audio", file as any);
+            setAudioUrl(audioUrl);
+            setRecordedAudio(new Blob()); // Pour déclencher l'affichage du player
+            setShowMobileAudio(false);
+          }}
+          onClose={() => setShowMobileAudio(false)}
+        />
+      )}
 
       {/* Animation de succès */}
       {showSuccess && (
