@@ -3,67 +3,144 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SenAlert · Plateforme d'alertes urbaines au Sénégal</title>
-    <meta name="description" content="SenAlert: signalez et suivez les problèmes urbains au Sénégal (voirie, éclairage, propreté). Plateforme collaborative citoyens et organisations municipales." />
-    <meta name="keywords" content="alert, alertes urbaines, signalement Sénégal, SenAlert, voirie, éclairage public, propreté, municipalité, citoyens, infrastructure" />
-    <meta name="author" content="SenAlert" />
-    <meta name="robots" content="index, follow" />
-
-    <!-- Favicon -->
-    <link rel="icon" href="/lovable-uploads/9eb49aac-44e9-40b3-80a3-4e1c7f94eb76.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/lovable-uploads/9eb49aac-44e9-40b3-80a3-4e1c7f94eb76.png" />
-    <link rel="shortcut icon" href="/lovable-uploads/9eb49aac-44e9-40b3-80a3-4e1c7f94eb76.png" type="image/png" />
+    <title>SenAlert - Alertes et Signalements Citoyens au Sénégal | Sécurité, Urgences, Problèmes Urbains</title>
+    <meta name="description" content="SenAlert : Plateforme d'alertes citoyennes au Sénégal. Signalez en temps réel les problèmes de sécurité, urgences, voirie, éclairage, propreté. Service d'urgence et de signalement collaboratif pour tous les Sénégalais." />
+    <meta name="keywords" content="SenAlert, alertes Sénégal, signalement citoyen, urgence Sénégal, sécurité Dakar, problèmes urbains, voirie, éclairage public, propreté, municipalité, citoyens, infrastructure, alerte temps réel, Sénégal, Dakar, Thiès, Saint-Louis, Kaolack, Ziguinchor, Rufisque, Mbour, Louga, Fatick, Kaffrine, Tambacounda, Kolda, Sédhiou, Kédougou, Matam, Podor, Bakel, Linguère, Koungheul, Vélingara, Bignona, Oussouye, Foundiougne, Guinguinéo, Nioro du Rip, Koumpentoum, Malem Hodar" />
+    <meta name="author" content="SenAlert - Plateforme d'Alertes Citoyennes au Sénégal" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="bingbot" content="index, follow" />
+    
+    <!-- Favicon complet pour tous les navigateurs et Google -->
+    <link rel="icon" href="/logo-bi.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/logo-bi.png" type="image/png" sizes="16x16" />
+    <link rel="icon" href="/logo-bi.png" type="image/png" sizes="48x48" />
+    <link rel="icon" href="/logo-bi.png" type="image/png" sizes="192x192" />
+    <link rel="icon" href="/logo-bi.png" type="image/png" sizes="512x512" />
+    
+    <!-- Apple Touch Icons pour iOS -->
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="180x180" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="152x152" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="144x144" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="120x120" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="114x114" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="76x76" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="72x72" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="60x60" />
+    <link rel="apple-touch-icon" href="/logo-bi.png" sizes="57x57" />
+    
+    <!-- Windows Tiles pour Windows 8/10/11 -->
+    <meta name="msapplication-TileColor" content="#15803d" />
+    <meta name="msapplication-TileImage" content="/logo-bi.png" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <meta name="theme-color" content="#15803d" />
+    
+    <!-- Android Chrome -->
+    <link rel="icon" href="/logo-bi.png" type="image/png" sizes="196x196" />
+    
+    <!-- Manifest pour PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-startup-image" href="/logo-bi.png" />
+    
+    <!-- Favicon classique pour compatibilité maximale -->
+    <link rel="shortcut icon" href="/logo-bi.png" type="image/png" />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://senalert.sn/" />
+    
+    <!-- Hreflang pour le Sénégal -->
+    <link rel="alternate" hreflang="fr-SN" href="https://senalert.sn/" />
+    <link rel="alternate" hreflang="fr" href="https://senalert.sn/" />
+    <link rel="alternate" hreflang="x-default" href="https://senalert.sn/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://senalert.sn/" />
-    <meta property="og:title" content="SenAlert · Plateforme d'alertes urbaines au Sénégal" />
-    <meta property="og:description" content="Signalez et suivez les problèmes urbains: voirie, éclairage, propreté. Collaboration citoyens-municipalités au Sénégal." />
-    <meta property="og:image" content="https://senalert.sn/og-image.png" />
+    <meta property="og:title" content="SenAlert - Alertes et Signalements Citoyens au Sénégal" />
+    <meta property="og:description" content="Plateforme d'alertes citoyennes au Sénégal. Signalez en temps réel les problèmes de sécurité, urgences, voirie, éclairage, propreté. Service collaboratif pour tous les Sénégalais." />
+    <meta property="og:image" content="https://senalert.sn/logo-bi.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="fr_SN" />
     <meta property="og:site_name" content="SenAlert" />
+    <meta property="og:country-name" content="Sénégal" />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://senalert.sn/" />
-    <meta name="twitter:title" content="SenAlert · Alertes urbaines Sénégal" />
-    <meta name="twitter:description" content="Plateforme collaborative pour signaler les problèmes urbains au Sénégal" />
-    <meta name="twitter:image" content="https://senalert.sn/og-image.png" />
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://senalert.sn/" />
+    <meta property="twitter:title" content="SenAlert - Alertes et Signalements Citoyens au Sénégal" />
+    <meta property="twitter:description" content="Plateforme d'alertes citoyennes au Sénégal. Signalez en temps réel les problèmes de sécurité, urgences, voirie, éclairage, propreté." />
+    <meta property="twitter:image" content="https://senalert.sn/logo-bi.png" />
+    <meta property="twitter:site" content="@SenAlertSN" />
+    <meta property="twitter:creator" content="@SenAlertSN" />
 
     <!-- Geo tags pour le référencement local -->
     <meta name="geo.region" content="SN" />
-    <meta name="geo.country" content="Sénégal" />
-    <meta name="geo.placename" content="Dakar, Sénégal" />
-
-    <!-- Structured Data -->
+    <meta name="geo.placename" content="Sénégal" />
+    <meta name="geo.position" content="14.7167;-17.4677" />
+    <meta name="ICBM" content="14.7167, -17.4677" />
+    
+    <!-- Informations de contact -->
+    <meta name="contact:country" content="Sénégal" />
+    <meta name="contact:city" content="Dakar" />
+    
+    <!-- Schema.org Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "SenAlert",
-      "description": "Plateforme collaborative pour signaler et suivre les problèmes urbains au Sénégal",
+      "alternateName": "SenAlert - Alertes Citoyennes",
+      "description": "Plateforme d'alertes et de signalements citoyens au Sénégal pour la sécurité, les urgences et les problèmes urbains",
       "url": "https://senalert.sn",
-      "applicationCategory": "GovernmentApplication",
-      "operatingSystem": "Web",
+      "applicationCategory": "UtilityApplication",
+      "operatingSystem": "Web Browser",
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "XOF"
       },
-      "creator": {
+      "provider": {
         "@type": "Organization",
         "name": "SenAlert",
+        "url": "https://senalert.sn",
+        "logo": "https://senalert.sn/logo-bi.png",
         "address": {
           "@type": "PostalAddress",
           "addressCountry": "SN",
+          "addressLocality": "Dakar",
           "addressRegion": "Dakar"
         }
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "SenAlert",
+        "url": "https://senalert.sn"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "SenAlert",
+        "url": "https://senalert.sn",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://senalert.sn/logo-bi.png"
+        }
+      },
+      "keywords": "alertes, signalement, citoyen, Sénégal, sécurité, urgence, voirie, éclairage, propreté, municipalité, infrastructure, Dakar, Thiès, Saint-Louis, Kaolack, Ziguinchor, Rufisque, Mbour, Louga, Fatick, Kaffrine, Tambacounda, Kolda, Sédhiou, Kédougou, Matam, Podor, Bakel, Linguère, Koungheul, Vélingara, Bignona, Oussouye, Foundiougne, Guinguinéo, Nioro du Rip, Koumpentoum, Malem Hodar",
+      "inLanguage": "fr-SN",
+      "countryOfOrigin": "SN",
+      "areaServed": {
+        "@type": "Country",
+        "name": "Sénégal"
       }
     }
     </script>
+    
+    <!-- Preconnect pour améliorer les performances -->
+    <link rel="preconnect" href="https://www.openstreetmap.org" />
+    <link rel="preconnect" href="https://tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="//www.openstreetmap.org" />
+    <link rel="dns-prefetch" href="//tile.openstreetmap.org" />
 
     <!-- Critical resource hints for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

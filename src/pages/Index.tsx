@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import OpenStreetMap from "@/components/OpenStreetMap";
 import IncidentsSection from "@/components/IncidentsSection";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -125,7 +126,9 @@ const Index = () => {
       <main>
         {/* Carte interactive - Largest Contentful Paint element */}
         <section className="relative h-[50vh] min-h-[400px] z-0">
-          <OpenStreetMap className="absolute inset-0" />
+          <ErrorBoundary>
+            <OpenStreetMap className="absolute inset-0" />
+          </ErrorBoundary>
           
           {/* Compteur d'incidents superposé */}
           <div className="absolute bottom-6 left-6 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg border">

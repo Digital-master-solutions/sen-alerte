@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import logoImage from "/lovable-uploads/9eb49aac-44e9-40b3-80a3-4e1c7f94eb76.png";
+import logoImage from "/logo-bi.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl" | "2xl";

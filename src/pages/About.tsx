@@ -226,7 +226,7 @@ const About = () => {
             Cette plateforme est développée pour la population du Sénégal.
           </p>
           <p className="text-gray-500 text-xs mt-2">
-            Version 1.0 - © 2024 SenAlert - Tous droits réservés
+            Version 1.0 - © 2025 SenAlert - Tous droits réservés
           </p>
         </div>
       </div>
