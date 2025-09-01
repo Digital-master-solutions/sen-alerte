@@ -193,7 +193,7 @@ const Index = () => {
               <div className="space-y-3 text-footer-foreground/90">
                 <p>Département de Dakar</p>
                 <p>Région de Dakar, Sénégal</p>
-                <p>contact@senalert.sn</p>
+                <p>digitalmsolution2025@gmail.com</p>
               </div>
               <div className="pt-4 border-t border-footer-foreground/20">
                 <div className="flex items-center gap-2 text-sm mb-2">
