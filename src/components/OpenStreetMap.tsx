@@ -2,14 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore } from '@/stores/locationStore';
-import { Button } from '@/components/ui/button';
-import { Crosshair, Target, X, MapPin } from 'lucide-react';
 
 // Fix for default markers - use local fallback for better reliability
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NiAwIDAgNS41OTYgMCAxMi41QzAgMTkuNDA0IDUuNTk2IDI1IDEyLjUgMjVDMTkuNDA0IDI1IDI1IDE5LjQwNCAyNSAxMi41QzI1IDUuNTk2IDE5LjQwNCAwIDEyLjUgMFoiIGZpbGw9IiMyMkM1NUUiLz4KPHBhdGggZD0iTTEyLjUgNkMxNC45ODUzIDYgMTcgOC4wMTQ3MiAxNyAxMC41QzE3IDEyLjk4NTMgMTQuOTg1MyAxNSAxMi41IDE1QzEwLjAxNDcgMTUgOCAxMi45ODUzIDggMTAuNUM4IDguMDE0NzIgMTAuMDE0NyA2IDEyLjUgNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NiAwIDAgNS41OTYgMCAxMi41QzAgMTkuNDA0IDUuNTk2IDI1IDEyLjUgMjVDMTkuNDA0IDI1IDI1IDE5LjQwNCAyNSAxMi41QzI1IDUuNTk2IDE5LjQwNCAwIDEyLjUgMFoiIGZpbGw9IiMyMkM1NUUiLz4KPHBhdGggZD0iTTEyLjUgNkMxNC45ODUzIDYgMTcgOC4wMTQ3MiAxNyAxMC41QzE3IDEyLjk4NTMgMTQuOTg1MyAxNSAxMi41IDE1QzEwLjAxNDcgMTUgOCAxMi45ODUzIDggMTAuNUM4IDguMDE0NzIgMTAuMDE0NyA2IDEyLjUgNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NiAwIDAgNS41OTYgMCAxMi41QzAgMTkuNDA0IDUuNTk2IDI1IDEyLjUgMjVDMTkuNDA0IDI1IDI1IDE5LjQwNCAyNSAxMi41QzI1IDUuNTY2IDE5LjQwNCAwIDEyLjUgMFoiIGZpbGw9IiMyMkM1NUUiLz4KPHBhdGggZD0iTTEyLjUgNkMxNC45ODUzIDYgMTcgOC4wMTQ3MiAxNyAxMC41QzE3IDEyLjk4NTMgMTQuOTg1MyAxNSAxMi41IDE1QzEwLjAxNDcgMTUgOCAxMi45ODUzIDggMTAuNUM4IDguMDE0NzIgMTAuMDE0NyA2IDEyLjUgNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
   shadowUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMTgiIGZpbGw9ImJsYWNrIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4K'
 });
 
@@ -25,8 +23,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const { currentLocation, requestLocation } = useLocationStore();
 
-  // Fonction pour récupérer la position GPS exacte
-  const getExactGPSPosition = () => {
+  // Fonction pour récupérer la position GPS exacte avec haute précision
+  const getExactGPSPosition = async () => {
     setIsLocationLoading(true);
     setLocationError(null);
 
@@ -36,49 +34,107 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const newPosition = { lat: latitude, lng: longitude };
+    try {
+      // Première tentative avec haute précision
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          {
+            enableHighAccuracy: true,    // Utiliser le GPS haute précision
+            timeout: 30000,              // Premier essai rapide
+            maximumAge: 0                // Position fraîche uniquement
+          }
+        );
+      });
+
+      let bestPosition = position;
+      let bestAccuracy = position.coords.accuracy;
+
+      // Si la précision n'est pas assez bonne (> 20 mètres), essayer d'améliorer
+      if (bestAccuracy > 20) {
+        console.log(`Précision initiale: ${bestAccuracy}m, tentative d'amélioration...`);
         
-        setGpsPosition(newPosition);
-        setIsLocationLoading(false);
-        setLocationError(null);
-        
-        // Mettre à jour la carte avec la nouvelle position
-        if (mapInstanceRef.current) {
-          updateMapWithLocation(newPosition);
+        // Deuxième tentative avec timeout plus long
+        try {
+          const betterPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true,
+                timeout: 60000,          // Plus de temps pour une meilleure précision
+                maximumAge: 0
+              }
+            );
+          });
+
+          if (betterPosition.coords.accuracy < bestAccuracy) {
+            bestPosition = betterPosition;
+            bestAccuracy = betterPosition.coords.accuracy;
+            console.log(`Précision améliorée: ${bestAccuracy}m`);
+          }
+        } catch (secondError) {
+          console.log("Deuxième tentative échouée, utilisation de la première position");
         }
-      },
-      (error) => {
-        let errorMessage = "Erreur lors de la récupération de la position";
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = "Permission de localisation refusée. Veuillez l'autoriser dans les paramètres de votre navigateur.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = "Position non disponible. Vérifiez que votre GPS est activé.";
-            break;
-          case error.TIMEOUT:
-            errorMessage = "Délai d'attente dépassé. Vérifiez votre connexion GPS.";
-            break;
-        }
-        
-        setLocationError(errorMessage);
-        setIsLocationLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 30000,
-        maximumAge: 0
       }
-    );
+
+      const { latitude, longitude, accuracy } = bestPosition.coords;
+      const newPosition = { lat: latitude, lng: longitude };
+      
+      // Stocker la précision pour l'affichage dans le popup
+      (window as any).lastGpsAccuracy = accuracy;
+      
+      console.log(`Position finale: ${latitude}, ${longitude} (précision: ${accuracy}m)`);
+      
+      setGpsPosition(newPosition);
+      setIsLocationLoading(false);
+      setLocationError(null);
+      
+      // Mettre à jour la carte avec la nouvelle position
+      if (mapInstanceRef.current) {
+        updateMapWithLocation(newPosition);
+        
+        // Afficher un message de précision à l'utilisateur
+        const accuracyMessage = accuracy <= 10 ? 
+          "📍 Position très précise obtenue!" : 
+          accuracy <= 50 ? 
+          "📍 Position précise obtenue!" : 
+          "📍 Position obtenue (précision limitée)";
+          
+        console.log(accuracyMessage + ` (±${Math.round(accuracy)}m)`);
+      }
+      
+    } catch (error: any) {
+      let errorMessage = "Erreur lors de la récupération de la position";
+      
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = "Permission de localisation refusée. Veuillez l'autoriser dans les paramètres de votre navigateur.";
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = "Position non disponible. Vérifiez que votre GPS est activé et que vous êtes à l'extérieur.";
+          break;
+        case error.TIMEOUT:
+          errorMessage = "Délai d'attente dépassé. Assurez-vous d'être dans un endroit avec une bonne réception GPS.";
+          break;
+      }
+      
+      setLocationError(errorMessage);
+      setIsLocationLoading(false);
+    }
   };
 
   // Mettre à jour la carte avec la position
   const updateMapWithLocation = (position: { lat: number; lng: number }) => {
     if (!mapInstanceRef.current) return;
+
+    // Valider les coordonnées avant de les utiliser
+    if (typeof position.lat !== 'number' || typeof position.lng !== 'number' || 
+        isNaN(position.lat) || isNaN(position.lng)) {
+      console.error('Invalid coordinates provided to updateMapWithLocation:', position);
+      return;
+    }
 
     const map = mapInstanceRef.current;
     
@@ -86,8 +142,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     map.setView([position.lat, position.lng], 16);
     
     // Ajouter ou mettre à jour le marqueur GPS
-    const existingMarker = map.hasLayer(gpsMarkerRef.current);
-    if (existingMarker) {
+    if (gpsMarkerRef.current && map.hasLayer(gpsMarkerRef.current)) {
       map.removeLayer(gpsMarkerRef.current);
     }
     
@@ -100,29 +155,39 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       })
     }).addTo(map);
 
-    // Ajouter le popup au marqueur
+    // Récupérer la précision depuis la dernière position GPS si disponible
+    const accuracy = (window as any).lastGpsAccuracy || 'inconnue';
+    const accuracyColor = typeof accuracy === 'number' ? 
+      (accuracy <= 10 ? 'text-green-600' : accuracy <= 50 ? 'text-yellow-600' : 'text-orange-600') : 
+      'text-gray-600';
+    
+    // Ajouter le popup au marqueur avec informations de précision
     gpsMarkerRef.current.bindPopup(`
-      <div class="p-4 text-center min-w-[280px]">
-        <div class="font-semibold text-green-600 mb-3 text-lg">📍 Votre position actuelle</div>
+      <div class="p-4 text-center min-w-[300px]">
+        <div class="font-semibold text-green-600 mb-3 text-lg">🎯 Position GPS Précise</div>
         <div class="space-y-3 text-sm">
           <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
             <div class="font-medium text-gray-800 mb-2">Coordonnées GPS :</div>
             <div class="font-mono text-xs text-gray-700 space-y-1">
               <div class="flex justify-between">
                 <span class="font-medium">Latitude:</span>
-                <span class="text-green-600">${position.lat.toFixed(6)}</span>
+                <span class="text-green-600">${position.lat.toFixed(7)}</span>
               </div>
               <div class="flex justify-between">
                 <span class="font-medium">Longitude:</span>
-                <span class="text-green-600">${position.lng.toFixed(6)}</span>
+                <span class="text-green-600">${position.lng.toFixed(7)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Précision:</span>
+                <span class="${accuracyColor}">±${typeof accuracy === 'number' ? Math.round(accuracy) : accuracy}m</span>
               </div>
             </div>
           </div>
           <div class="space-y-2">
             <div class="text-xs text-gray-600 font-medium">Actions rapides :</div>
             <div class="grid grid-cols-2 gap-2">
-              <button onclick="document.querySelector('.leaflet-control-recenter').click()" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs rounded-md transition-colors">
-                🔄 Recentrer
+              <button onclick="window.getExactGPSPosition()" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs rounded-md transition-colors">
+                🎯 Relocaliser
               </button>
               <button onclick="window.location.href='/signaler'" class="px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-xs rounded-md transition-colors">
                 📝 Signaler
@@ -133,11 +198,11 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
             <div class="text-xs text-green-800 space-y-1">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span>Position GPS exacte récupérée</span>
+                <span>Position GPS haute précision</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <span>Prêt à signaler des problèmes</span>
+                <span>Prêt pour signalement précis</span>
               </div>
             </div>
           </div>
@@ -155,90 +220,118 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     const map = mapInstanceRef.current;
 
-    // Bouton de localisation et recentrage
-    const locationBtn = L.Control.extend({
-      options: {
-        position: 'topleft'
+    // Créer les contrôles manuellement sans utiliser L.Control.extend
+    const createSimpleControl = (html: string, title: string, onClick: () => void, color: string, top: string) => {
+      const container = document.createElement('div');
+      container.className = 'leaflet-control leaflet-control-custom';
+      container.style.cssText = `
+        position: absolute;
+        top: ${top};
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+        transition: all 0.2s ease;
+      `;
+      
+      const button = document.createElement('a');
+      button.className = 'leaflet-control-button';
+      button.innerHTML = html;
+      button.title = title;
+      button.href = '#';
+      button.style.cssText = `
+        display: block;
+        width: 44px;
+        height: 44px;
+        line-height: 44px;
+        text-align: center;
+        font-size: ${html === '+' || html === '−' ? '22px' : '20px'};
+        font-weight: ${html === '+' || html === '−' ? 'bold' : 'normal'};
+        background: white;
+        border: 2px solid rgba(0,0,0,0.1);
+        border-radius: 8px;
+        cursor: pointer;
+        color: ${color};
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      `;
+
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        onClick();
+      });
+
+      // Effets de survol
+      button.addEventListener('mouseenter', () => {
+        button.style.transform = 'scale(1.05)';
+        button.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+        button.style.borderColor = color;
+      });
+
+      button.addEventListener('mouseleave', () => {
+        button.style.transform = 'scale(1)';
+        button.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        button.style.borderColor = 'rgba(0,0,0,0.1)';
+      });
+
+      container.appendChild(button);
+      return container;
+    };
+
+    // Bouton de localisation avec belle icône
+    const locationButton = createSimpleControl(
+      '🎯',
+      'Localiser ma position précisément',
+      () => {
+        // Toujours récupérer la position GPS exacte
+        getExactGPSPosition();
       },
-      onAdd: function() {
-        const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-location');
-        const button = L.DomUtil.create('a', 'leaflet-control-button', container);
-        button.innerHTML = '📍';
-        button.title = 'Localiser et recentrer';
-        button.style.cssText = `
-          width: 30px;
-          height: 30px;
-          line-height: 30px;
-          text-align: center;
-          font-size: 18px;
-          background: white;
-          border: 2px solid rgba(0,0,0,0.2);
-          border-radius: 4px;
-          cursor: pointer;
-          color: #22c55e;
-        `;
+      '#22c55e',
+      '10px'
+    );
 
-        button.onclick = () => {
-          if (gpsPosition) {
-            // Si on a déjà une position, recentrer
-            map.setView([gpsPosition.lat, gpsPosition.lng], 16);
-          } else {
-            // Sinon, demander la localisation
-            getExactGPSPosition();
-          }
-        };
-
-        return container;
-      }
-    });
-
-    // Bouton de recentrage sur la position GPS
-    const recenterBtn = L.Control.extend({
-      options: {
-        position: 'topleft'
+    // Bouton zoom + (agrandir)
+    const zoomInButton = createSimpleControl(
+      '+',
+      'Zoomer (agrandir)',
+      () => {
+        map.zoomIn();
       },
-      onAdd: function() {
-        const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-recenter');
-        const button = L.DomUtil.create('a', 'leaflet-control-button', container);
-        button.innerHTML = '🎯';
-        button.title = 'Recentrer sur ma position';
-        button.style.cssText = `
-          width: 30px;
-          height: 30px;
-          line-height: 30px;
-          text-align: center;
-          font-size: 18px;
-          background: white;
-          border: 2px solid rgba(0,0,0,0.2);
-          border-radius: 4px;
-          cursor: pointer;
-          color: #3b82f6;
-          margin-top: 5px;
-        `;
+      '#3b82f6',
+      '60px'
+    );
 
-        button.onclick = () => {
-          if (gpsPosition) {
-            map.setView([gpsPosition.lat, gpsPosition.lng], 16);
-          }
-        };
+    // Bouton zoom - (diminuer)
+    const zoomOutButton = createSimpleControl(
+      '−',
+      'Dézoomer (diminuer)',
+      () => {
+        map.zoomOut();
+      },
+      '#3b82f6',
+      '110px'
+    );
 
-        return container;
-      }
-    });
-
-    // Ajouter les contrôles à la carte
-    locationBtn().addTo(map);
-    recenterBtn().addTo(map);
+    // Ajouter les contrôles au conteneur de la carte
+    const mapContainer = map.getContainer();
+    mapContainer.appendChild(locationButton);
+    mapContainer.appendChild(zoomInButton);
+    mapContainer.appendChild(zoomOutButton);
   };
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
+    
+    // Exposer la fonction de géolocalisation globalement pour le popup
+    (window as any).getExactGPSPosition = getExactGPSPosition;
 
     // Initialiser la carte
     const map = L.map(mapRef.current, {
       center: [14.7167, -17.4677], // Dakar
       zoom: 13,
-      zoomControl: true,
+      zoomControl: false, // Enlever complètement les contrôles de zoom à gauche
       attributionControl: true
     });
 
@@ -250,11 +343,14 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       maxZoom: 19
     }).addTo(map);
 
-    // Ajouter les contrôles personnalisés
-    addCustomControls();
-
-    // Demander la localisation automatiquement
-    getExactGPSPosition();
+    // Attendre que la carte soit prête avant d'ajouter les contrôles
+    map.whenReady(() => {
+      // Ajouter les contrôles personnalisés
+      addCustomControls();
+      
+      // Demander la localisation automatiquement
+      getExactGPSPosition();
+    });
 
     return () => {
       if (mapInstanceRef.current) {
@@ -267,9 +363,19 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   // Mettre à jour la position si elle change dans le store
   useEffect(() => {
     if (currentLocation && !gpsPosition) {
-      setGpsPosition(currentLocation);
-      if (mapInstanceRef.current) {
-        updateMapWithLocation(currentLocation);
+      // Convertir le format du store (latitude/longitude) vers le format attendu (lat/lng)
+      const position = {
+        lat: currentLocation.latitude,
+        lng: currentLocation.longitude
+      };
+      
+      // Vérifier que les coordonnées sont valides
+      if (typeof position.lat === 'number' && typeof position.lng === 'number' && 
+          !isNaN(position.lat) && !isNaN(position.lng)) {
+        setGpsPosition(position);
+        if (mapInstanceRef.current) {
+          updateMapWithLocation(position);
+        }
       }
     }
   }, [currentLocation, gpsPosition]);
@@ -279,7 +385,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       <div ref={mapRef} className="w-full h-full rounded-lg shadow-lg" />
       
       {/* Styles pour les marqueurs et contrôles */}
-      <style jsx>{`
+      <style>{`
         .custom-gps-marker {
           background: none;
           border: none;
@@ -298,6 +404,24 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         .leaflet-control-location:hover,
         .leaflet-control-recenter:hover {
           background: #f8f9fa;
+        }
+        
+        /* S'assurer qu'aucun contrôle par défaut n'apparaît à gauche */
+        .leaflet-control-zoom {
+          display: none !important;
+        }
+        
+        .leaflet-top.leaflet-left {
+          display: none !important;
+        }
+        
+        .leaflet-bottom.leaflet-left {
+          display: none !important;
+        }
+        
+        /* Cacher tous les contrôles à gauche */
+        .leaflet-left {
+          display: none !important;
         }
       `}</style>
     </div>
