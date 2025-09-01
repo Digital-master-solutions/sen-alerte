@@ -81,12 +81,7 @@
 
   <body>
     <div id="root"></div>
-    <!-- Redirect /lander to / -->
-    <script>
-      if (window.location.pathname === '/lander' || window.location.pathname === '/lander/') {
-        window.location.replace('/');
-      }
-    </script>
+
     <!-- Load main script with defer for better performance -->
     <script type="module" src="/src/main.tsx" defer></script>
   </body>
