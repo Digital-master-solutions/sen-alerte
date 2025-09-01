@@ -1,32 +1,5 @@
 {
-  "redirects": [
-    {
-      "source": "/lander",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/lander/",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/lander/:path*",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/lander",
-      "destination": "/",
-      "permanent": true,
-      "has": [
-        {
-          "type": "query",
-          "key": "ref"
-        }
-      ]
-    }
-  ],
+
   "rewrites": [
     {
       "source": "/((?!api/|_next/|assets/|favicon.ico|robots.txt|sitemap.xml).*)",
