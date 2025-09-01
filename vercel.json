@@ -1,8 +1,39 @@
 {
-
+  "redirects": [
+    {
+      "source": "/lander",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/lander/",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/lander/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/landing",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/landing/",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/landing/:path*",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
-      "source": "/((?!api/|_next/|assets/|favicon.ico|robots.txt|sitemap.xml).*)",
+      "source": "/((?!api/|_next/|assets/|favicon.ico|robots.txt|sitemap.xml|admin|organization|signaler|mes-signalements|notifications|a-propos).*)",
       "destination": "/index.html"
     }
   ],
