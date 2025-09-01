@@ -1,16 +1,17 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore } from '@/stores/locationStore';
+import { Button } from '@/components/ui/button';
+import { Crosshair, Target, X, MapPin } from 'lucide-react';
 
 // Fix for default markers - use local fallback for better reliability
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: '/placeholder.svg',
-  iconUrl: '/placeholder.svg', 
-  shadowUrl: '/placeholder.svg',
+  iconRetinaUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NiAwIDAgNS41OTYgMCAxMi41QzAgMTkuNDA0IDUuNTk2IDI1IDEyLjUgMjVDMTkuNDA0IDI1IDI1IDE5LjQwNCAyNSAxMi41QzI1IDUuNTk2IDE5LjQwNCAwIDEyLjUgMFoiIGZpbGw9IiMyMkM1NUUiLz4KPHBhdGggZD0iTTEyLjUgNkMxNC45ODUzIDYgMTcgOC4wMTQ3MiAxNyAxMC41QzE3IDEyLjk4NTMgMTQuOTg1MyAxNSAxMi41IDE1QzEwLjAxNDcgMTUgOCAxMi45ODUzIDggMTAuNUM4IDguMDE0NzIgMTAuMDE0NyA2IDEyLjUgNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NiAwIDAgNS41OTYgMCAxMi41QzAgMTkuNDA0IDUuNTk2IDI1IDEyLjUgMjVDMTkuNDA0IDI1IDI1IDE5LjQwNCAyNSAxMi41QzI1IDUuNTk2IDE5LjQwNCAwIDEyLjUgMFoiIGZpbGw9IiMyMkM1NUUiLz4KPHBhdGggZD0iTTEyLjUgNkMxNC45ODUzIDYgMTcgOC4wMTQ3MiAxNyAxMC41QzE3IDEyLjk4NTMgMTQuOTg1MyAxNSAxMi41IDE1QzEwLjAxNDcgMTUgOCAxMi45ODUzIDggMTAuNUM4IDguMDE0NzIgMTAuMDE0NyA2IDEyLjUgNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+  shadowUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMTgiIGZpbGw9ImJsYWNrIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4K'
 });
-
 
 interface OpenStreetMapProps {
   className?: string;
@@ -19,203 +20,284 @@ interface OpenStreetMapProps {
 const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+  const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const { currentLocation, requestLocation } = useLocationStore();
 
-  useEffect(() => {
-    // Request location if not available
-    if (!currentLocation) {
-      requestLocation();
+  // Fonction pour récupérer la position GPS exacte
+  const getExactGPSPosition = () => {
+    setIsLocationLoading(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError("La géolocalisation n'est pas supportée par votre navigateur");
+      setIsLocationLoading(false);
+      return;
     }
-  }, [currentLocation, requestLocation]);
 
-  useEffect(() => {
-    if (!mapRef.current || !currentLocation) return;
-
-    const userPosition: [number, number] = [currentLocation.latitude, currentLocation.longitude];
-
-    // Initialize map
-    if (!mapInstanceRef.current) {
-      mapInstanceRef.current = L.map(mapRef.current, {
-        scrollWheelZoom: false, // Désactiver le zoom avec la molette
-        doubleClickZoom: false, // Désactiver le zoom au double clic
-        touchZoom: true, // Garder le zoom tactile
-        boxZoom: false, // Désactiver le zoom par sélection
-        keyboard: false // Désactiver les contrôles clavier
-      }).setView(userPosition, 15);
-
-      // Add standard OpenStreetMap tile layer
-      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-        crossOrigin: true
-      });
-
-      tileLayer.addTo(mapInstanceRef.current);
-
-      // Add custom controls with recenter button
-      const customControl = L.Control.extend({
-        onAdd: function(map: L.Map) {
-          const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-          
-          // Zoom In button
-          const zoomInBtn = L.DomUtil.create('a', 'leaflet-control-zoom-in', container);
-          zoomInBtn.innerHTML = '+';
-          zoomInBtn.href = '#';
-          zoomInBtn.title = 'Zoom avant';
-          
-          // Zoom Out button
-          const zoomOutBtn = L.DomUtil.create('a', 'leaflet-control-zoom-out', container);
-          zoomOutBtn.innerHTML = '−';
-          zoomOutBtn.href = '#';
-          zoomOutBtn.title = 'Zoom arrière';
-          
-          // Recenter button
-          const recenterBtn = L.DomUtil.create('a', 'leaflet-control-recenter', container);
-          recenterBtn.innerHTML = '⌖';
-          recenterBtn.href = '#';
-          recenterBtn.title = 'Recentrer sur ma position';
-          
-          // Style the recenter button
-          recenterBtn.style.fontSize = '18px';
-          recenterBtn.style.lineHeight = '26px';
-          recenterBtn.style.textAlign = 'center';
-          
-          L.DomEvent.on(zoomInBtn, 'click', function(e) {
-            L.DomEvent.preventDefault(e);
-            map.zoomIn();
-          });
-          
-          L.DomEvent.on(zoomOutBtn, 'click', function(e) {
-            L.DomEvent.preventDefault(e);
-            map.zoomOut();
-          });
-          
-          L.DomEvent.on(recenterBtn, 'click', function(e) {
-            L.DomEvent.preventDefault(e);
-            if (navigator.geolocation) {
-              requestLocation().then(() => {
-                if (currentLocation) {
-                  map.setView([currentLocation.latitude, currentLocation.longitude], 15);
-                }
-              });
-            }
-          });
-          
-          return container;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const newPosition = { lat: latitude, lng: longitude };
+        
+        setGpsPosition(newPosition);
+        setIsLocationLoading(false);
+        setLocationError(null);
+        
+        // Mettre à jour la carte avec la nouvelle position
+        if (mapInstanceRef.current) {
+          updateMapWithLocation(newPosition);
         }
-      });
-      
-      // Remove default zoom control and add custom control
-      mapInstanceRef.current.zoomControl.remove();
-      new customControl({ position: 'topright' }).addTo(mapInstanceRef.current);
-    }
+      },
+      (error) => {
+        let errorMessage = "Erreur lors de la récupération de la position";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Permission de localisation refusée. Veuillez l'autoriser dans les paramètres de votre navigateur.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Position non disponible. Vérifiez que votre GPS est activé.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Délai d'attente dépassé. Vérifiez votre connexion GPS.";
+            break;
+        }
+        
+        setLocationError(errorMessage);
+        setIsLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 0
+      }
+    );
+  };
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => {
-      mapInstanceRef.current?.removeLayer(marker);
-    });
-    markersRef.current = [];
+  // Mettre à jour la carte avec la position
+  const updateMapWithLocation = (position: { lat: number; lng: number }) => {
+    if (!mapInstanceRef.current) return;
 
-    // Add user location marker with custom icon
-    const userMarker = L.marker(userPosition, {
-      icon: L.divIcon({
-        className: 'current-location-marker',
-        html: `
-          <div style="
-            width: 20px;
-            height: 20px;
-            background: #22c55e;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            position: relative;
-          ">
-            <div style="
-              position: absolute;
-              top: -2px;
-              left: -2px;
-              width: 24px;
-              height: 24px;
-              background: rgba(34, 197, 94, 0.3);
-              border-radius: 50%;
-              animation: pulse 2s infinite;
-            "></div>
-          </div>
-        `,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      })
-    }).addTo(mapInstanceRef.current!);
+    const map = mapInstanceRef.current;
     
-    userMarker.bindPopup('<strong>Votre position actuelle</strong>');
-    markersRef.current.push(userMarker);
+    // Centrer la carte sur la position
+    map.setView([position.lat, position.lng], 16);
+    
+    // Ajouter ou mettre à jour le marqueur GPS
+    const existingMarker = map.hasLayer(gpsMarkerRef.current);
+    if (existingMarker) {
+      map.removeLayer(gpsMarkerRef.current);
+    }
+    
+    gpsMarkerRef.current = L.marker([position.lat, position.lng], {
+      icon: L.divIcon({
+        className: 'custom-gps-marker',
+        html: '📍',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
+      })
+    }).addTo(map);
 
+    // Ajouter le popup au marqueur
+    gpsMarkerRef.current.bindPopup(`
+      <div class="p-4 text-center min-w-[280px]">
+        <div class="font-semibold text-green-600 mb-3 text-lg">📍 Votre position actuelle</div>
+        <div class="space-y-3 text-sm">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div class="font-medium text-gray-800 mb-2">Coordonnées GPS :</div>
+            <div class="font-mono text-xs text-gray-700 space-y-1">
+              <div class="flex justify-between">
+                <span class="font-medium">Latitude:</span>
+                <span class="text-green-600">${position.lat.toFixed(6)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Longitude:</span>
+                <span class="text-green-600">${position.lng.toFixed(6)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="text-xs text-gray-600 font-medium">Actions rapides :</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="document.querySelector('.leaflet-control-recenter').click()" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs rounded-md transition-colors">
+                🔄 Recentrer
+              </button>
+              <button onclick="window.location.href='/signaler'" class="px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-xs rounded-md transition-colors">
+                📝 Signaler
+              </button>
+            </div>
+          </div>
+          <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div class="text-xs text-green-800 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span>Position GPS exacte récupérée</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span>Prêt à signaler des problèmes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+  };
 
-    // Cleanup function
+  // Référence pour le marqueur GPS
+  const gpsMarkerRef = useRef<L.Marker | null>(null);
+
+  // Ajouter les contrôles personnalisés
+  const addCustomControls = () => {
+    if (!mapInstanceRef.current) return;
+
+    const map = mapInstanceRef.current;
+
+    // Bouton de localisation et recentrage
+    const locationBtn = L.Control.extend({
+      options: {
+        position: 'topleft'
+      },
+      onAdd: function() {
+        const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-location');
+        const button = L.DomUtil.create('a', 'leaflet-control-button', container);
+        button.innerHTML = '📍';
+        button.title = 'Localiser et recentrer';
+        button.style.cssText = `
+          width: 30px;
+          height: 30px;
+          line-height: 30px;
+          text-align: center;
+          font-size: 18px;
+          background: white;
+          border: 2px solid rgba(0,0,0,0.2);
+          border-radius: 4px;
+          cursor: pointer;
+          color: #22c55e;
+        `;
+
+        button.onclick = () => {
+          if (gpsPosition) {
+            // Si on a déjà une position, recentrer
+            map.setView([gpsPosition.lat, gpsPosition.lng], 16);
+          } else {
+            // Sinon, demander la localisation
+            getExactGPSPosition();
+          }
+        };
+
+        return container;
+      }
+    });
+
+    // Bouton de recentrage sur la position GPS
+    const recenterBtn = L.Control.extend({
+      options: {
+        position: 'topleft'
+      },
+      onAdd: function() {
+        const container = L.DomUtil.create('div', 'leaflet-control leaflet-control-recenter');
+        const button = L.DomUtil.create('a', 'leaflet-control-button', container);
+        button.innerHTML = '🎯';
+        button.title = 'Recentrer sur ma position';
+        button.style.cssText = `
+          width: 30px;
+          height: 30px;
+          line-height: 30px;
+          text-align: center;
+          font-size: 18px;
+          background: white;
+          border: 2px solid rgba(0,0,0,0.2);
+          border-radius: 4px;
+          cursor: pointer;
+          color: #3b82f6;
+          margin-top: 5px;
+        `;
+
+        button.onclick = () => {
+          if (gpsPosition) {
+            map.setView([gpsPosition.lat, gpsPosition.lng], 16);
+          }
+        };
+
+        return container;
+      }
+    });
+
+    // Ajouter les contrôles à la carte
+    locationBtn().addTo(map);
+    recenterBtn().addTo(map);
+  };
+
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+
+    // Initialiser la carte
+    const map = L.map(mapRef.current, {
+      center: [14.7167, -17.4677], // Dakar
+      zoom: 13,
+      zoomControl: true,
+      attributionControl: true
+    });
+
+    mapInstanceRef.current = map;
+
+    // Ajouter la couche OpenStreetMap avec attribution complète
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Ajouter les contrôles personnalisés
+    addCustomControls();
+
+    // Demander la localisation automatiquement
+    getExactGPSPosition();
+
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [currentLocation, requestLocation]);
+  }, []);
 
-  if (!currentLocation) {
-    return (
-      <div className={`flex items-center justify-center bg-muted ${className}`} style={{ height: '100%', minHeight: '400px' }}>
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-muted-foreground/20 border-t-primary rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Chargement de la carte...</p>
-        </div>
-      </div>
-    );
-  }
+  // Mettre à jour la position si elle change dans le store
+  useEffect(() => {
+    if (currentLocation && !gpsPosition) {
+      setGpsPosition(currentLocation);
+      if (mapInstanceRef.current) {
+        updateMapWithLocation(currentLocation);
+      }
+    }
+  }, [currentLocation, gpsPosition]);
 
   return (
-    <div className={className}>
-      <div 
-        ref={mapRef} 
-        style={{ height: '100%', width: '100%' }} 
-        className="rounded-lg"
-        role="img"
-        aria-label="Carte interactive de Dakar pour les signalements"
-      />
+    <div className={`relative w-full h-full ${className}`}>
+      <div ref={mapRef} className="w-full h-full rounded-lg shadow-lg" />
       
-      {/* Custom styles for markers and controls */}
-      <style>{`
-        .current-location-marker {
-          background: transparent !important;
-          border: none !important;
+      {/* Styles pour les marqueurs et contrôles */}
+      <style jsx>{`
+        .custom-gps-marker {
+          background: none;
+          border: none;
+          font-size: 40px;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+          filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
         }
-        @keyframes pulse {
-          0% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          100% {
-            transform: scale(2);
-            opacity: 0;
-          }
-        }
+        
+        .leaflet-control-location,
         .leaflet-control-recenter {
           background: white;
-          color: #333;
-          border: none;
-          width: 26px;
-          height: 26px;
-          display: block;
-          text-decoration: none;
-          border-bottom: 1px solid #ccc;
+          border-radius: 4px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
+        
+        .leaflet-control-location:hover,
         .leaflet-control-recenter:hover {
-          background: #f4f4f4;
-          color: #000;
-        }
-        .leaflet-control-recenter:last-child {
-          border-bottom: none;
-          border-bottom-left-radius: 4px;
-          border-bottom-right-radius: 4px;
+          background: #f8f9fa;
         }
       `}</style>
     </div>

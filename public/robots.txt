@@ -1,21 +1,52 @@
 User-agent: *
 Allow: /
+
+# Autoriser l'indexation des ressources importantes
+Allow: /src/assets/logo-bi.png
+Allow: /manifest.json
+Allow: /browserconfig.xml
+Allow: /robots.txt
+Allow: /sitemap.xml
+
+# Autoriser l'indexation des pages principales
+Allow: /a-propos
+Allow: /signaler
+Allow: /mes-signalements
+Allow: /organisations
+Allow: /admin
+Allow: /contact
+Allow: /mentions-legales
+Allow: /politique-confidentialite
+
+# Autoriser les ressources CSS, JS et images
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+Allow: /*.woff
+Allow: /*.woff2
+Allow: /*.ttf
+
+# Empêcher l'indexation des zones sensibles
 Disallow: /admin/
-Disallow: /organization/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+Disallow: /private/
+Disallow: /temp/
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /dist/
+Disallow: /build/
 
 # Sitemap
 Sitemap: https://senalert.sn/sitemap.xml
 
-# Search engines
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-# Social media crawlers
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
+# Informations pour les robots
+# SenAlert - Plateforme d'alertes citoyennes au Sénégal
+# Mots-clés: alertes, signalement, citoyen, Sénégal, sécurité, urgence, voirie, éclairage, propreté
+# Localisation: Sénégal, Dakar, Thiès, Saint-Louis, Kaolack, Ziguinchor, Rufisque, Mbour, Louga, Fatick, Kaffrine, Tambacounda, Kolda, Sédhiou, Kédougou, Matam, Podor, Bakel, Linguère, Koungheul, Vélingara, Bignona, Oussouye, Foundiougne, Guinguinéo, Nioro du Rip, Koumpentoum, Malem Hodar
