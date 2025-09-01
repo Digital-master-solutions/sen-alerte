@@ -183,29 +183,16 @@ export default function AdminCategories() {
     const category = categories.find(cat => cat.id === categoryId);
     if (!category) return;
 
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer la catégorie "${category.nom}" ?`)) {
+    const usageCount = category.usage_count || 0;
+    const warningMessage = usageCount > 0 
+      ? `Êtes-vous sûr de vouloir supprimer la catégorie "${category.nom}" ?\n\n⚠️ ATTENTION: Cette catégorie est utilisée dans ${usageCount} signalement(s). La suppression affectera ces signalements.`
+      : `Êtes-vous sûr de vouloir supprimer la catégorie "${category.nom}" ?`;
+
+    if (!confirm(warningMessage)) {
       return;
     }
 
     try {
-      // Vérifier d'abord si la catégorie est utilisée dans des signalements
-      const { data: reports, error: checkError } = await supabase
-        .from("reports")
-        .select("id")
-        .eq("type", category.nom)
-        .limit(1);
-
-      if (checkError) throw checkError;
-
-      if (reports && reports.length > 0) {
-        toast({
-          title: "Impossible de supprimer",
-          description: "Cette catégorie est utilisée dans des signalements existants",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const { error } = await supabase
         .from("categorie")
         .delete()
@@ -215,7 +202,9 @@ export default function AdminCategories() {
 
       toast({
         title: "Catégorie supprimée",
-        description: "La catégorie a été supprimée avec succès",
+        description: usageCount > 0 
+          ? `La catégorie a été supprimée. ${usageCount} signalement(s) sont maintenant sans catégorie.`
+          : "La catégorie a été supprimée avec succès",
       });
 
       loadCategories();
@@ -343,8 +332,11 @@ export default function AdminCategories() {
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.nom}</TableCell>
                   <TableCell>
-                    <span className="text-muted-foreground">
+                    <span className={`${(category.usage_count || 0) > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>
                       {category.usage_count || 0} signalement{(category.usage_count || 0) > 1 ? 's' : ''}
+                      {(category.usage_count || 0) > 0 && (
+                        <span className="ml-2 text-xs text-orange-500">⚠️ Utilisée</span>
+                      )}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">

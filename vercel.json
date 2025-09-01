@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api/|_next/|assets/).*)",
+      "source": "/((?!api/|_next/|assets/|favicon.ico|robots.txt|sitemap.xml).*)",
       "destination": "/index.html"
     }
   ],
@@ -9,7 +9,12 @@
     {
       "source": "/lander",
       "destination": "/",
-      "permanent": false
+      "permanent": true
+    },
+    {
+      "source": "/lander/",
+      "destination": "/",
+      "permanent": true
     }
   ],
   "headers": [
