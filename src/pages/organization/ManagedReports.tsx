@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useReportsStore, useAuthStore } from "@/stores";
+import { useMobileOptimization } from "@/hooks/use-mobile";
 import { Search, RefreshCw, CheckCircle, Filter, ArrowLeft } from "lucide-react";
 import { ReportCard } from "@/components/organization/ReportCard";
 import { Link } from "react-router-dom";
@@ -43,6 +44,7 @@ export default function ManagedReports() {
   const [selectedReport, setSelectedReport] = useState<LocalReport | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 8;
+  const { isMobile, mobileClasses } = useMobileOptimization();
 
   const { 
     managedReports, 
@@ -99,6 +101,7 @@ export default function ManagedReports() {
       filtered = filtered.filter(r =>
         r.type.toLowerCase().includes(search.toLowerCase()) ||
         r.description.toLowerCase().includes(search.toLowerCase()) ||
+        r.address?.toLowerCase().includes(search.toLowerCase()) ||
         r.department?.toLowerCase().includes(search.toLowerCase())
       );
     }
@@ -110,9 +113,16 @@ export default function ManagedReports() {
     return filtered;
   }, [managedReports, search, statusFilter]);
 
+  const paginatedReports = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredReports.slice(start, start + pageSize);
+  }, [filteredReports, page]);
+
+  const totalPages = Math.ceil(filteredReports.length / pageSize);
+
   if (loading || isLoadingManaged) {
     return (
-      <div className="p-6 space-y-6">
+      <div className={`${mobileClasses.container} space-y-6`}>
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-1/4" />
           <div className="h-12 bg-muted rounded" />
@@ -128,7 +138,7 @@ export default function ManagedReports() {
 
   if (!org) {
     return (
-      <div className="p-6">
+      <div className={mobileClasses.container}>
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Organisation introuvable</CardTitle>
@@ -141,9 +151,6 @@ export default function ManagedReports() {
     );
   }
 
-  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
-  const paginatedReports = filteredReports.slice((page - 1) * pageSize, page * pageSize);
-
   // Stats
   const stats = {
     total: managedReports.length,
@@ -153,11 +160,13 @@ export default function ManagedReports() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
+    <div className={`${mobileClasses.container} space-y-4 md:space-y-6 bg-background min-h-screen`}>
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Mes signalements</h1>
+          <h1 className={`${mobileClasses.text.title} font-bold text-foreground`}>
+            Mes signalements
+          </h1>
           <p className="text-muted-foreground mt-1">
             Signalements que vous gérez actuellement
           </p>
@@ -166,11 +175,19 @@ export default function ManagedReports() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={loadAll} variant="outline">
+          <Button 
+            onClick={loadAll} 
+            variant="outline" 
+            className={`${mobileClasses.button} hidden sm:flex`}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
           </Button>
-          <Button asChild variant="outline">
+          <Button 
+            asChild 
+            variant="outline" 
+            className={`${mobileClasses.button} hidden sm:flex`}
+          >
             <Link to="/organization/available-reports">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Signalements disponibles
@@ -180,7 +197,7 @@ export default function ManagedReports() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className={`grid ${mobileClasses.grid} md:grid-cols-4 gap-4 md:gap-6`}>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">{stats.total}</div>
@@ -219,18 +236,18 @@ export default function ManagedReports() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
+          <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher par type, description ou département..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className={`pl-10 ${mobileClasses.input}`}
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className={`${mobileClasses.input} ${isMobile ? 'w-full' : 'w-48'}`}>
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
@@ -292,6 +309,30 @@ export default function ManagedReports() {
               <PaginationNext onClick={() => setPage(p => Math.min(totalPages, p + 1))} />
             </PaginationContent>
           </Pagination>
+        </div>
+      )}
+
+      {/* Mobile Actions */}
+      {isMobile && (
+        <div className="fixed bottom-4 right-4 flex flex-col gap-2">
+          <Button 
+            onClick={loadAll} 
+            variant="outline" 
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </Button>
+          <Button 
+            asChild 
+            variant="outline" 
+            size="icon"
+            className="h-12 w-12 rounded-full shadow-lg"
+          >
+            <Link to="/organization/available-reports">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
         </div>
       )}
     </div>

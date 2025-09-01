@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useToast } from "@/hooks/use-toast";
+import { CategoryService, CategoryWithUsage } from "@/services/categoryService";
 import {
   Plus,
   Search,
@@ -16,22 +16,19 @@ import {
   Trash2,
   Tag,
   MoreHorizontal,
+  AlertTriangle,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-interface Category {
-  id: string;
-  nom: string;
-}
-
 export default function AdminCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryWithUsage[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<CategoryWithUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryWithUsage | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -50,20 +47,14 @@ export default function AdminCategories() {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from("categorie")
-        .select("*")
-        .order("nom", { ascending: true });
-
-      if (error) throw error;
-      if (data) {
-        setCategories(data);
-      }
+      setLoading(true);
+      const categoriesData = await CategoryService.getAllCategories();
+      setCategories(categoriesData);
     } catch (error) {
       console.error("Error loading categories:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les catégories",
+        description: error instanceof Error ? error.message : "Impossible de charger les catégories",
         variant: "destructive",
       });
     } finally {
@@ -87,14 +78,18 @@ export default function AdminCategories() {
   const paginatedCategories = filteredCategories.slice((page - 1) * pageSize, page * pageSize);
 
   const handleCreateCategory = async () => {
-    try {
-      const { error } = await supabase
-        .from("categorie")
-        .insert({
-          nom: formData.nom,
-        });
+    if (!formData.nom.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom de la catégorie est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (error) throw error;
+    setIsSubmitting(true);
+    try {
+      await CategoryService.createCategory(formData.nom.trim());
 
       toast({
         title: "Catégorie créée",
@@ -103,29 +98,34 @@ export default function AdminCategories() {
 
       setNewCategoryOpen(false);
       setFormData({ nom: "" });
-      loadCategories();
+      await loadCategories();
     } catch (error) {
       console.error("Error creating category:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer la catégorie",
+        description: error instanceof Error ? error.message : "Impossible de créer la catégorie",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdateCategory = async () => {
     if (!editingCategory) return;
 
-    try {
-      const { error } = await supabase
-        .from("categorie")
-        .update({
-          nom: formData.nom,
-        })
-        .eq("id", editingCategory.id);
+    if (!formData.nom.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom de la catégorie est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (error) throw error;
+    setIsSubmitting(true);
+    try {
+      await CategoryService.updateCategory(editingCategory.id, formData.nom.trim());
 
       toast({
         title: "Catégorie modifiée",
@@ -134,43 +134,62 @@ export default function AdminCategories() {
 
       setEditingCategory(null);
       setFormData({ nom: "" });
-      loadCategories();
+      await loadCategories();
     } catch (error) {
       console.error("Error updating category:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de modifier la catégorie",
+        description: error instanceof Error ? error.message : "Impossible de modifier la catégorie",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    try {
-      const { error } = await supabase
-        .from("categorie")
-        .delete()
-        .eq("id", categoryId);
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return;
 
-      if (error) throw error;
+    const usageCount = category.usage_count || 0;
+    const warningMessage = usageCount > 0 
+      ? `Êtes-vous sûr de vouloir supprimer la catégorie "${category.nom}" ?\n\n⚠️ ATTENTION: Cette catégorie est utilisée dans ${usageCount} signalement(s). La suppression affectera ces signalements.`
+      : `Êtes-vous sûr de vouloir supprimer la catégorie "${category.nom}" ?`;
+
+    if (!confirm(warningMessage)) {
+      return;
+    }
+
+    try {
+      console.log("Suppression de la catégorie:", categoryId);
+      await CategoryService.deleteCategory(categoryId);
+      console.log("Catégorie supprimée avec succès");
 
       toast({
         title: "Catégorie supprimée",
-        description: "La catégorie a été supprimée avec succès",
+        description: usageCount > 0 
+          ? `La catégorie a été supprimée. ${usageCount} signalement(s) sont maintenant sans catégorie.`
+          : "La catégorie a été supprimée avec succès",
       });
 
-      loadCategories();
+      // Forcer le rechargement avec un délai pour s'assurer que la suppression est terminée
+      setTimeout(async () => {
+        console.log("Rechargement des catégories...");
+        await loadCategories();
+        console.log("Catégories rechargées");
+      }, 500);
+      
     } catch (error) {
       console.error("Error deleting category:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer la catégorie",
+        description: error instanceof Error ? error.message : "Impossible de supprimer la catégorie",
         variant: "destructive",
       });
     }
   };
 
-  const openEditDialog = (category: Category) => {
+  const openEditDialog = (category: CategoryWithUsage) => {
     setEditingCategory(category);
     setFormData({
       nom: category.nom,
@@ -225,11 +244,11 @@ export default function AdminCategories() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setNewCategoryOpen(false)}>
+              <Button variant="outline" onClick={() => setNewCategoryOpen(false)} disabled={isSubmitting}>
                 Annuler
               </Button>
-              <Button onClick={handleCreateCategory}>
-                Créer la catégorie
+              <Button onClick={handleCreateCategory} disabled={isSubmitting}>
+                {isSubmitting ? "Création..." : "Créer la catégorie"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -284,8 +303,11 @@ export default function AdminCategories() {
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.nom}</TableCell>
                   <TableCell>
-                    <span className="text-muted-foreground">
-                      Visible dans le formulaire de signalement
+                    <span className={`${(category.usage_count || 0) > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>
+                      {category.usage_count || 0} signalement{(category.usage_count || 0) > 1 ? 's' : ''}
+                      {(category.usage_count || 0) > 0 && (
+                        <span className="ml-2 text-xs text-orange-500">⚠️ Utilisée</span>
+                      )}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
@@ -355,11 +377,11 @@ export default function AdminCategories() {
               </div>
             </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingCategory(null)}>
+            <Button variant="outline" onClick={() => setEditingCategory(null)} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button onClick={handleUpdateCategory}>
-              Enregistrer les modifications
+            <Button onClick={handleUpdateCategory} disabled={isSubmitting}>
+              {isSubmitting ? "Modification..." : "Enregistrer les modifications"}
             </Button>
           </DialogFooter>
         </DialogContent>

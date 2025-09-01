@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrganizationSignupStepper } from "@/components/organization/OrganizationSignupStepper";
 import { useAuthStore } from "@/stores";
+import { AUTH_SUCCESS_MESSAGES, getAuthErrorInfo } from "@/utils/auth-messages";
 
 export default function OrgLogin() {
   const navigate = useNavigate();
@@ -34,7 +35,11 @@ export default function OrgLogin() {
         const result = await loginWithJWT(email, password, 'organization');
         
         if (result) {
-          toast({ title: "Connexion réussie" });
+          const { user } = useAuthStore.getState();
+          toast({ 
+            title: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_GENERIC,
+            description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ORG(user?.name || '')
+          });
           navigate("/organization/dashboard", { replace: true });
           return;
         }
@@ -53,10 +58,28 @@ export default function OrgLogin() {
       if (error) throw error;
       
       if (!orgData || orgData.length === 0) {
-        throw new Error("Email ou mot de passe incorrect, ou compte non approuvé");
+        // Vérifier si l'organisation existe pour déterminer le type d'erreur
+        const { data: orgExists } = await supabase
+          .from('organizations')
+          .select('id, status, is_active')
+          .eq('email', email)
+          .single();
+
+        if (!orgExists) {
+          throw new Error("Email ou mot de passe incorrect");
+        } else if (orgExists.status !== 'approved') {
+          throw new Error("Votre compte n'est pas encore approuvé. Veuillez contacter l'administrateur.");
+        } else if (!orgExists.is_active) {
+          throw new Error("Votre compte a été désactivé. Veuillez contacter l'administrateur.");
+        } else {
+          throw new Error("Email ou mot de passe incorrect");
+        }
       }
 
       const organization = orgData[0];
+      
+      // Organization login successful
+      
       const orgUser = {
         id: organization.id,
         name: organization.name,
@@ -68,13 +91,20 @@ export default function OrgLogin() {
       
       setAuth(orgUser, 'organization');
 
-      toast({ title: "Connexion réussie" });
+      toast({ 
+        title: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_GENERIC,
+        description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ORG(organization.name)
+      });
       navigate("/organization/dashboard", { replace: true });
     } catch (err: any) {
+      console.error("Erreur de connexion:", err);
+      
+      const errorInfo = getAuthErrorInfo(err);
+      
       toast({ 
         variant: "destructive", 
-        title: "Erreur", 
-        description: err.message || "Impossible de se connecter" 
+        title: errorInfo.title, 
+        description: errorInfo.description
       });
     } finally {
       setLoading(false);
@@ -85,67 +115,114 @@ export default function OrgLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/organization/reports`;
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: redirectUrl },
-      });
+      const { data, error } = await supabase
+        .from('organizations')
+        .insert([
+          {
+            name: 'Nouvelle Organisation',
+            email: email,
+            password_hash: btoa(password), // Simple base64 encoding
+            type: 'municipal',
+            status: 'pending',
+            is_active: false
+          }
+        ])
+        .select();
+
       if (error) throw error;
-      toast({ title: "Inscription envoyée", description: "Vérifiez votre email pour confirmer." });
+
+      toast({ 
+        title: "Inscription réussie",
+        description: "Votre compte sera activé après approbation par l'administrateur"
+      });
+      
+      // Reset form
+      setEmail("");
+      setPassword("");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message || "Inscription impossible" });
+      console.error("Erreur d'inscription:", err);
+      let errorMessage = "Une erreur est survenue lors de l'inscription";
+      
+      if (err.message.includes('duplicate') || err.message.includes('already exists')) {
+        errorMessage = "Cette adresse email est déjà utilisée.";
+      } else if (err.message.includes('network')) {
+        errorMessage = "Erreur de connexion. Vérifiez votre internet.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Erreur lors de l'inscription",
+        description: errorMessage
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Espace Organisation</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="login">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login" className="mt-4">
-              <form onSubmit={onLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Connexion..." : "Se connecter"}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup" className="mt-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Vous souhaitez inscrire votre organisation ? 
-                </p>
-                <Button 
-                  onClick={() => window.location.href = '/organization/signup'}
-                  className="w-full"
-                  variant="outline"
-                >
-                  Créer un compte organisation
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-2xl font-bold text-primary">
+              Connexion Organisation
+            </CardTitle>
+            <p className="text-muted-foreground">
+              Accédez à votre espace de gestion des signalements
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Connexion</TabsTrigger>
+                <TabsTrigger value="signup">Inscription</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login" className="space-y-4">
+                <form onSubmit={onLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="votre@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading}
+                  >
+                    {loading ? "Connexion..." : "Se connecter"}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="signup">
+                <OrganizationSignupStepper />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

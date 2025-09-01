@@ -94,7 +94,7 @@ export default function OrgSettings() {
     }
   };
   const changePassword = async () => {
-    if (!passwords.new || !passwords.confirm) {
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -120,12 +120,25 @@ export default function OrgSettings() {
     }
     setSaving(true);
     try {
-      const {
-        error
-      } = await supabase.auth.updateUser({
-        password: passwords.new
+      // Vérifier d'abord que l'ancien mot de passe est correct
+      const { data: authCheck, error: authError } = await supabase.rpc('authenticate_organization', {
+        org_email: profile.email,
+        plain_password: passwords.current
       });
-      if (error) throw error;
+      
+      if (authError) throw authError;
+      if (!authCheck || authCheck.length === 0) {
+        throw new Error("L'ancien mot de passe est incorrect");
+      }
+      
+      // Mettre à jour le mot de passe directement dans la table
+      const { error: updateError } = await supabase
+        .from('organizations')
+        .update({ password_hash: btoa(passwords.new) })
+        .eq('id', profile.id);
+        
+      if (updateError) throw updateError;
+      
       setPasswords({
         current: "",
         new: "",
@@ -344,7 +357,7 @@ export default function OrgSettings() {
               </div>
               
               <div className="flex justify-end pt-6 border-t border-border">
-                <Button onClick={changePassword} disabled={saving || !passwords.new || !passwords.confirm} variant="default" className="bg-primary hover:bg-primary/90">
+                <Button onClick={changePassword} disabled={saving || !passwords.current || !passwords.new || !passwords.confirm} variant="default" className="bg-primary hover:bg-primary/90">
                   {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
                   Changer le mot de passe
                 </Button>

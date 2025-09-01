@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, Trash2 } from "lucide-react";
 
 interface AudioPlayerProps {
-  audioUrl: string | null;
-  onDelete: () => void;
-  recordingTime: number;
+  readonly audioUrl: string | null;
+  readonly onDelete: () => void;
+  readonly recordingTime: number;
 }
 
 export default function AudioPlayer({ audioUrl, onDelete, recordingTime }: AudioPlayerProps) {
@@ -34,6 +34,8 @@ export default function AudioPlayer({ audioUrl, onDelete, recordingTime }: Audio
 
     const handleError = (e: Event) => {
       console.error("AudioPlayer - Audio error:", e);
+      console.error("AudioPlayer - Audio URL:", audioUrl);
+      console.error("AudioPlayer - Audio element error details:", audio.error);
       setHasError(true);
       setCanPlay(false);
       setIsPlaying(false);
@@ -131,7 +133,13 @@ export default function AudioPlayer({ audioUrl, onDelete, recordingTime }: Audio
           ) : (
             <Play className="w-4 h-4" />
           )}
-          <span>{isPlaying ? "Pause" : canPlay ? "Écouter" : "Chargement..."}</span>
+          <span>
+            {(() => {
+              if (isPlaying) return "Pause";
+              if (canPlay) return "Écouter";
+              return "Chargement...";
+            })()}
+          </span>
         </Button>
         
         <Button
@@ -149,7 +157,10 @@ export default function AudioPlayer({ audioUrl, onDelete, recordingTime }: Audio
         ref={audioRef}
         className="hidden"
         preload="auto"
-      />
+        aria-label="Enregistrement audio du signalement"
+      >
+        <track kind="captions" src="" label="Pas de sous-titres disponibles" />
+      </audio>
     </div>
   );
 }
