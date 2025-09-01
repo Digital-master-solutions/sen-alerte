@@ -123,6 +123,9 @@ export function ReportDetailsDialog({ report, onReportSelect }: ReportDetailsDia
       {showImageModal && photoUrl && (
         <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
           <DialogContent className="max-w-4xl max-h-[90vh] p-2">
+            <DialogHeader>
+              <DialogTitle>Vue agrandie de l'image</DialogTitle>
+            </DialogHeader>
             <div className="relative">
               <Button
                 variant="ghost"

@@ -19,10 +19,71 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create function to authenticate organization
+-- Create function to authenticate organization with detailed error messages
 CREATE OR REPLACE FUNCTION public.authenticate_organization(org_email TEXT, plain_password TEXT)
-RETURNS TABLE(id uuid, name text, email text, type text, status text, created_at timestamp with time zone) AS $$
+RETURNS TABLE(
+  id uuid, 
+  name text, 
+  email text, 
+  type text, 
+  status text, 
+  created_at timestamp with time zone,
+  error_message text
+) AS $$
+DECLARE
+  org_exists boolean;
+  org_status text;
+  org_active boolean;
+  password_correct boolean;
 BEGIN
+  -- Check if organization exists
+  SELECT EXISTS(
+    SELECT 1 FROM public.organizations o WHERE o.email = org_email
+  ) INTO org_exists;
+  
+  IF NOT org_exists THEN
+    -- Organization doesn't exist
+    RETURN QUERY SELECT 
+      NULL::uuid, NULL::text, NULL::text, NULL::text, NULL::text, NULL::timestamp with time zone,
+      'Aucune organisation trouvée avec cette adresse email'::text;
+    RETURN;
+  END IF;
+  
+  -- Get organization status and active state
+  SELECT o.status, o.is_active, 
+         CASE WHEN o.password_hash IS NOT NULL 
+              THEN public.verify_password(plain_password, o.password_hash)
+              ELSE false
+         END
+  INTO org_status, org_active, password_correct
+  FROM public.organizations o 
+  WHERE o.email = org_email;
+  
+  -- Check password
+  IF NOT password_correct THEN
+    RETURN QUERY SELECT 
+      NULL::uuid, NULL::text, NULL::text, NULL::text, NULL::text, NULL::timestamp with time zone,
+      'Mot de passe incorrect'::text;
+    RETURN;
+  END IF;
+  
+  -- Check if account is approved
+  IF org_status != 'approved' THEN
+    RETURN QUERY SELECT 
+      NULL::uuid, NULL::text, NULL::text, NULL::text, NULL::text, NULL::timestamp with time zone,
+      'Votre compte n''est pas encore approuvé. Veuillez contacter l''administrateur.'::text;
+    RETURN;
+  END IF;
+  
+  -- Check if account is active
+  IF NOT org_active THEN
+    RETURN QUERY SELECT 
+      NULL::uuid, NULL::text, NULL::text, NULL::text, NULL::text, NULL::timestamp with time zone,
+      'Votre compte a été désactivé. Veuillez contacter l''administrateur.'::text;
+    RETURN;
+  END IF;
+  
+  -- All checks passed, return organization data
   RETURN QUERY
   SELECT 
     o.id,
@@ -30,13 +91,10 @@ BEGIN
     o.email,
     o.type,
     o.status,
-    o.created_at
+    o.created_at,
+    NULL::text as error_message
   FROM public.organizations o
-  WHERE o.email = org_email 
-    AND o.password_hash IS NOT NULL
-    AND public.verify_password(plain_password, o.password_hash)
-    AND o.status = 'approved'
-    AND o.is_active = true;
+  WHERE o.email = org_email;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

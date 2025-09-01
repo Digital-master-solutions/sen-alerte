@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores";
+import { useMobileOptimization } from "@/hooks/use-mobile";
 import {
   FileText,
   Clock,
@@ -40,8 +41,8 @@ export default function OrganizationDashboard() {
   const [org, setOrg] = useState<Org | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({ total: 0, inProgress: 0, resolved: 0, pending: 0 });
-  
   const [notifCount, setNotifCount] = useState<number>(0);
+  const { isMobile, mobileClasses } = useMobileOptimization();
 
   useEffect(() => {
     document.title = "Tableau de bord | Organisation";
@@ -71,7 +72,6 @@ export default function OrganizationDashboard() {
       const resolved = repAll?.filter(r => r.status === 'resolu').length || 0;
       setStats({ total, pending, inProgress, resolved });
 
-
       // Compter les notifications pour les signalements de cette organisation
       const { count } = await supabase
         .from("notifications")
@@ -87,17 +87,17 @@ export default function OrganizationDashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className={`${mobileClasses.container} space-y-6`}>
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-1/4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className={`grid ${mobileClasses.grid} md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6`}>
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-muted rounded-lg" />
+              <div key={i} className="h-24 md:h-32 bg-muted rounded-lg" />
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-96 bg-muted rounded-lg" />
-            <div className="h-96 bg-muted rounded-lg" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div className="h-64 md:h-96 bg-muted rounded-lg" />
+            <div className="h-64 md:h-96 bg-muted rounded-lg" />
           </div>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function OrganizationDashboard() {
 
   if (!org) {
     return (
-      <div className="p-6">
+      <div className={mobileClasses.container}>
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Organisation introuvable</CardTitle>
@@ -122,15 +122,23 @@ export default function OrganizationDashboard() {
   const resolutionRate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 bg-background min-h-screen">
+    <div className={`${mobileClasses.container} space-y-4 md:space-y-6 lg:space-y-8 bg-background min-h-screen`}>
       {/* Header */}
       <div className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Bienvenue, {org.name}</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">Vue d'ensemble de vos activités récentes</p>
+            <h1 className={`${mobileClasses.text.title} font-bold text-foreground`}>
+              Bienvenue, {org.name}
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Vue d'ensemble de vos activités récentes
+            </p>
           </div>
-          <Button onClick={load} variant="outline" className="w-full sm:w-auto">
+          <Button 
+            onClick={load} 
+            variant="outline" 
+            className={`${mobileClasses.button} w-full sm:w-auto`}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser
           </Button>
@@ -138,7 +146,7 @@ export default function OrganizationDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid ${mobileClasses.grid} md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6`}>
         <Card className="bg-card border-border shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-card-foreground">Total assignés</CardTitle>
@@ -185,7 +193,7 @@ export default function OrganizationDashboard() {
       </div>
 
       {/* Performance & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Performance Card */}
         <Card className="bg-card border-border shadow-md">
           <CardHeader>
@@ -195,7 +203,7 @@ export default function OrganizationDashboard() {
             </CardTitle>
             <CardDescription>Votre efficacité de résolution</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 md:space-y-6">
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-foreground">Taux de résolution</span>
@@ -204,25 +212,25 @@ export default function OrganizationDashboard() {
               <Progress value={resolutionRate} className="h-3" />
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
-                <div className="text-xl font-bold text-admin-warning">{stats.pending}</div>
-                <div className="text-sm text-muted-foreground">En attente</div>
+            <div className="grid grid-cols-3 gap-3 md:gap-4">
+              <div className="text-center p-3 md:p-4 bg-accent/30 rounded-lg border border-border">
+                <div className="text-lg md:text-xl font-bold text-admin-warning">{stats.pending}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">En attente</div>
               </div>
-              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
-                <div className="text-xl font-bold text-admin-info">{stats.inProgress}</div>
-                <div className="text-sm text-muted-foreground">En cours</div>
+              <div className="text-center p-3 md:p-4 bg-accent/30 rounded-lg border border-border">
+                <div className="text-lg md:text-xl font-bold text-admin-info">{stats.inProgress}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">En cours</div>
               </div>
-              <div className="text-center p-4 bg-accent/30 rounded-lg border border-border">
-                <div className="text-xl font-bold text-admin-success">{stats.resolved}</div>
-                <div className="text-sm text-muted-foreground">Résolus</div>
+              <div className="text-center p-3 md:p-4 bg-accent/30 rounded-lg border border-border">
+                <div className="text-lg md:text-xl font-bold text-admin-success">{stats.resolved}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">Résolus</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Notifications */}
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Notifications Stats */}
           <Card className="bg-card border-border shadow-md">
             <CardHeader>
@@ -233,7 +241,7 @@ export default function OrganizationDashboard() {
               <CardDescription>Messages envoyés aux citoyens</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{notifCount}</div>
+              <div className="text-2xl md:text-3xl font-bold text-foreground">{notifCount}</div>
               <div className="text-sm text-muted-foreground mt-2">
                 Total des notifications envoyées
               </div>
