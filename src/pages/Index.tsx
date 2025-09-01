@@ -127,7 +127,7 @@ const Index = () => {
         {/* Carte interactive - Largest Contentful Paint element */}
         <section className="relative h-[50vh] min-h-[400px] z-0">
           <ErrorBoundary>
-            <OpenStreetMap className="absolute inset-0" />
+          <OpenStreetMap className="absolute inset-0" />
           </ErrorBoundary>
           
           {/* Compteur d'incidents superposé */}
@@ -175,18 +175,36 @@ const Index = () => {
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-white">Navigation</h3>
               <nav className="space-y-3">
-                <a href="/" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                <button 
+                  onClick={() => navigate("/")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
                   Accueil
-                </a>
-                <a href="/signaler" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                </button>
+                <button 
+                  onClick={() => navigate("/signaler")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
                   Signaler un problème
-                </a>
-                <a href="/suivi" className="block text-footer-foreground/80 hover:text-white transition-colors">
-                  Suivi des signalements
-                </a>
-                <a href="/a-propos" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                </button>
+                <button 
+                  onClick={() => navigate("/mes-signalements")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
+                  Mes signalements
+                </button>
+                <button 
+                  onClick={() => navigate("/notifications")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
+                  Notifications
+                </button>
+                <button 
+                  onClick={() => navigate("/a-propos")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
                   À propos
-                </a>
+                </button>
               </nav>
             </div>
 
@@ -196,7 +214,7 @@ const Index = () => {
               <div className="space-y-3 text-footer-foreground/90">
                 <p>Département de Dakar</p>
                 <p>Région de Dakar, Sénégal</p>
-                <p>contact@senalert.sn</p>
+                <p>digitalmsolution2025@gmail.com</p>
               </div>
               <div className="pt-4 border-t border-footer-foreground/20">
                 <div className="flex items-center gap-2 text-sm mb-2">
