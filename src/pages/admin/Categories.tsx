@@ -7,8 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CategoryService, CategoryWithUsage } from "@/services/categoryService";
 import {
   Plus,
   Search,
@@ -16,23 +16,18 @@ import {
   Trash2,
   Tag,
   MoreHorizontal,
+  AlertTriangle,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-interface Category {
-  id: string;
-  nom: string;
-  usage_count?: number;
-}
-
 export default function AdminCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryWithUsage[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<CategoryWithUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryWithUsage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [page, setPage] = useState(1);
@@ -52,28 +47,14 @@ export default function AdminCategories() {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from("categorie")
-        .select(`
-          *,
-          reports:reports(count)
-        `)
-        .order("nom", { ascending: true });
-
-      if (error) throw error;
-      if (data) {
-        // Transformer les données pour inclure le nombre d'utilisations
-        const categoriesWithUsage = data.map(category => ({
-          ...category,
-          usage_count: category.reports?.[0]?.count || 0
-        }));
-        setCategories(categoriesWithUsage);
-      }
+      setLoading(true);
+      const categoriesData = await CategoryService.getAllCategories();
+      setCategories(categoriesData);
     } catch (error) {
       console.error("Error loading categories:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les catégories",
+        description: error instanceof Error ? error.message : "Impossible de charger les catégories",
         variant: "destructive",
       });
     } finally {
@@ -108,13 +89,7 @@ export default function AdminCategories() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("categorie")
-        .insert({
-          nom: formData.nom.trim(),
-        });
-
-      if (error) throw error;
+      await CategoryService.createCategory(formData.nom.trim());
 
       toast({
         title: "Catégorie créée",
@@ -123,12 +98,12 @@ export default function AdminCategories() {
 
       setNewCategoryOpen(false);
       setFormData({ nom: "" });
-      loadCategories();
+      await loadCategories();
     } catch (error) {
       console.error("Error creating category:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer la catégorie",
+        description: error instanceof Error ? error.message : "Impossible de créer la catégorie",
         variant: "destructive",
       });
     } finally {
@@ -150,14 +125,7 @@ export default function AdminCategories() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("categorie")
-        .update({
-          nom: formData.nom.trim(),
-        })
-        .eq("id", editingCategory.id);
-
-      if (error) throw error;
+      await CategoryService.updateCategory(editingCategory.id, formData.nom.trim());
 
       toast({
         title: "Catégorie modifiée",
@@ -166,12 +134,12 @@ export default function AdminCategories() {
 
       setEditingCategory(null);
       setFormData({ nom: "" });
-      loadCategories();
+      await loadCategories();
     } catch (error) {
       console.error("Error updating category:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de modifier la catégorie",
+        description: error instanceof Error ? error.message : "Impossible de modifier la catégorie",
         variant: "destructive",
       });
     } finally {
@@ -193,12 +161,9 @@ export default function AdminCategories() {
     }
 
     try {
-      const { error } = await supabase
-        .from("categorie")
-        .delete()
-        .eq("id", categoryId);
-
-      if (error) throw error;
+      console.log("Suppression de la catégorie:", categoryId);
+      await CategoryService.deleteCategory(categoryId);
+      console.log("Catégorie supprimée avec succès");
 
       toast({
         title: "Catégorie supprimée",
@@ -207,18 +172,24 @@ export default function AdminCategories() {
           : "La catégorie a été supprimée avec succès",
       });
 
-      loadCategories();
+      // Forcer le rechargement avec un délai pour s'assurer que la suppression est terminée
+      setTimeout(async () => {
+        console.log("Rechargement des catégories...");
+        await loadCategories();
+        console.log("Catégories rechargées");
+      }, 500);
+      
     } catch (error) {
       console.error("Error deleting category:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer la catégorie",
+        description: error instanceof Error ? error.message : "Impossible de supprimer la catégorie",
         variant: "destructive",
       });
     }
   };
 
-  const openEditDialog = (category: Category) => {
+  const openEditDialog = (category: CategoryWithUsage) => {
     setEditingCategory(category);
     setFormData({
       nom: category.nom,
