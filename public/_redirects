@@ -1,2 +1,10 @@
 # Redirect all routes to index.html for SPA routing
 /*    /index.html   200
+
+# Specific routes that should not redirect
+/admin/*    /index.html   200
+/organization/*    /index.html   200
+/signaler    /index.html   200
+/mes-signalements    /index.html   200
+/notifications    /index.html   200
+/a-propos    /index.html   200
