@@ -148,9 +148,7 @@ export default function MobileAudioRecorder({ onRecordingComplete, onClose }: Mo
   const confirmRecording = () => {
     if (recordedBlob && audioUrl) {
       let extension = 'webm'; // default
-      if (recordedBlob.type.includes('webm')) {
-        extension = 'webm';
-      } else if (recordedBlob.type.includes('ogg')) {
+      if (recordedBlob.type.includes('ogg')) {
         extension = 'ogg';
       } else if (recordedBlob.type.includes('wav')) {
         extension = 'wav';
