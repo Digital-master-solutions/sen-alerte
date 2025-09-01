@@ -9,6 +9,22 @@
       "source": "/lander/",
       "destination": "/",
       "permanent": true
+    },
+    {
+      "source": "/lander/:path*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/lander",
+      "destination": "/",
+      "permanent": true,
+      "has": [
+        {
+          "type": "query",
+          "key": "ref"
+        }
+      ]
     }
   ],
   "rewrites": [
