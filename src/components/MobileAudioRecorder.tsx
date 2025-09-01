@@ -46,11 +46,14 @@ export default function MobileAudioRecorder({ onRecordingComplete, onClose }: Mo
       });
 
       // Check MediaRecorder support and choose best format
+      // Supabase Storage supports: audio/webm, audio/ogg, audio/wav
       let mimeType = 'audio/webm';
-      if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        mimeType = 'audio/mp4';
+      if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm';
       } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
         mimeType = 'audio/ogg';
+      } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+        mimeType = 'audio/wav';
       }
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
@@ -144,8 +147,13 @@ export default function MobileAudioRecorder({ onRecordingComplete, onClose }: Mo
 
   const confirmRecording = () => {
     if (recordedBlob && audioUrl) {
-      const extension = recordedBlob.type.includes('mp4') ? 'mp4' : 
-                       recordedBlob.type.includes('ogg') ? 'ogg' : 'webm';
+      let extension = 'webm'; // default
+      if (recordedBlob.type.includes('ogg')) {
+        extension = 'ogg';
+      } else if (recordedBlob.type.includes('wav')) {
+        extension = 'wav';
+      }
+      
       const file = new File([recordedBlob], `audio-${Date.now()}.${extension}`, { 
         type: recordedBlob.type 
       });
@@ -163,11 +171,10 @@ export default function MobileAudioRecorder({ onRecordingComplete, onClose }: Mo
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
+      // Ne pas révoquer l'URL ici car elle est utilisée par le composant parent
+      // La révocation sera gérée par le composant parent (Report.tsx)
     };
-  }, [audioUrl]);
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
