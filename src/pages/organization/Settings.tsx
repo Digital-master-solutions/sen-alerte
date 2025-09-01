@@ -131,12 +131,12 @@ export default function OrgSettings() {
         throw new Error("L'ancien mot de passe est incorrect");
       }
       
-      // Mettre à jour le mot de passe dans la base de données
-      const { error: updateError } = await supabase.rpc('update_organization_password', {
-        org_id: profile.id,
-        new_password: passwords.new
-      });
-      
+      // Mettre à jour le mot de passe directement dans la table
+      const { error: updateError } = await supabase
+        .from('organizations')
+        .update({ password_hash: btoa(passwords.new) })
+        .eq('id', profile.id);
+        
       if (updateError) throw updateError;
       
       setPasswords({
