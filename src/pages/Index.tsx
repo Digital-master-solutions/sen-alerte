@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import OpenStreetMap from "@/components/OpenStreetMap";
 import IncidentsSection from "@/components/IncidentsSection";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -125,7 +126,9 @@ const Index = () => {
       <main>
         {/* Carte interactive - Largest Contentful Paint element */}
         <section className="relative h-[50vh] min-h-[400px] z-0">
+          <ErrorBoundary>
           <OpenStreetMap className="absolute inset-0" />
+          </ErrorBoundary>
           
           {/* Compteur d'incidents superposé */}
           <div className="absolute bottom-6 left-6 bg-background/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg border">
@@ -172,18 +175,36 @@ const Index = () => {
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-white">Navigation</h3>
               <nav className="space-y-3">
-                <a href="/" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                <button 
+                  onClick={() => navigate("/")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
                   Accueil
-                </a>
-                <a href="/signaler" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                </button>
+                <button 
+                  onClick={() => navigate("/signaler")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
                   Signaler un problème
-                </a>
-                <a href="/suivi" className="block text-footer-foreground/80 hover:text-white transition-colors">
-                  Suivi des signalements
-                </a>
-                <a href="/a-propos" className="block text-footer-foreground/80 hover:text-white transition-colors">
+                </button>
+                <button 
+                  onClick={() => navigate("/mes-signalements")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
+                  Mes signalements
+                </button>
+                <button 
+                  onClick={() => navigate("/notifications")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
+                  Notifications
+                </button>
+                <button 
+                  onClick={() => navigate("/a-propos")} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
                   À propos
-                </a>
+                </button>
               </nav>
             </div>
 
