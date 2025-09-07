@@ -27,6 +27,11 @@ export interface LocationState {
   // Dernière position utilisée pour un signalement
   lastReportLocation: Location | null;
 
+  // État de la géolocalisation en temps réel
+  isWatchingLocation: boolean;
+  watchId: number | null;
+  lastUpdateTime: number | null;
+
   // Actions
   setCurrentLocation: (location: Location | null) => void;
   setLocationLoading: (loading: boolean) => void;
@@ -36,6 +41,9 @@ export interface LocationState {
   getFromAddressCache: (query: string) => Location | null;
   requestLocation: () => Promise<Location | null>;
   reverseGeocode: (lat: number, lng: number) => Promise<Location | null>;
+  startWatchingLocation: () => void;
+  stopWatchingLocation: () => void;
+  updateLocationFromWatch: (position: GeolocationPosition) => Promise<void>;
 }
 
 // Position par défaut du Sénégal (Dakar)
@@ -57,6 +65,9 @@ export const useLocationStore = create<LocationState>()(
       defaultLocation: SENEGAL_DEFAULT_LOCATION,
       addressCache: {},
       lastReportLocation: null,
+      isWatchingLocation: false,
+      watchId: null,
+      lastUpdateTime: null,
 
       // Actions
       setCurrentLocation: (location) =>
@@ -91,7 +102,7 @@ export const useLocationStore = create<LocationState>()(
         return addressCache[query.toLowerCase()] || null;
       },
 
-      // Demander la géolocalisation du navigateur
+      // Demander la géolocalisation du navigateur avec haute précision
       requestLocation: async () => {
         const { setLocationLoading, setCurrentLocation, setLocationError } = get();
         
@@ -103,21 +114,66 @@ export const useLocationStore = create<LocationState>()(
             throw new Error('Géolocalisation non supportée par ce navigateur');
           }
 
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              resolve,
-              reject,
-              {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 300000, // 5 minutes
+          let bestPosition: GeolocationPosition | null = null;
+          let bestAccuracy = Infinity;
+          const maxAttempts = 3;
+          const targetAccuracy = 20; // Précision cible de 20m maximum
+
+          // Essayer plusieurs fois pour obtenir la meilleure précision
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              console.log(`Tentative de géolocalisation ${attempt}/${maxAttempts}...`);
+              
+              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                  resolve,
+                  reject,
+                  {
+                    enableHighAccuracy: true,
+                    timeout: attempt === 1 ? 15000 : 20000, // Plus de temps pour les tentatives suivantes
+                    maximumAge: 0, // Position fraîche uniquement
+                  }
+                );
+              });
+
+              const accuracy = position.coords.accuracy;
+              console.log(`Tentative ${attempt}: précision de ${accuracy.toFixed(1)}m`);
+
+              // Garder la meilleure position
+              if (accuracy < bestAccuracy) {
+                bestPosition = position;
+                bestAccuracy = accuracy;
               }
-            );
-          });
+
+              // Si on a atteint la précision cible, on s'arrête
+              if (accuracy <= targetAccuracy) {
+                console.log(`✅ Précision excellente atteinte: ${accuracy.toFixed(1)}m`);
+                break;
+              }
+
+              // Attendre un peu avant la prochaine tentative
+              if (attempt < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+
+            } catch (attemptError) {
+              console.log(`Tentative ${attempt} échouée:`, attemptError);
+              if (attempt === maxAttempts) {
+                throw attemptError;
+              }
+            }
+          }
+
+          if (!bestPosition) {
+            throw new Error('Impossible d\'obtenir une position GPS');
+          }
+
+          const finalAccuracy = bestPosition.coords.accuracy;
+          console.log(`🎯 Meilleure précision obtenue: ${finalAccuracy.toFixed(1)}m`);
 
           const location: Location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: bestPosition.coords.latitude,
+            longitude: bestPosition.coords.longitude,
           };
 
           // Essayer de récupérer l'adresse
@@ -175,6 +231,122 @@ export const useLocationStore = create<LocationState>()(
           return null;
         }
       },
+
+      // Démarrer la surveillance de la géolocalisation en temps réel
+      startWatchingLocation: () => {
+        const { isWatchingLocation, watchId } = get();
+        
+        if (isWatchingLocation || watchId !== null) {
+          return; // Déjà en cours
+        }
+
+        if (!navigator.geolocation) {
+          console.error('Géolocalisation non supportée');
+          return;
+        }
+
+        const id = navigator.geolocation.watchPosition(
+          (position) => {
+            get().updateLocationFromWatch(position);
+          },
+          (error) => {
+            console.error('Erreur surveillance géolocalisation:', error);
+            get().setLocationError(`Erreur surveillance: ${error.message}`);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000, // Plus de temps pour la haute précision
+            maximumAge: 5000, // 5 secondes maximum
+          }
+        );
+
+        set((state) => {
+          state.isWatchingLocation = true;
+          state.watchId = id;
+        });
+
+        console.log('Surveillance géolocalisation démarrée');
+      },
+
+      // Arrêter la surveillance de la géolocalisation
+      stopWatchingLocation: () => {
+        const { watchId } = get();
+        
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+        }
+
+        set((state) => {
+          state.isWatchingLocation = false;
+          state.watchId = null;
+        });
+
+        console.log('Surveillance géolocalisation arrêtée');
+      },
+
+      // Mettre à jour la localisation depuis la surveillance (en arrière-plan)
+      updateLocationFromWatch: async (position) => {
+        const { reverseGeocode, setCurrentLocation, currentLocation } = get();
+        const now = Date.now();
+        
+        // Éviter les mises à jour trop fréquentes (minimum 5 secondes)
+        const { lastUpdateTime } = get();
+        if (lastUpdateTime && (now - lastUpdateTime) < 5000) {
+          return;
+        }
+
+        const accuracy = position.coords.accuracy;
+        
+        // Filtrer les positions selon leur précision (accepter seulement si précision <= 20m)
+        if (accuracy > 20) {
+          console.log(`Position rejetée: précision de ${accuracy.toFixed(1)}m (trop imprécise)`);
+          return;
+        }
+
+        const newLocation: Location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
+        // Vérifier si la position a vraiment changé (éviter les mises à jour inutiles)
+        if (currentLocation && 
+            Math.abs(currentLocation.latitude - newLocation.latitude) < 0.00001 &&
+            Math.abs(currentLocation.longitude - newLocation.longitude) < 0.00001) {
+          return; // Position identique, pas de mise à jour
+        }
+
+        try {
+          // Récupérer l'adresse en arrière-plan (silencieux)
+          const locationWithAddress = await reverseGeocode(
+            newLocation.latitude,
+            newLocation.longitude
+          );
+
+          const finalLocation = locationWithAddress || newLocation;
+          
+          // Mise à jour silencieuse en arrière-plan
+          setCurrentLocation(finalLocation);
+
+          set((state) => {
+            state.lastUpdateTime = now;
+          });
+
+          // Log discret pour le debug
+          console.log('Position mise à jour en arrière-plan:', {
+            lat: finalLocation.latitude.toFixed(6),
+            lng: finalLocation.longitude.toFixed(6),
+            accuracy: `${accuracy.toFixed(1)}m`,
+            address: finalLocation.address
+          });
+        } catch (error) {
+          console.error('Erreur mise à jour position:', error);
+          // Mettre à jour quand même avec les coordonnées
+          setCurrentLocation(newLocation);
+          set((state) => {
+            state.lastUpdateTime = now;
+          });
+        }
+      },
     })),
     {
       name: 'location-storage',
@@ -183,6 +355,7 @@ export const useLocationStore = create<LocationState>()(
         currentLocation: state.currentLocation,
         addressCache: state.addressCache,
         lastReportLocation: state.lastReportLocation,
+        lastUpdateTime: state.lastUpdateTime,
       }),
     }
   )
@@ -191,12 +364,28 @@ export const useLocationStore = create<LocationState>()(
 // Hook pour l'initialisation automatique de la géolocalisation
 export const useLocationInit = () => {
   const requestLocation = useLocationStore((state) => state.requestLocation);
-  const currentLocation = useLocationStore((state) => state.currentLocation);
+  const startWatchingLocation = useLocationStore((state) => state.startWatchingLocation);
+  const stopWatchingLocation = useLocationStore((state) => state.stopWatchingLocation);
 
   useEffect(() => {
-    // Demander automatiquement la géolocalisation si pas encore définie
-    if (!currentLocation) {
-      requestLocation();
-    }
-  }, [requestLocation, currentLocation]);
+    // Initialisation unique au montage du composant
+    const initializeLocation = async () => {
+      try {
+        // Démarrer la surveillance en temps réel
+        startWatchingLocation();
+        
+        // Demander une position initiale
+        await requestLocation();
+      } catch (error) {
+        console.error('Erreur initialisation géolocalisation:', error);
+      }
+    };
+
+    initializeLocation();
+
+    // Cleanup: arrêter la surveillance quand le composant se démonte
+    return () => {
+      stopWatchingLocation();
+    };
+  }, []); // Dépendances vides pour éviter la boucle infinie
 };

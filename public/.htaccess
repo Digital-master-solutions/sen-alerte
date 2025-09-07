@@ -1,4 +1,170 @@
-Options -MultiViews
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^ index.html [QSA,L]
+# SenAlert - Optimisation SEO et Performance
+# Plateforme d'alertes citoyennes au Sénégal
+
+# Compression GZIP
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# Cache des navigateurs
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Images
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    
+    # CSS et JavaScript
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    
+    # HTML
+    ExpiresByType text/html "access plus 1 hour"
+    
+    # Fonts
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+</IfModule>
+
+# Headers de sécurité et SEO
+<IfModule mod_headers.c>
+    # Sécurité
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # SEO et Performance
+    Header always set Cache-Control "public, max-age=31536000" "expr=%{REQUEST_URI} =~ m#\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$#"
+    Header always set Cache-Control "public, max-age=3600" "expr=%{REQUEST_URI} =~ m#\.(html|xml)$#"
+    
+    # CORS pour les ressources
+    Header always set Access-Control-Allow-Origin "*" "expr=%{REQUEST_URI} =~ m#\.(png|jpg|jpeg|gif|svg|ico|css|js|woff|woff2|ttf)$#"
+</IfModule>
+
+# Redirections SEO
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Forcer HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # Forcer www vers non-www (ou l'inverse selon votre préférence)
+    # RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+    # RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+    
+    # Redirection des anciennes URLs
+    RewriteRule ^index\.html$ / [R=301,L]
+    RewriteRule ^home$ / [R=301,L]
+    
+    # Redirection des pages de signalement
+    RewriteRule ^report$ /signaler [R=301,L]
+    RewriteRule ^reports$ /mes-signalements [R=301,L]
+    RewriteRule ^alerts$ /alertes [R=301,L]
+    
+    # Redirection des pages d'organisation
+    RewriteRule ^organization$ /organisations [R=301,L]
+    RewriteRule ^org$ /organisations [R=301,L]
+    
+    # Redirection des pages administratives
+    RewriteRule ^dashboard$ /admin [R=301,L]
+    RewriteRule ^admin-dashboard$ /admin [R=301,L]
+    
+    # Redirection des pages d'aide
+    RewriteRule ^help$ /guide-utilisation [R=301,L]
+    RewriteRule ^support$ /contact [R=301,L]
+    RewriteRule ^about$ /a-propos [R=301,L]
+    
+    # Redirection des pages légales
+    RewriteRule ^legal$ /mentions-legales [R=301,L]
+    RewriteRule ^privacy$ /politique-confidentialite [R=301,L]
+    RewriteRule ^terms$ /mentions-legales [R=301,L]
+    
+    # Redirection des pages régionales
+    RewriteRule ^dakar$ /regions/dakar [R=301,L]
+    RewriteRule ^thies$ /regions/thies [R=301,L]
+    RewriteRule ^saint-louis$ /regions/saint-louis [R=301,L]
+    RewriteRule ^kaolack$ /regions/kaolack [R=301,L]
+    RewriteRule ^ziguinchor$ /regions/ziguinchor [R=301,L]
+    RewriteRule ^rufisque$ /regions/rufisque [R=301,L]
+    RewriteRule ^mbour$ /regions/mbour [R=301,L]
+    RewriteRule ^louga$ /regions/louga [R=301,L]
+    RewriteRule ^fatick$ /regions/fatick [R=301,L]
+    RewriteRule ^kaffrine$ /regions/kaffrine [R=301,L]
+    RewriteRule ^tambacounda$ /regions/tambacounda [R=301,L]
+    RewriteRule ^kolda$ /regions/kolda [R=301,L]
+    RewriteRule ^sedhiou$ /regions/sedhiou [R=301,L]
+    RewriteRule ^kedougou$ /regions/kedougou [R=301,L]
+    RewriteRule ^matam$ /regions/matam [R=301,L]
+    RewriteRule ^podor$ /regions/podor [R=301,L]
+    RewriteRule ^bakel$ /regions/bakel [R=301,L]
+    RewriteRule ^linguere$ /regions/linguere [R=301,L]
+    RewriteRule ^koungheul$ /regions/koungheul [R=301,L]
+    RewriteRule ^velingara$ /regions/velingara [R=301,L]
+    RewriteRule ^bignona$ /regions/bignona [R=301,L]
+    RewriteRule ^oussouye$ /regions/oussouye [R=301,L]
+    RewriteRule ^foundiougne$ /regions/foundiougne [R=301,L]
+    RewriteRule ^guinguineo$ /regions/guinguineo [R=301,L]
+    RewriteRule ^nioro-du-rip$ /regions/nioro-du-rip [R=301,L]
+    RewriteRule ^koumpentoum$ /regions/koumpentoum [R=301,L]
+    RewriteRule ^malem-hodar$ /regions/malem-hodar [R=301,L]
+</IfModule>
+
+# Protection des fichiers sensibles
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Protection contre les attaques
+<IfModule mod_rewrite.c>
+    # Bloquer les tentatives d'injection SQL
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} proc/self/environ [OR]
+    RewriteCond %{QUERY_STRING} mosConfig [OR]
+    RewriteCond %{QUERY_STRING} base64_(en|de)code[^(]*\([^)]*\) [OR]
+    RewriteCond %{QUERY_STRING} (<|%3C)([^s]*s)+cript.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (\<|%3C).*iframe.*(\>|%3E) [NC]
+    RewriteRule .* - [F]
+</IfModule>
+
+# Optimisation des performances
+<IfModule mod_mime.c>
+    AddType application/font-woff .woff
+    AddType application/font-woff2 .woff2
+    AddType image/svg+xml .svg
+    AddType image/webp .webp
+</IfModule>
+
+# Compression des images
+<IfModule mod_rewrite.c>
+    RewriteCond %{HTTP_ACCEPT} image/webp
+    RewriteCond %{REQUEST_FILENAME} (.*)\.(jpe?g|png)$
+    RewriteRule ^(.+)\.(jpe?g|png)$ $1.webp [T=image/webp,E=accept:1]
+</IfModule>
+
+# Headers pour les images WebP
+<IfModule mod_headers.c>
+    <FilesMatch "\.webp$">
+        Header set Vary "Accept"
+    </FilesMatch>
+</IfModule>
