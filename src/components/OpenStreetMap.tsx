@@ -21,7 +21,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const { currentLocation, requestLocation } = useLocationStore();
+  const { currentLocation, setCurrentLocation } = useLocationStore();
 
   // Fonction pour récupérer la position GPS exacte avec haute précision
   const getExactGPSPosition = async () => {
@@ -35,48 +35,59 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     }
 
     try {
-      // Première tentative avec haute précision
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: true,    // Utiliser le GPS haute précision
-            timeout: 30000,              // Premier essai rapide
-            maximumAge: 0                // Position fraîche uniquement
-          }
-        );
-      });
+      let bestPosition: GeolocationPosition | null = null;
+      let bestAccuracy = Infinity;
+      const maxAttempts = 4;
+      const targetAccuracy = 10; // Précision cible de 10m maximum
 
-      let bestPosition = position;
-      let bestAccuracy = position.coords.accuracy;
-
-      // Si la précision n'est pas assez bonne (> 20 mètres), essayer d'améliorer
-      if (bestAccuracy > 20) {
-        console.log(`Précision initiale: ${bestAccuracy}m, tentative d'amélioration...`);
-        
-        // Deuxième tentative avec timeout plus long
+      // Essayer plusieurs fois pour obtenir la meilleure précision
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-          const betterPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
+          console.log(`🎯 Tentative GPS haute précision ${attempt}/${maxAttempts}...`);
+          
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
               resolve,
               reject,
               {
                 enableHighAccuracy: true,
-                timeout: 60000,          // Plus de temps pour une meilleure précision
-                maximumAge: 0
+                timeout: attempt === 1 ? 20000 : 25000, // Plus de temps pour les tentatives suivantes
+                maximumAge: 0, // Position fraîche uniquement
               }
             );
           });
 
-          if (betterPosition.coords.accuracy < bestAccuracy) {
-            bestPosition = betterPosition;
-            bestAccuracy = betterPosition.coords.accuracy;
-            console.log(`Précision améliorée: ${bestAccuracy}m`);
+          const accuracy = position.coords.accuracy;
+          console.log(`Tentative ${attempt}: précision de ${accuracy.toFixed(1)}m`);
+
+          // Garder la meilleure position
+          if (accuracy < bestAccuracy) {
+            bestPosition = position;
+            bestAccuracy = accuracy;
           }
-        } catch (secondError) {
-          console.log("Deuxième tentative échouée, utilisation de la première position");
+
+          // Si on a atteint la précision cible, on s'arrête
+          if (accuracy <= targetAccuracy) {
+            console.log(`✅ Précision excellente atteinte: ${accuracy.toFixed(1)}m`);
+            break;
+          }
+
+          // Attendre un peu avant la prochaine tentative
+          if (attempt < maxAttempts) {
+            console.log(`⏳ Attente avant tentative ${attempt + 1}...`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+
+        } catch (attemptError) {
+          console.log(`❌ Tentative ${attempt} échouée:`, attemptError);
+          if (attempt === maxAttempts) {
+            throw attemptError;
+          }
         }
+      }
+
+      if (!bestPosition) {
+        throw new Error('Impossible d\'obtenir une position GPS précise');
       }
 
       const { latitude, longitude, accuracy } = bestPosition.coords;
@@ -87,22 +98,37 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       
       console.log(`Position finale: ${latitude}, ${longitude} (précision: ${accuracy}m)`);
       
+      // Mettre à jour le store de géolocalisation avec la position exacte
+      const locationData = {
+        latitude,
+        longitude,
+        address: currentLocation?.address, // Conserver l'adresse existante si disponible
+        city: currentLocation?.city,
+        department: currentLocation?.department
+      };
+      setCurrentLocation(locationData);
+      
       setGpsPosition(newPosition);
       setIsLocationLoading(false);
       setLocationError(null);
       
-      // Mettre à jour la carte avec la nouvelle position
+      // Mettre à jour la carte avec la nouvelle position (forcer le centrage)
       if (mapInstanceRef.current) {
-        updateMapWithLocation(newPosition);
+        updateMapWithLocation(newPosition, true);
         
         // Afficher un message de précision à l'utilisateur
-        const accuracyMessage = accuracy <= 10 ? 
-          "📍 Position très précise obtenue!" : 
-          accuracy <= 50 ? 
-          "📍 Position précise obtenue!" : 
-          "📍 Position obtenue (précision limitée)";
+        let accuracyMessage;
+        if (accuracy <= 5) {
+          accuracyMessage = "🎯 Position ultra-précise obtenue!";
+        } else if (accuracy <= 10) {
+          accuracyMessage = "📍 Position très précise obtenue!";
+        } else if (accuracy <= 20) {
+          accuracyMessage = "📍 Position précise obtenue!";
+        } else {
+          accuracyMessage = "📍 Position obtenue (précision limitée)";
+        }
           
-        console.log(accuracyMessage + ` (±${Math.round(accuracy)}m)`);
+        console.log(accuracyMessage + ` (±${accuracy.toFixed(1)}m)`);
       }
       
     } catch (error: any) {
@@ -125,8 +151,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     }
   };
 
-  // Mettre à jour la carte avec la position
-  const updateMapWithLocation = (position: { lat: number; lng: number }) => {
+  // Mettre à jour la carte avec la position (immédiat, sans animation)
+  const updateMapWithLocation = (position: { lat: number; lng: number }, forceCenter = false) => {
     if (!mapInstanceRef.current) return;
 
     // Valider les coordonnées avant de les utiliser
@@ -138,8 +164,31 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     const map = mapInstanceRef.current;
     
-    // Centrer la carte sur la position
-    map.setView([position.lat, position.lng], 16);
+    // Si forceCenter est true, toujours recentrer avec zoom 18
+    if (forceCenter) {
+      console.log('🎯 Recentrage forcé sur:', position.lat.toFixed(6), position.lng.toFixed(6), 'avec zoom 18');
+      // Centrer la carte sur la position avec zoom proche (immédiat, sans animation)
+      map.setView([position.lat, position.lng], 18, {
+        animate: false
+      });
+      console.log('✅ Carte recentrée avec zoom:', map.getZoom());
+    } else {
+      // Vérifier si la carte est déjà centrée sur cette position (pour les mises à jour automatiques)
+      const currentCenter = map.getCenter();
+      const currentZoom = map.getZoom();
+      const isAlreadyCentered = 
+        Math.abs(currentCenter.lat - position.lat) < 0.0001 &&
+        Math.abs(currentCenter.lng - position.lng) < 0.0001 &&
+        currentZoom >= 17;
+
+      // Centrer seulement si pas déjà centré
+      if (!isAlreadyCentered) {
+        // Centrer la carte sur la position avec zoom proche (immédiat, sans animation)
+        map.setView([position.lat, position.lng], 18, {
+          animate: false
+        });
+      }
+    }
     
     // Ajouter ou mettre à jour le marqueur GPS
     if (gpsMarkerRef.current && map.hasLayer(gpsMarkerRef.current)) {
@@ -155,16 +204,11 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       })
     }).addTo(map);
 
-    // Récupérer la précision depuis la dernière position GPS si disponible
-    const accuracy = (window as any).lastGpsAccuracy || 'inconnue';
-    const accuracyColor = typeof accuracy === 'number' ? 
-      (accuracy <= 10 ? 'text-green-600' : accuracy <= 50 ? 'text-yellow-600' : 'text-orange-600') : 
-      'text-gray-600';
     
     // Ajouter le popup au marqueur avec informations de précision
     gpsMarkerRef.current.bindPopup(`
-      <div class="p-4 text-center min-w-[300px]">
-        <div class="font-semibold text-green-600 mb-3 text-lg">🎯 Position GPS Précise</div>
+      <div class="p-4 text-center min-w-[320px]">
+        <div class="font-semibold text-green-600 mb-3 text-lg">Position GPS</div>
         <div class="space-y-3 text-sm">
           <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
             <div class="font-medium text-gray-800 mb-2">Coordonnées GPS :</div>
@@ -177,38 +221,22 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
                 <span class="font-medium">Longitude:</span>
                 <span class="text-green-600">${position.lng.toFixed(7)}</span>
               </div>
-              <div class="flex justify-between">
-                <span class="font-medium">Précision:</span>
-                <span class="${accuracyColor}">±${typeof accuracy === 'number' ? Math.round(accuracy) : accuracy}m</span>
-              </div>
             </div>
           </div>
           <div class="space-y-2">
             <div class="text-xs text-gray-600 font-medium">Actions rapides :</div>
-            <div class="grid grid-cols-2 gap-2">
-              <button onclick="window.getExactGPSPosition()" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs rounded-md transition-colors">
-                🎯 Relocaliser
-              </button>
+            <div class="grid grid-cols-1 gap-2">
               <button onclick="window.location.href='/signaler'" class="px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-xs rounded-md transition-colors">
                 📝 Signaler
               </button>
             </div>
           </div>
-          <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-            <div class="text-xs text-green-800 space-y-1">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span>Position GPS haute précision</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <span>Prêt pour signalement précis</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
-    `);
+    `, {
+      maxWidth: 350,
+      className: 'custom-popup'
+    });
   };
 
   // Référence pour le marqueur GPS
@@ -219,6 +247,10 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     if (!mapInstanceRef.current) return;
 
     const map = mapInstanceRef.current;
+    
+    // Supprimer les anciens contrôles s'ils existent
+    const existingControls = map.getContainer().querySelectorAll('.leaflet-control-custom');
+    existingControls.forEach(control => control.remove());
 
     // Créer les contrôles manuellement sans utiliser L.Control.extend
     const createSimpleControl = (html: string, title: string, onClick: () => void, color: string, top: string) => {
@@ -285,8 +317,16 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       '🎯',
       'Localiser ma position précisément',
       () => {
-        // Toujours récupérer la position GPS exacte
+        console.log('🎯 Bouton de localisation cliqué');
+        // Si on a déjà une position dans le store, centrer directement la carte
+        if (currentLocation && mapInstanceRef.current) {
+          console.log('📍 Recentrage sur position existante:', currentLocation);
+          updateMapWithLocation({ lat: currentLocation.latitude, lng: currentLocation.longitude }, true);
+        } else {
+          console.log('🔍 Récupération nouvelle position GPS');
+          // Sinon, récupérer la position GPS exacte
         getExactGPSPosition();
+        }
       },
       '#22c55e',
       '10px'
@@ -360,9 +400,9 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     };
   }, []);
 
-  // Mettre à jour la position si elle change dans le store
+  // Mettre à jour la position si elle change dans le store (mise à jour automatique)
   useEffect(() => {
-    if (currentLocation && !gpsPosition) {
+    if (currentLocation) {
       // Convertir le format du store (latitude/longitude) vers le format attendu (lat/lng)
       const position = {
         lat: currentLocation.latitude,
@@ -372,13 +412,22 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       // Vérifier que les coordonnées sont valides
       if (typeof position.lat === 'number' && typeof position.lng === 'number' && 
           !isNaN(position.lat) && !isNaN(position.lng)) {
+        
+        // Vérifier si la position a vraiment changé
+        if (!gpsPosition || 
+            Math.abs(gpsPosition.lat - position.lat) > 0.00001 ||
+            Math.abs(gpsPosition.lng - position.lng) > 0.00001) {
+          
         setGpsPosition(position);
         if (mapInstanceRef.current) {
+            // Mise à jour automatique
           updateMapWithLocation(position);
+          }
         }
       }
     }
   }, [currentLocation, gpsPosition]);
+
 
   return (
     <div className={`relative w-full h-full ${className}`}>
@@ -404,6 +453,23 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         .leaflet-control-location:hover,
         .leaflet-control-recenter:hover {
           background: #f8f9fa;
+        }
+        
+        /* Styles pour le popup personnalisé */
+        .custom-popup .leaflet-popup-content-wrapper {
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .custom-popup .leaflet-popup-content {
+          margin: 0;
+          padding: 0;
+        }
+        
+        .custom-popup .leaflet-popup-tip {
+          background: white;
+          border: 1px solid rgba(0,0,0,0.1);
         }
         
         /* S'assurer qu'aucun contrôle par défaut n'apparaît à gauche */

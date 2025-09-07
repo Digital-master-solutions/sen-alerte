@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Upload, Mic, Crosshair, Camera, Image, Square, ArrowLeft } from "lucide-react";
+import { MapPin, Mic, Camera, Image, Square, ArrowLeft } from "lucide-react";
 import SuccessAnimation from "@/components/SuccessAnimation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -18,7 +18,7 @@ import PhotoPreview from "@/components/PhotoPreview";
 import MobileCameraCapture from "@/components/MobileCameraCapture";
 import MobileAudioRecorder from "@/components/MobileAudioRecorder";
 import { useLocationStore } from "@/stores/locationStore";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useRealtimeLocation } from "@/hooks/useRealtimeLocation";
 
 const schema = z.object({
   description: z.string().min(10, "Décrivez le problème (min 10 caractères)"),
@@ -60,18 +60,21 @@ export default function Report() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [showMobileAudio, setShowMobileAudio] = useState(false);
-  const isMobile = useIsMobile();
   
   // Location store integration
   const { 
-    currentLocation, 
-    isLocationLoading, 
-    requestLocation, 
     setLastReportLocation,
     addToAddressCache 
   } = useLocationStore();
+
+  // Géolocalisation en temps réel
+  const {
+    currentLocation,
+    isLocationLoading,
+    locationError,
+    isWatchingLocation
+  } = useRealtimeLocation();
 
   useEffect(() => {
     document.title = "Signaler un incident · SenAlert - Alert urbaine Sénégal";
@@ -127,39 +130,29 @@ export default function Report() {
           "Signalisation manquante",
           "Problèmes électriques",
         ]);
-      } finally {
-        setCategoriesLoading(false);
       }
     };
 
     loadCategories();
   }, []);
 
-  // Récupérer la géolocalisation automatiquement au chargement
-  useEffect(() => {
-    if (!currentLocation) {
-      requestLocation();
-    }
-  }, [currentLocation, requestLocation]);
+  // La géolocalisation en temps réel est gérée par le hook useRealtimeLocation
 
-  // Sync current location with form when available
+  // Sync current location with form when available (synchronisation parfaite)
   useEffect(() => {
     if (currentLocation) {
+      // Mise à jour immédiate des coordonnées dans le formulaire
       form.setValue("latitude", currentLocation.latitude);
       form.setValue("longitude", currentLocation.longitude);
+      
+      // Log pour vérifier la synchronisation
+      console.log('Coordonnées synchronisées dans le formulaire:', {
+        lat: currentLocation.latitude.toFixed(6),
+        lng: currentLocation.longitude.toFixed(6)
+      });
     }
   }, [currentLocation, form]);
 
-  const onUseGeolocation = async () => {
-    const location = await requestLocation();
-    if (location) {
-      form.setValue("latitude", location.latitude);
-      form.setValue("longitude", location.longitude);
-      toast.success("Position détectée");
-    } else {
-      toast.error("Impossible d'obtenir la position");
-    }
-  };
 
   // Fonctions pour la caméra avec gestion mobile
   const startCamera = async () => {
@@ -264,6 +257,17 @@ export default function Report() {
       let photoPath: string | null = null;
       let audioPath: string | null = null;
 
+      // Utiliser la position la plus récente disponible (synchronisation parfaite)
+      const finalLatitude = currentLocation?.latitude ?? values.latitude;
+      const finalLongitude = currentLocation?.longitude ?? values.longitude;
+      
+      // Log pour vérifier la synchronisation des coordonnées
+      console.log('Coordonnées utilisées pour le signalement:', {
+        lat: finalLatitude?.toFixed(7),
+        lng: finalLongitude?.toFixed(7),
+        source: currentLocation ? 'store' : 'formulaire'
+      });
+
       if (values.photo) {
         const sizeMb = values.photo.size / 1024 / 1024;
         if (sizeMb > MAX_PHOTO_MB) {
@@ -293,8 +297,8 @@ export default function Report() {
         anonymous_code: code,
         anonymous_name: values.anonymous_name,
         anonymous_phone: values.anonymous_phone,
-        latitude: values.latitude ?? null,
-        longitude: values.longitude ?? null,
+        latitude: finalLatitude ?? null,
+        longitude: finalLongitude ?? null,
         photo_url: photoPath,
         audio_url: audioPath,
         status: "en-attente",
@@ -302,11 +306,13 @@ export default function Report() {
       if (insertErr) throw insertErr;
 
       // Store location in cache for future use
-      if (values.latitude && values.longitude) {
+      if (finalLatitude && finalLongitude) {
         const location = {
-          latitude: values.latitude,
-          longitude: values.longitude,
-          address: currentLocation?.address
+          latitude: finalLatitude,
+          longitude: finalLongitude,
+          address: currentLocation?.address,
+          city: currentLocation?.city,
+          department: currentLocation?.department
         };
         setLastReportLocation(location);
         
@@ -372,9 +378,9 @@ export default function Report() {
 
               {/* Type d'incident */}
               <div className="space-y-3">
-                <label className="text-base font-medium text-gray-900">Type d'incident *</label>
+                <label htmlFor="type-select" className="text-base font-medium text-gray-900">Type d'incident *</label>
                 <Select onValueChange={(v) => form.setValue("type", v)}>
-                  <SelectTrigger className="h-12">
+                  <SelectTrigger id="type-select" className="h-12">
                     <SelectValue placeholder="Sélectionnez la catégorie" />
                   </SelectTrigger>
                   <SelectContent>
@@ -418,45 +424,86 @@ export default function Report() {
 
               {/* Localisation */}
               <div className="space-y-4">
-                <h3 className="text-base font-medium text-gray-900">Localisation</h3>
-                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-                  <MapPin className="h-5 w-5 text-yellow-600" />
-                  <span className="text-gray-700">
-                    {currentLocation ? 
-                      (currentLocation.address || `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`) 
-                      : "Localisation en cours..."}
-                  </span>
-                </div>
-                {!currentLocation && (
-                  <>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <Input 
-                        type="number" 
-                        step="any" 
-                        placeholder="Latitude"
-                        className="h-12"
-                        {...form.register("latitude", { valueAsNumber: true })} 
-                      />
-                      <Input 
-                        type="number" 
-                        step="any" 
-                        placeholder="Longitude"
-                        className="h-12"
-                        {...form.register("longitude", { valueAsNumber: true })} 
-                      />
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium text-gray-900">Localisation</h3>
+                  {isWatchingLocation && (
+                    <div className="flex items-center space-x-2 text-sm text-green-600">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>Mise à jour automatique</span>
                     </div>
-                    <Button type="button" variant="outline" onClick={onUseGeolocation} disabled={isLocationLoading} className="h-12">
-                      <Crosshair className="mr-2 h-4 w-4" /> 
-                      {isLocationLoading ? "Détection..." : "Utiliser ma position"}
-                    </Button>
-                  </>
-                )}
+                  )}
+                </div>
+                
+                <div className="space-y-3">
+                  {/* Affichage principal de la localisation */}
+                  <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
+                    <MapPin className="h-5 w-5 text-yellow-600 mt-0.5" />
+                    <div className="flex-1">
+                      {currentLocation ? (
+                        <div className="space-y-1">
+                          <div className="text-gray-900 font-medium">
+                            {currentLocation.address || `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`}
+                          </div>
+                          {currentLocation.city && (
+                            <div className="text-sm text-gray-600">
+                              {currentLocation.city}
+                              {currentLocation.department && `, ${currentLocation.department}`}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500 font-mono">
+                            Coordonnées GPS: {currentLocation.latitude.toFixed(7)}, {currentLocation.longitude.toFixed(7)}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-gray-700">
+                          {isLocationLoading ? "Localisation en cours..." : "Localisation non disponible"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Message d'erreur */}
+                  {locationError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="text-sm text-red-700">
+                        ⚠️ {locationError}
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* Coordonnées manuelles (fallback) */}
+                  {!currentLocation && (
+                    <div className="space-y-3">
+                      <div className="text-sm text-gray-600">
+                        Ou saisissez manuellement les coordonnées :
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <Input 
+                          type="number" 
+                          step="any" 
+                          placeholder="Latitude"
+                          className="h-12"
+                          {...form.register("latitude", { valueAsNumber: true })} 
+                        />
+                        <Input 
+                          type="number" 
+                          step="any" 
+                          placeholder="Longitude"
+                          className="h-12"
+                          {...form.register("longitude", { valueAsNumber: true })} 
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Description */}
               <div className="space-y-3">
-                <label className="text-base font-medium text-gray-900">Description *</label>
+                <label htmlFor="description-textarea" className="text-base font-medium text-gray-900">Description *</label>
                 <Textarea
+                  id="description-textarea"
                   rows={5}
                   placeholder="Décrivez l'incident en détail (minimum 15 caractères)..."
                   className="resize-none"
