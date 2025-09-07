@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import logoImage from "/logo-bi.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
@@ -27,7 +26,7 @@ export function Logo({
   const logoContent = (
     <>
       <img 
-        src={logoImage} 
+        src="/lovable-uploads/logo-bi.png"
         alt="SenAlert Logo" 
         className={cn(config.image, "object-contain")}
       />
