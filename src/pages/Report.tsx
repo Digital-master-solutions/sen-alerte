@@ -52,7 +52,6 @@ export default function Report() {
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
