@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
-  showText?: boolean;
-  textPosition?: "right" | "bottom";
-  className?: string;
+  readonly size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  readonly showText?: boolean;
+  readonly textPosition?: "right" | "bottom";
+  readonly className?: string;
 }
 
 const sizeConfig = {

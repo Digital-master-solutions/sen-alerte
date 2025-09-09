@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore } from '@/stores/locationStore';
 
 // Fix for default markers - use local fallback for better reliability
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NiAwIDAgNS41OTYgMCAxMi41QzAgMTkuNDA0IDUuNTk2IDI1IDEyLjUgMjVDMTkuNDA0IDI1IDI1IDE5LjQwNCAyNSAxMi41QzI1IDUuNTk2IDE5LjQwNCAwIDEyLjUgMFoiIGZpbGw9IiMyMkM1NUUiLz4KPHBhdGggZD0iTTEyLjUgNkMxNC45ODUzIDYgMTcgOC4wMTQ3MiAxNyAxMC41QzE3IDEyLjk4NTMgMTQuOTg1MyAxNSAxMi41IDE1QzEwLjAxNDcgMTUgOCAxMi45ODUzIDggMTAuNUM4IDguMDE0NzIgMTAuMDE0NyA2IDEyLjUgNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
   iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NiAwIDAgNS41OTYgMCAxMi41QzAgMTkuNDA0IDUuNTk2IDI1IDEyLjUgMjVDMTkuNDA0IDI1IDI1IDE5LjQwNCAyNSAxMi41QzI1IDUuNTY2IDE5LjQwNCAwIDEyLjUgMFoiIGZpbGw9IiMyMkM1NUUiLz4KPHBhdGggZD0iTTEyLjUgNkMxNC45ODUzIDYgMTcgOC4wMTQ3MiAxNyAxMC41QzE3IDEyLjk4NTMgMTQuOTg1MyAxNSAxMi41IDE1QzEwLjAxNDcgMTUgOCAxMi45ODUzIDggMTAuNUM4IDguMDE0NzIgMTAuMDE0NyA2IDEyLjUgNloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
@@ -19,18 +19,56 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [isLocationLoading, setIsLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const { currentLocation, setCurrentLocation } = useLocationStore();
 
-  // Fonction pour récupérer la position GPS exacte avec haute précision
-  const getExactGPSPosition = async () => {
-    setIsLocationLoading(true);
-    setLocationError(null);
+  // Fonction pour obtenir une position GPS unique
+  const getSingleGPSPosition = (attempt: number, maxAttempts: number): Promise<GeolocationPosition> => {
+    return new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: attempt === 1 ? 20000 : 25000,
+          maximumAge: 0,
+        }
+      );
+    });
+  };
 
+  // Fonction pour traiter une position obtenue
+  const processGPSPosition = (position: GeolocationPosition, attempt: number, bestPosition: GeolocationPosition | null, bestAccuracy: number) => {
+    const accuracy = position.coords.accuracy;
+    console.log(`Tentative ${attempt}: précision de ${accuracy.toFixed(1)}m`);
+
+    if (accuracy < bestAccuracy) {
+      return { position, accuracy };
+    }
+    return { position: bestPosition, accuracy: bestAccuracy };
+  };
+
+  // Fonction pour mettre à jour la localisation dans le store
+  const updateLocationStore = useCallback((latitude: number, longitude: number, accuracy: number) => {
+    const locationData = {
+      latitude,
+      longitude,
+      address: currentLocation?.address,
+      city: currentLocation?.city,
+      department: currentLocation?.department
+    };
+    setCurrentLocation(locationData);
+    
+    const newPosition = { lat: latitude, lng: longitude };
+    setGpsPosition(newPosition);
+    
+    if (mapInstanceRef.current) {
+      updateMapWithLocation(newPosition, true);
+    }
+  }, [currentLocation, setCurrentLocation]);
+
+  // Fonction pour récupérer la position GPS exacte avec haute précision
+  const getExactGPSPosition = useCallback(async () => {
     if (!navigator.geolocation) {
-      setLocationError("La géolocalisation n'est pas supportée par votre navigateur");
-      setIsLocationLoading(false);
       return;
     }
 
@@ -38,41 +76,23 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       let bestPosition: GeolocationPosition | null = null;
       let bestAccuracy = Infinity;
       const maxAttempts = 4;
-      const targetAccuracy = 10; // Précision cible de 10m maximum
+      const targetAccuracy = 10;
 
-      // Essayer plusieurs fois pour obtenir la meilleure précision
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           console.log(`🎯 Tentative GPS haute précision ${attempt}/${maxAttempts}...`);
           
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              resolve,
-              reject,
-              {
-                enableHighAccuracy: true,
-                timeout: attempt === 1 ? 20000 : 25000, // Plus de temps pour les tentatives suivantes
-                maximumAge: 0, // Position fraîche uniquement
-              }
-            );
-          });
+          const position = await getSingleGPSPosition(attempt, maxAttempts);
+          const result = processGPSPosition(position, attempt, bestPosition, bestAccuracy);
+          
+          bestPosition = result.position;
+          bestAccuracy = result.accuracy;
 
-          const accuracy = position.coords.accuracy;
-          console.log(`Tentative ${attempt}: précision de ${accuracy.toFixed(1)}m`);
-
-          // Garder la meilleure position
-          if (accuracy < bestAccuracy) {
-            bestPosition = position;
-            bestAccuracy = accuracy;
-          }
-
-          // Si on a atteint la précision cible, on s'arrête
-          if (accuracy <= targetAccuracy) {
-            console.log(`✅ Précision excellente atteinte: ${accuracy.toFixed(1)}m`);
+          if (result.accuracy <= targetAccuracy) {
+            console.log(`✅ Précision excellente atteinte: ${result.accuracy.toFixed(1)}m`);
             break;
           }
 
-          // Attendre un peu avant la prochaine tentative
           if (attempt < maxAttempts) {
             console.log(`⏳ Attente avant tentative ${attempt + 1}...`);
             await new Promise(resolve => setTimeout(resolve, 3000));
@@ -91,65 +111,15 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       }
 
       const { latitude, longitude, accuracy } = bestPosition.coords;
-      const newPosition = { lat: latitude, lng: longitude };
-      
-      // Stocker la précision pour l'affichage dans le popup
-      (window as any).lastGpsAccuracy = accuracy;
-      
+      (window as unknown as { lastGpsAccuracy?: number }).lastGpsAccuracy = accuracy;
       console.log(`Position finale: ${latitude}, ${longitude} (précision: ${accuracy}m)`);
       
-      // Mettre à jour le store de géolocalisation avec la position exacte
-      const locationData = {
-        latitude,
-        longitude,
-        address: currentLocation?.address, // Conserver l'adresse existante si disponible
-        city: currentLocation?.city,
-        department: currentLocation?.department
-      };
-      setCurrentLocation(locationData);
+      updateLocationStore(latitude, longitude, accuracy);
       
-      setGpsPosition(newPosition);
-      setIsLocationLoading(false);
-      setLocationError(null);
-      
-      // Mettre à jour la carte avec la nouvelle position (forcer le centrage)
-      if (mapInstanceRef.current) {
-        updateMapWithLocation(newPosition, true);
-        
-        // Afficher un message de précision à l'utilisateur
-        let accuracyMessage;
-        if (accuracy <= 5) {
-          accuracyMessage = "🎯 Position ultra-précise obtenue!";
-        } else if (accuracy <= 10) {
-          accuracyMessage = "📍 Position très précise obtenue!";
-        } else if (accuracy <= 20) {
-          accuracyMessage = "📍 Position précise obtenue!";
-        } else {
-          accuracyMessage = "📍 Position obtenue (précision limitée)";
-        }
-          
-        console.log(accuracyMessage + ` (±${accuracy.toFixed(1)}m)`);
-      }
-      
-    } catch (error: any) {
-      let errorMessage = "Erreur lors de la récupération de la position";
-      
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          errorMessage = "Permission de localisation refusée. Veuillez l'autoriser dans les paramètres de votre navigateur.";
-          break;
-        case error.POSITION_UNAVAILABLE:
-          errorMessage = "Position non disponible. Vérifiez que votre GPS est activé et que vous êtes à l'extérieur.";
-          break;
-        case error.TIMEOUT:
-          errorMessage = "Délai d'attente dépassé. Assurez-vous d'être dans un endroit avec une bonne réception GPS.";
-          break;
-      }
-      
-      setLocationError(errorMessage);
-      setIsLocationLoading(false);
+    } catch (error: unknown) {
+      console.error('Erreur GPS:', error);
     }
-  };
+  }, [updateLocationStore]);
 
   // Mettre à jour la carte avec la position (immédiat, sans animation)
   const updateMapWithLocation = (position: { lat: number; lng: number }, forceCenter = false) => {
@@ -243,7 +213,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const gpsMarkerRef = useRef<L.Marker | null>(null);
 
   // Ajouter les contrôles personnalisés
-  const addCustomControls = () => {
+  const addCustomControls = useCallback(() => {
     if (!mapInstanceRef.current) return;
 
     const map = mapInstanceRef.current;
@@ -359,13 +329,13 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     mapContainer.appendChild(locationButton);
     mapContainer.appendChild(zoomInButton);
     mapContainer.appendChild(zoomOutButton);
-  };
+  }, [currentLocation, getExactGPSPosition]);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
     
     // Exposer la fonction de géolocalisation globalement pour le popup
-    (window as any).getExactGPSPosition = getExactGPSPosition;
+    (window as unknown as { getExactGPSPosition?: () => Promise<void> }).getExactGPSPosition = getExactGPSPosition;
 
     // Initialiser la carte
     const map = L.map(mapRef.current, {
@@ -398,7 +368,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [getExactGPSPosition, addCustomControls]);
 
   // Mettre à jour la position si elle change dans le store (mise à jour automatique)
   useEffect(() => {

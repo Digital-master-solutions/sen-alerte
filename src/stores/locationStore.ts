@@ -102,6 +102,65 @@ export const useLocationStore = create<LocationState>()(
         return addressCache[query.toLowerCase()] || null;
       },
 
+      // Fonction helper pour obtenir une position GPS
+      _getSinglePosition: (attempt: number): Promise<GeolocationPosition> => {
+        return new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            resolve,
+            reject,
+            {
+              enableHighAccuracy: true,
+              timeout: attempt === 1 ? 15000 : 20000,
+              maximumAge: 0,
+            }
+          );
+        });
+      },
+
+      // Fonction helper pour essayer d'obtenir la meilleure position
+      _getBestPosition: async (): Promise<GeolocationPosition> => {
+        let bestPosition: GeolocationPosition | null = null;
+        let bestAccuracy = Infinity;
+        const maxAttempts = 3;
+        const targetAccuracy = 20;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            console.log(`Tentative de géolocalisation ${attempt}/${maxAttempts}...`);
+            
+            const position = await get()._getSinglePosition(attempt);
+            const accuracy = position.coords.accuracy;
+            console.log(`Tentative ${attempt}: précision de ${accuracy.toFixed(1)}m`);
+
+            if (accuracy < bestAccuracy) {
+              bestPosition = position;
+              bestAccuracy = accuracy;
+            }
+
+            if (accuracy <= targetAccuracy) {
+              console.log(`✅ Précision excellente atteinte: ${accuracy.toFixed(1)}m`);
+              break;
+            }
+
+            if (attempt < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+
+          } catch (attemptError) {
+            console.log(`Tentative ${attempt} échouée:`, attemptError);
+            if (attempt === maxAttempts) {
+              throw attemptError;
+            }
+          }
+        }
+
+        if (!bestPosition) {
+          throw new Error('Impossible d\'obtenir une position GPS');
+        }
+
+        return bestPosition;
+      },
+
       // Demander la géolocalisation du navigateur avec haute précision
       requestLocation: async () => {
         const { setLocationLoading, setCurrentLocation, setLocationError } = get();
@@ -114,60 +173,7 @@ export const useLocationStore = create<LocationState>()(
             throw new Error('Géolocalisation non supportée par ce navigateur');
           }
 
-          let bestPosition: GeolocationPosition | null = null;
-          let bestAccuracy = Infinity;
-          const maxAttempts = 3;
-          const targetAccuracy = 20; // Précision cible de 20m maximum
-
-          // Essayer plusieurs fois pour obtenir la meilleure précision
-          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-              console.log(`Tentative de géolocalisation ${attempt}/${maxAttempts}...`);
-              
-              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(
-                  resolve,
-                  reject,
-                  {
-                    enableHighAccuracy: true,
-                    timeout: attempt === 1 ? 15000 : 20000, // Plus de temps pour les tentatives suivantes
-                    maximumAge: 0, // Position fraîche uniquement
-                  }
-                );
-              });
-
-              const accuracy = position.coords.accuracy;
-              console.log(`Tentative ${attempt}: précision de ${accuracy.toFixed(1)}m`);
-
-              // Garder la meilleure position
-              if (accuracy < bestAccuracy) {
-                bestPosition = position;
-                bestAccuracy = accuracy;
-              }
-
-              // Si on a atteint la précision cible, on s'arrête
-              if (accuracy <= targetAccuracy) {
-                console.log(`✅ Précision excellente atteinte: ${accuracy.toFixed(1)}m`);
-                break;
-              }
-
-              // Attendre un peu avant la prochaine tentative
-              if (attempt < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-              }
-
-            } catch (attemptError) {
-              console.log(`Tentative ${attempt} échouée:`, attemptError);
-              if (attempt === maxAttempts) {
-                throw attemptError;
-              }
-            }
-          }
-
-          if (!bestPosition) {
-            throw new Error('Impossible d\'obtenir une position GPS');
-          }
-
+          const bestPosition = await get()._getBestPosition();
           const finalAccuracy = bestPosition.coords.accuracy;
           console.log(`🎯 Meilleure précision obtenue: ${finalAccuracy.toFixed(1)}m`);
 
@@ -256,7 +262,7 @@ export const useLocationStore = create<LocationState>()(
           {
             enableHighAccuracy: true,
             timeout: 15000, // Plus de temps pour la haute précision
-            maximumAge: 5000, // 5 secondes maximum
+            maximumAge: 60000, // 60 secondes maximum
           }
         );
 
@@ -289,9 +295,9 @@ export const useLocationStore = create<LocationState>()(
         const { reverseGeocode, setCurrentLocation, currentLocation } = get();
         const now = Date.now();
         
-        // Éviter les mises à jour trop fréquentes (minimum 5 secondes)
+        // Éviter les mises à jour trop fréquentes (minimum 60 secondes)
         const { lastUpdateTime } = get();
-        if (lastUpdateTime && (now - lastUpdateTime) < 5000) {
+        if (lastUpdateTime && (now - lastUpdateTime) < 60000) {
           return;
         }
 
@@ -331,13 +337,15 @@ export const useLocationStore = create<LocationState>()(
             state.lastUpdateTime = now;
           });
 
-          // Log discret pour le debug
-          console.log('Position mise à jour en arrière-plan:', {
-            lat: finalLocation.latitude.toFixed(6),
-            lng: finalLocation.longitude.toFixed(6),
-            accuracy: `${accuracy.toFixed(1)}m`,
-            address: finalLocation.address
-          });
+          // Log discret pour le debug (seulement en mode développement)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Position mise à jour en arrière-plan (60s):', {
+              lat: finalLocation.latitude.toFixed(6),
+              lng: finalLocation.longitude.toFixed(6),
+              accuracy: `${accuracy.toFixed(1)}m`,
+              address: finalLocation.address
+            });
+          }
         } catch (error) {
           console.error('Erreur mise à jour position:', error);
           // Mettre à jour quand même avec les coordonnées
