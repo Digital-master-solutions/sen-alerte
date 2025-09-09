@@ -3,7 +3,7 @@ import { useLocationStore } from '@/stores/locationStore';
 
 /**
  * Hook pour gérer la géolocalisation en temps réel
- * La mise à jour automatique se fait en arrière-plan via watchPosition
+ * La mise à jour automatique se fait en arrière-plan via watchPosition (toutes les 60s)
  */
 export const useRealtimeLocation = () => {
   const currentLocation = useLocationStore((state) => state.currentLocation);

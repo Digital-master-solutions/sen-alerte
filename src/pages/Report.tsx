@@ -53,8 +53,6 @@ export default function Report() {
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -159,56 +157,9 @@ export default function Report() {
     setShowCamera(true);
   };
 
-  const capturePhoto = () => {
-    console.log("Capturing photo...");
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      console.log("Canvas dimensions:", canvas.width, canvas.height);
-      
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Draw the video frame to canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Convert to blob and create file
-        canvas.toBlob((blob) => {
-          if (blob) {
-            console.log("Photo blob created:", blob.size, "bytes");
-            const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            form.setValue("photo", file as any);
-            
-            // Create preview URL
-            const url = URL.createObjectURL(blob);
-            console.log("Photo preview URL created:", url);
-            setCapturedPhoto(url);
-            
-            toast.success("Photo capturée");
-            stopCamera();
-          } else {
-            console.error("Failed to create photo blob");
-          }
-        }, 'image/jpeg', 0.8);
-      }
-    }
-  };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setShowCamera(false);
-  };
 
   // Fonctions pour l'enregistrement audio avec gestion mobile
-  const startRecording = async () => {
-    setIsRecording(true);
-  };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -324,7 +275,7 @@ export default function Report() {
 
       setGeneratedCode(code);
       setShowSuccess(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       toast.error("Erreur lors de l'envoi du signalement");
     } finally {
@@ -427,9 +378,9 @@ export default function Report() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-medium text-gray-900">Localisation</h3>
                   {isWatchingLocation && (
-                    <div className="flex items-center space-x-2 text-sm text-green-600">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span>Mise à jour automatique</span>
+                    <div className="flex items-center space-x-2 text-xs text-gray-500">
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                      <span>GPS actif</span>
                     </div>
                   )}
                 </div>
@@ -555,7 +506,7 @@ export default function Report() {
                     const f = e.target.files?.[0];
                     if (f) {
                       console.log("Photo selected from gallery:", f.name, f.size, "bytes");
-                      form.setValue("photo", f as any);
+                      form.setValue("photo", f);
                       // Create preview for uploaded image
                       const url = URL.createObjectURL(f);
                       console.log("Gallery photo URL created:", url);
@@ -583,7 +534,7 @@ export default function Report() {
                 {showCamera && (
                   <MobileCameraCapture
                     onCapture={(file, previewUrl) => {
-                      form.setValue("photo", file as any);
+                      form.setValue("photo", file);
                       setCapturedPhoto(previewUrl);
                       setShowCamera(false);
                     }}
@@ -666,7 +617,7 @@ export default function Report() {
       {showMobileAudio && (
         <MobileAudioRecorder
           onRecordingComplete={(file, audioUrl) => {
-            form.setValue("audio", file as any);
+            form.setValue("audio", file);
             setAudioUrl(audioUrl);
             setRecordedAudio(new Blob()); // Pour déclencher l'affichage du player
             setShowMobileAudio(false);

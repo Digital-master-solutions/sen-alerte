@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Phone, ArrowLeft, MessageCircle, CheckCircle, AlertCircle, Info, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -319,10 +319,11 @@ const Notifications = () => {
           {/* Form */}
           <div className="space-y-6">
             <div className="text-left">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="auth-code-input" className="block text-sm font-medium text-gray-700 mb-2">
                 Code d'authentification
               </label>
               <Input
+                id="auth-code-input"
                 type="text"
                 value={authCode}
                 onChange={handleAuthCodeChange}
