@@ -102,64 +102,7 @@ export const useLocationStore = create<LocationState>()(
         return addressCache[query.toLowerCase()] || null;
       },
 
-      // Fonction helper pour obtenir une position GPS
-      _getSinglePosition: (attempt: number): Promise<GeolocationPosition> => {
-        return new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            resolve,
-            reject,
-            {
-              enableHighAccuracy: true,
-              timeout: attempt === 1 ? 15000 : 20000,
-              maximumAge: 0,
-            }
-          );
-        });
-      },
-
-      // Fonction helper pour essayer d'obtenir la meilleure position
-      _getBestPosition: async (): Promise<GeolocationPosition> => {
-        let bestPosition: GeolocationPosition | null = null;
-        let bestAccuracy = Infinity;
-        const maxAttempts = 3;
-        const targetAccuracy = 20;
-
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-          try {
-            console.log(`Tentative de géolocalisation ${attempt}/${maxAttempts}...`);
-            
-            const position = await get()._getSinglePosition(attempt);
-            const accuracy = position.coords.accuracy;
-            console.log(`Tentative ${attempt}: précision de ${accuracy.toFixed(1)}m`);
-
-            if (accuracy < bestAccuracy) {
-              bestPosition = position;
-              bestAccuracy = accuracy;
-            }
-
-            if (accuracy <= targetAccuracy) {
-              console.log(`✅ Précision excellente atteinte: ${accuracy.toFixed(1)}m`);
-              break;
-            }
-
-            if (attempt < maxAttempts) {
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-
-          } catch (attemptError) {
-            console.log(`Tentative ${attempt} échouée:`, attemptError);
-            if (attempt === maxAttempts) {
-              throw attemptError;
-            }
-          }
-        }
-
-        if (!bestPosition) {
-          throw new Error('Impossible d\'obtenir une position GPS');
-        }
-
-        return bestPosition;
-      },
+      // Demander la géolocalisation du navigateur avec haute précision
 
       // Demander la géolocalisation du navigateur avec haute précision
       requestLocation: async () => {
@@ -173,7 +116,17 @@ export const useLocationStore = create<LocationState>()(
             throw new Error('Géolocalisation non supportée par ce navigateur');
           }
 
-          const bestPosition = await get()._getBestPosition();
+          const bestPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+              }
+            );
+          });
           const finalAccuracy = bestPosition.coords.accuracy;
           console.log(`🎯 Meilleure précision obtenue: ${finalAccuracy.toFixed(1)}m`);
 
