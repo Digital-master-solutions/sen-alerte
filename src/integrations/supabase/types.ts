@@ -1123,6 +1123,10 @@ export type Database = {
           type: string
         }[]
       }
+      update_organization_password: {
+        Args: { new_password: string; org_id: string }
+        Returns: boolean
+      }
       update_superadmin_last_login: {
         Args: { _username: string }
         Returns: undefined
