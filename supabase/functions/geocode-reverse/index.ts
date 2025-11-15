@@ -115,8 +115,7 @@ serve(async (req) => {
     console.error('Geocoding error:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message 
+        error: 'Internal server error'
       }), 
       { 
         status: 500,
