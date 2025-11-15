@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from 'https://esm.sh/zod@3.22.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +20,30 @@ serve(async (req) => {
     if (!lat || !lon) {
       return new Response(
         JSON.stringify({ error: 'Missing latitude or longitude parameters' }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate coordinate ranges
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lon);
+    
+    if (isNaN(latitude) || latitude < -90 || latitude > 90) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid latitude. Must be between -90 and 90' }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    if (isNaN(longitude) || longitude < -180 || longitude > 180) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid longitude. Must be between -180 and 180' }), 
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

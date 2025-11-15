@@ -1,11 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { create } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
+import { z } from 'https://esm.sh/zod@3.22.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Input validation schema
+const AuthRequestSchema = z.object({
+  email: z.string().email('Invalid email format').max(255, 'Email too long'),
+  password: z.string().min(1, 'Password required').max(100, 'Password too long'),
+  userType: z.enum(['admin', 'organization'], { errorMap: () => ({ message: 'Invalid user type' }) })
+});
 
 interface AuthRequest {
   email: string;
@@ -29,7 +37,24 @@ serve(async (req) => {
   }
 
   try {
-    const { email, password, userType }: AuthRequest = await req.json();
+    // Parse and validate input
+    const requestBody = await req.json();
+    const validationResult = AuthRequestSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid input data'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+    
+    const { email, password, userType } = validationResult.data;
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
