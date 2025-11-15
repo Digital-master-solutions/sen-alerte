@@ -241,18 +241,21 @@ export default function Report() {
         audioPath = path;
       }
 
-      const { error: insertErr } = await supabase.from("reports").insert({
-        description: values.description,
-        type: values.type,
-        anonymous_code: code,
-        anonymous_name: values.anonymous_name,
-        anonymous_phone: values.anonymous_phone,
-        latitude: finalLatitude ?? null,
-        longitude: finalLongitude ?? null,
-        photo_url: photoPath,
-        audio_url: audioPath,
-        status: "en-attente",
+      // SECURITY FIX: Use validated insert function with server-side validation
+      const { data: reportId, error: insertErr } = await supabase.rpc('insert_validated_report', {
+        _description: values.description,
+        _type: values.type,
+        _anonymous_code: code,
+        _anonymous_name: values.anonymous_name || null,
+        _anonymous_phone: values.anonymous_phone || null,
+        _latitude: finalLatitude ?? null,
+        _longitude: finalLongitude ?? null,
+        _address: currentLocation?.address || null,
+        _photo_url: photoPath,
+        _audio_url: audioPath,
+        _population_id: null
       });
+      
       if (insertErr) throw insertErr;
 
       // Store location in cache for future use

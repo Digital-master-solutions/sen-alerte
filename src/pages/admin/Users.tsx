@@ -102,14 +102,25 @@ export default function AdminUsers() {
   };
   const handleCreateUser = async () => {
     try {
-      // Hash password (in production, this should be done securely)
-      const passwordHash = btoa(formData.password); // Simple encoding for demo
+      // SECURITY FIX: Use proper password hashing via Supabase RPC
+      const { data: hashedPassword, error: hashError } = await supabase
+        .rpc('hash_password', { plain_password: formData.password });
+
+      if (hashError) {
+        console.error('Password hashing error:', hashError);
+        toast({
+          title: "Erreur",
+          description: "Impossible de sécuriser le mot de passe",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const userData = {
         name: formData.name,
         email: formData.email,
         username: formData.username,
-        password_hash: passwordHash,
+        password_hash: hashedPassword,
         status: "active"
       };
       const {
