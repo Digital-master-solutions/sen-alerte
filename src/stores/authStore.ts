@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { User, Session } from '@supabase/supabase-js';
 
-// Types pour l'authentification unifiée
+// Types for unified authentication
 export interface AdminUser {
   id: string;
   username: string;
@@ -28,216 +28,275 @@ export interface Organization {
 }
 
 export interface AuthState {
-  // État de l'authentification
+  // Supabase Auth state
   user: AdminUser | Organization | null;
+  session: Session | null;
+  
+  // Custom profile data  
+  profile: AdminUser | Organization | null;
   userType: 'admin' | 'organization' | null;
-  token: string | null;
-  refreshToken: string | null;
+  
   isAuthenticated: boolean;
   isLoading: boolean;
-  sessionExpiry: number | null;
 
-  // Actions pour l'authentification
-  setAuth: (
-    user: AdminUser | Organization,
-    userType: 'admin' | 'organization',
-    token?: string,
-    refreshToken?: string,
-    expiresIn?: number
-  ) => void;
-  logout: () => void;
+  // Actions
+  setAuth: (session: Session, profile: AdminUser | Organization, userType: 'admin' | 'organization') => void;
+  logout: () => Promise<void>;
   setLoading: (loading: boolean) => void;
-  updateToken: (token: string, refreshToken?: string, expiresIn?: number) => void;
-  isSessionValid: () => boolean;
-
-  // JWT Authentication
-  loginWithJWT: (email: string, password: string, userType: 'admin' | 'organization') => Promise<boolean>;
-  refreshTokens: () => Promise<boolean>;
-  scheduleTokenRefresh: () => void;
-
-  // Migration depuis localStorage (backward compatibility)
-  migrateFromLegacyAuth: () => void;
+  initializeAuth: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  
+  // Supabase Auth methods
+  loginWithSupabase: (email: string, password: string, userType: 'admin' | 'organization') => Promise<boolean>;
+  signupWithSupabase: (email: string, password: string, metadata: Record<string, any>) => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     immer((set, get) => ({
-      // État initial
+      // Initial state
       user: null,
+      session: null,
+      profile: null,
       userType: null,
-      token: null,
-      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
-      sessionExpiry: null,
 
       // Actions
-      setAuth: (user, userType, token, refreshToken, expiresIn) =>
+      setAuth: (session, profile, userType) =>
         set((state) => {
-          state.user = user;
+          state.user = profile;
+          state.session = session;
+          state.profile = profile;
           state.userType = userType;
-          state.token = token || null;
-          state.refreshToken = refreshToken || null;
           state.isAuthenticated = true;
           state.isLoading = false;
-          state.sessionExpiry = expiresIn ? Date.now() + expiresIn * 1000 : null;
         }),
 
-      logout: () =>
+      logout: async () => {
+        await supabase.auth.signOut();
         set((state) => {
           state.user = null;
+          state.session = null;
+          state.profile = null;
           state.userType = null;
-          state.token = null;
-          state.refreshToken = null;
           state.isAuthenticated = false;
           state.isLoading = false;
-          state.sessionExpiry = null;
-
-          // Nettoyer l'ancien localStorage
-          localStorage.removeItem('adminUser');
-          localStorage.removeItem('organization_session');
-        }),
+        });
+      },
 
       setLoading: (loading) =>
         set((state) => {
           state.isLoading = loading;
         }),
 
-      updateToken: (token, refreshToken, expiresIn) =>
-        set((state) => {
-          state.token = token;
-          if (refreshToken) state.refreshToken = refreshToken;
-          state.sessionExpiry = expiresIn ? Date.now() + expiresIn * 1000 : null;
-        }),
-
-      isSessionValid: () => {
-        const { sessionExpiry, isAuthenticated } = get();
-        if (!isAuthenticated) return false;
-        if (!sessionExpiry) return true; // Session sans expiration (legacy)
-        return Date.now() < sessionExpiry;
-      },
-
-      // JWT Authentication
-      loginWithJWT: async (email, password, userType) => {
+      // Initialize auth state from Supabase session
+      initializeAuth: async () => {
         try {
           set((state) => { state.isLoading = true; });
 
-          const { data, error } = await supabase.functions.invoke('auth-login', {
-            body: { email, password, userType }
-          });
-
-          if (error) throw error;
-          if (!data.success) throw new Error(data.error);
-
-          const { user, token, refreshToken, expiresIn } = data;
+          const { data: { session } } = await supabase.auth.getSession();
           
-          set((state) => {
-            state.user = user;
-            state.userType = userType;
-            state.token = token;
-            state.refreshToken = refreshToken;
-            state.isAuthenticated = true;
-            state.isLoading = false;
-            state.sessionExpiry = Date.now() + expiresIn * 1000;
-          });
+          if (!session) {
+            set((state) => {
+              state.isLoading = false;
+              state.isAuthenticated = false;
+            });
+            return;
+          }
 
-          // Schedule auto-refresh
-          get().scheduleTokenRefresh();
+          // Get user profile from database
+          const { data: profileData } = await supabase
+            .rpc('get_user_profile_by_auth_id', {
+              _auth_user_id: session.user.id
+            });
 
-          return true;
+          if (profileData && profileData.length > 0) {
+            const rawProfile = profileData[0];
+            const userType = rawProfile.user_type as 'admin' | 'organization';
+            
+            // Convert to proper type
+            const profile: AdminUser | Organization = userType === 'admin' ? {
+              id: rawProfile.id,
+              username: rawProfile.username || '',
+              name: rawProfile.name,
+              email: rawProfile.email,
+              status: rawProfile.status,
+              created_at: new Date().toISOString(),
+            } : {
+              id: rawProfile.id,
+              name: rawProfile.name,
+              email: rawProfile.email,
+              type: rawProfile.organization_type || '',
+              status: rawProfile.status,
+              created_at: new Date().toISOString(),
+              city: rawProfile.city || undefined,
+            };
+            
+            set((state) => {
+              state.user = profile;
+              state.session = session;
+              state.profile = profile;
+              state.userType = userType;
+              state.isAuthenticated = true;
+              state.isLoading = false;
+            });
+          } else {
+            // Session exists but no profile - sign out
+            await supabase.auth.signOut();
+            set((state) => {
+              state.isLoading = false;
+              state.isAuthenticated = false;
+            });
+          }
         } catch (error) {
-          console.error('JWT login error:', error);
-          set((state) => { 
+          console.error('Error initializing auth:', error);
+          set((state) => {
             state.isLoading = false;
             state.isAuthenticated = false;
           });
-          return false;
         }
       },
 
-      refreshTokens: async () => {
-        try {
-          const { refreshToken } = get();
-          if (!refreshToken) return false;
+      // Refresh profile data
+      refreshProfile: async () => {
+        const { session } = get();
+        if (!session) return;
 
-          const { data, error } = await supabase.functions.invoke('auth-refresh', {
-            body: { refreshToken }
+        try {
+          const { data: profileData } = await supabase
+            .rpc('get_user_profile_by_auth_id', {
+              _auth_user_id: session.user.id
+            });
+
+          if (profileData && profileData.length > 0) {
+            const rawProfile = profileData[0];
+            const userType = rawProfile.user_type as 'admin' | 'organization';
+            
+            const profile: AdminUser | Organization = userType === 'admin' ? {
+              id: rawProfile.id,
+              username: rawProfile.username || '',
+              name: rawProfile.name,
+              email: rawProfile.email,
+              status: rawProfile.status,
+              created_at: new Date().toISOString(),
+            } : {
+              id: rawProfile.id,
+              name: rawProfile.name,
+              email: rawProfile.email,
+              type: rawProfile.organization_type || '',
+              status: rawProfile.status,
+              created_at: new Date().toISOString(),
+              city: rawProfile.city || undefined,
+            };
+            
+            set((state) => {
+              state.profile = profile;
+              state.user = profile;
+            });
+          }
+        } catch (error) {
+          console.error('Error refreshing profile:', error);
+        }
+      },
+
+      // Login with Supabase Auth
+      loginWithSupabase: async (email, password, userType) => {
+        try {
+          set((state) => { state.isLoading = true; });
+
+          // Sign in with Supabase Auth
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
           });
 
           if (error) throw error;
-          if (!data.success) throw new Error(data.error);
+          if (!data.session) throw new Error('No session returned');
 
-          const { user, token, refreshToken: newRefreshToken, expiresIn } = data;
+          // Get user profile to verify user type
+          const { data: profileData } = await supabase
+            .rpc('get_user_profile_by_auth_id', {
+              _auth_user_id: data.session.user.id
+            });
+
+          if (!profileData || profileData.length === 0) {
+            await supabase.auth.signOut();
+            throw new Error('User profile not found');
+          }
+
+          const rawProfile = profileData[0];
+          
+          // Verify user type matches
+          if (rawProfile.user_type !== userType) {
+            await supabase.auth.signOut();
+            throw new Error(`Invalid user type. Please use the ${rawProfile.user_type} login page.`);
+          }
+
+          const profile: AdminUser | Organization = userType === 'admin' ? {
+            id: rawProfile.id,
+            username: rawProfile.username || '',
+            name: rawProfile.name,
+            email: rawProfile.email,
+            status: rawProfile.status,
+            created_at: new Date().toISOString(),
+          } : {
+            id: rawProfile.id,
+            name: rawProfile.name,
+            email: rawProfile.email,
+            type: rawProfile.organization_type || '',
+            status: rawProfile.status,
+            created_at: new Date().toISOString(),
+            city: rawProfile.city || undefined,
+          };
           
           set((state) => {
-            state.user = user;
-            state.token = token;
-            state.refreshToken = newRefreshToken;
-            state.sessionExpiry = Date.now() + expiresIn * 1000;
+            state.user = profile;
+            state.session = data.session;
+            state.profile = profile;
+            state.userType = userType;
+            state.isAuthenticated = true;
+            state.isLoading = false;
           });
-
-          // Schedule next refresh
-          get().scheduleTokenRefresh();
 
           return true;
         } catch (error) {
-          console.error('Token refresh error:', error);
-          get().logout();
-          return false;
+          console.error('Login error:', error);
+          set((state) => {
+            state.isLoading = false;
+            state.isAuthenticated = false;
+          });
+          throw error;
         }
       },
 
-      scheduleTokenRefresh: () => {
-        const { sessionExpiry } = get();
-        if (!sessionExpiry) return;
+      // Signup with Supabase Auth
+      signupWithSupabase: async (email, password, metadata) => {
+        try {
+          set((state) => { state.isLoading = true; });
 
-        // Refresh 2 minutes before expiry
-        const refreshTime = sessionExpiry - Date.now() - (2 * 60 * 1000);
-        
-        if (refreshTime > 0) {
-          setTimeout(() => {
-            get().refreshTokens();
-          }, refreshTime);
-        }
-      },
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: metadata,
+              emailRedirectTo: `${window.location.origin}/`,
+            },
+          });
 
-      // Migration depuis l'ancien système
-      migrateFromLegacyAuth: () => {
-        const adminUser = localStorage.getItem('adminUser');
-        const orgSession = localStorage.getItem('organization_session');
+          if (error) throw error;
 
-        if (adminUser && !get().user) {
-          try {
-            const user = JSON.parse(adminUser);
-            set((state) => {
-              state.user = user;
-              state.userType = 'admin';
-              state.isAuthenticated = true;
-              // Session legacy - expiration 24h
-              state.sessionExpiry = Date.now() + 24 * 60 * 60 * 1000;
-            });
-          } catch (error) {
-            console.error('Erreur migration admin:', error);
-          }
-        }
+          set((state) => {
+            state.isLoading = false;
+          });
 
-        if (orgSession && !get().user) {
-          try {
-            const session = JSON.parse(orgSession);
-            if (session.organization && session.timestamp) {
-              const isExpired = Date.now() - session.timestamp > 24 * 60 * 60 * 1000;
-              if (!isExpired) {
-                set((state) => {
-                  state.user = session.organization;
-                  state.userType = 'organization';
-                  state.isAuthenticated = true;
-                  state.sessionExpiry = session.timestamp + 24 * 60 * 60 * 1000;
-                });
-              }
-            }
-          } catch (error) {
-            console.error('Erreur migration organisation:', error);
-          }
+          return true;
+        } catch (error) {
+          console.error('Signup error:', error);
+          set((state) => {
+            state.isLoading = false;
+          });
+          throw error;
         }
       },
     })),
@@ -245,36 +304,36 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        user: state.user,
+        // Only persist essential data, session is managed by Supabase
         userType: state.userType,
-        token: state.token,
-        refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated,
-        sessionExpiry: state.sessionExpiry,
       }),
     }
   )
 );
 
-// Hook pour l'initialisation
+// Hook to initialize auth on app load
 export const useAuthInit = () => {
-  const migrateFromLegacyAuth = useAuthStore((state) => state.migrateFromLegacyAuth);
-  const isSessionValid = useAuthStore((state) => state.isSessionValid);
-  const logout = useAuthStore((state) => state.logout);
-  const scheduleTokenRefresh = useAuthStore((state) => state.scheduleTokenRefresh);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const token = useAuthStore((state) => state.token);
-
-  // Migration automatique au premier chargement
-  useEffect(() => {
-    migrateFromLegacyAuth();
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+  
+  // Set up auth state listener
+  supabase.auth.onAuthStateChange((event, session) => {
+    console.log('Auth state changed:', event);
     
-    // Vérifier la validité de la session
-    if (!isSessionValid()) {
-      logout();
-    } else if (isAuthenticated && token) {
-      // Schedule refresh for existing JWT sessions
-      scheduleTokenRefresh();
+    if (event === 'SIGNED_IN' && session) {
+      initializeAuth();
+    } else if (event === 'SIGNED_OUT') {
+      useAuthStore.setState({
+        user: null,
+        session: null,
+        profile: null,
+        userType: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    } else if (event === 'TOKEN_REFRESHED' && session) {
+      useAuthStore.setState({ session });
     }
-  }, [migrateFromLegacyAuth, isSessionValid, logout, scheduleTokenRefresh, isAuthenticated, token]);
+  });
+
+  return initializeAuth;
 };

@@ -1016,6 +1016,10 @@ export type Database = {
       }
       cleanup_expired_tokens: { Args: never; Returns: undefined }
       cleanup_orphaned_files: { Args: never; Returns: undefined }
+      create_supabase_auth_user_for_superadmin: {
+        Args: { _email: string; _password: string; _superadmin_id: string }
+        Returns: string
+      }
       get_admin_users: {
         Args: never
         Returns: {
@@ -1066,6 +1070,19 @@ export type Database = {
           bucket_name: string
           file_count: number
           total_size: number
+        }[]
+      }
+      get_user_profile_by_auth_id: {
+        Args: { _auth_user_id: string }
+        Returns: {
+          city: string
+          email: string
+          id: string
+          name: string
+          organization_type: string
+          status: string
+          user_type: string
+          username: string
         }[]
       }
       get_user_role: { Args: { _user_id: string }; Returns: string }
