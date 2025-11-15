@@ -52,55 +52,6 @@ export default function OrgLogin() {
     }
   };
 
-  const onSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('organizations')
-        .insert([
-          {
-            name: 'Nouvelle Organisation',
-            email: email,
-            password_hash: btoa(password), // Simple base64 encoding
-            type: 'municipal',
-            status: 'pending',
-            is_active: false
-          }
-        ])
-        .select();
-
-      if (error) throw error;
-
-      toast({ 
-        title: "Inscription réussie",
-        description: "Votre compte sera activé après approbation par l'administrateur"
-      });
-      
-      // Reset form
-      setEmail("");
-      setPassword("");
-    } catch (err: any) {
-      console.error("Erreur d'inscription:", err);
-      let errorMessage = "Une erreur est survenue lors de l'inscription";
-      
-      if (err.message.includes('duplicate') || err.message.includes('already exists')) {
-        errorMessage = "Cette adresse email est déjà utilisée.";
-      } else if (err.message.includes('network')) {
-        errorMessage = "Erreur de connexion. Vérifiez votre internet.";
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      toast({
-        variant: "destructive",
-        title: "Erreur lors de l'inscription",
-        description: errorMessage
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
@@ -115,13 +66,14 @@ export default function OrgLogin() {
             </p>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Connexion</TabsTrigger>
-                <TabsTrigger value="signup">Inscription</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login" className="space-y-4">
+            <div className="space-y-4">
+              <Tabs defaultValue="login" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Connexion</TabsTrigger>
+                  <TabsTrigger value="signup">Inscription</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="login" className="space-y-4">
                 <form onSubmit={onLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -155,12 +107,13 @@ export default function OrgLogin() {
                     {loading ? "Connexion..." : "Se connecter"}
                   </Button>
                 </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <OrganizationSignupStepper />
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+                
+                <TabsContent value="signup">
+                  <OrganizationSignupStepper />
+                </TabsContent>
+              </Tabs>
+            </div>
           </CardContent>
         </Card>
       </div>
