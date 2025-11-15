@@ -6,18 +6,18 @@ import { useAuthStore } from "@/stores";
 
 export default function OrganizationLayout() {
   const navigate = useNavigate();
-  const { isAuthenticated, userType, isSessionValid } = useAuthStore();
+  const { isAuthenticated, userType } = useAuthStore();
 
   useEffect(() => {
     document.title = "Espace Organisation | SenAlert";
   }, []);
 
   useEffect(() => {
-    // Check authentication with Zustand store only - no localStorage fallback
-    if (!isAuthenticated || userType !== 'organization' || !isSessionValid()) {
+    // Check authentication with Supabase Auth
+    if (!isAuthenticated || userType !== 'organization') {
       navigate("/organization/login");
     }
-  }, [navigate, isAuthenticated, userType, isSessionValid]);
+  }, [navigate, isAuthenticated, userType]);
 
   return (
     <SidebarProvider>

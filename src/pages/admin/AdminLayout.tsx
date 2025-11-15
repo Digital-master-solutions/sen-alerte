@@ -6,14 +6,14 @@ import { useAuthStore } from "@/stores";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const { isAuthenticated, userType, isSessionValid } = useAuthStore();
+  const { isAuthenticated, userType } = useAuthStore();
 
   useEffect(() => {
-    // Check authentication with Zustand store only - no localStorage fallback
-    if (!isAuthenticated || userType !== 'admin' || !isSessionValid()) {
+    // Check authentication with Supabase Auth
+    if (!isAuthenticated || userType !== 'admin') {
       navigate("/admin/login");
     }
-  }, [navigate, isAuthenticated, userType, isSessionValid]);
+  }, [navigate, isAuthenticated, userType]);
 
   return (
     <SidebarProvider>

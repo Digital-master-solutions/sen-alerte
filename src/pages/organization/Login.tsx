@@ -27,73 +27,14 @@ export default function OrgLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      console.log("Tentative de connexion JWT pour organisation:", email);
+      // Use Supabase Auth login
+      const { loginWithSupabase } = useAuthStore.getState();
+      await loginWithSupabase(email, password, 'organization');
       
-      // Try JWT login first
-      try {
-        const { loginWithJWT } = useAuthStore.getState();
-        const result = await loginWithJWT(email, password, 'organization');
-        
-        if (result) {
-          const { user } = useAuthStore.getState();
-          toast({ 
-            title: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_GENERIC,
-            description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ORG(user?.name || '')
-          });
-          navigate("/organization/dashboard", { replace: true });
-          return;
-        }
-      } catch (jwtError) {
-        console.warn("JWT login failed, trying fallback:", jwtError);
-      }
-      
-      // Fallback to RPC authentication  
-      console.log("Using RPC fallback authentication");
-      const { data: orgData, error } = await supabase
-        .rpc('authenticate_organization', { 
-          org_email: email, 
-          plain_password: password 
-        });
-
-      if (error) throw error;
-      
-      if (!orgData || orgData.length === 0) {
-        // Vérifier si l'organisation existe pour déterminer le type d'erreur
-        const { data: orgExists } = await supabase
-          .from('organizations')
-          .select('id, status, is_active')
-          .eq('email', email)
-          .single();
-
-        if (!orgExists) {
-          throw new Error("Email ou mot de passe incorrect");
-        } else if (orgExists.status !== 'approved') {
-          throw new Error("Votre compte n'est pas encore approuvé. Veuillez contacter l'administrateur.");
-        } else if (!orgExists.is_active) {
-          throw new Error("Votre compte a été désactivé. Veuillez contacter l'administrateur.");
-        } else {
-          throw new Error("Email ou mot de passe incorrect");
-        }
-      }
-
-      const organization = orgData[0];
-      
-      // Organization login successful
-      
-      const orgUser = {
-        id: organization.id,
-        name: organization.name,
-        email: organization.email,
-        type: organization.type,
-        status: organization.status,
-        created_at: organization.created_at
-      };
-      
-      setAuth(orgUser, 'organization');
-
+      const { profile } = useAuthStore.getState();
       toast({ 
         title: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_GENERIC,
-        description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ORG(organization.name)
+        description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ORG(profile?.name || '')
       });
       navigate("/organization/dashboard", { replace: true });
     } catch (err: any) {

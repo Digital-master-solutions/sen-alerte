@@ -38,74 +38,15 @@ export default function AdminLogin() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      console.log("Tentative de connexion JWT pour:", values.username);
+      // Use Supabase Auth login
+      const { loginWithSupabase } = useAuthStore.getState();
+      await loginWithSupabase(values.username, values.password, 'admin');
       
-      // Try JWT login first
-      try {
-        const { loginWithJWT } = useAuthStore.getState();
-        const result = await loginWithJWT(values.username, values.password, 'admin');
-        
-        if (result) {
-          const { user } = useAuthStore.getState();
-          toast({
-            title: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_GENERIC,
-            description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ADMIN(user?.name || ''),
-          });
-          navigate("/admin/dashboard");
-          return;
-        }
-      } catch (jwtError) {
-        console.warn("JWT login failed, trying fallback:", jwtError);
-      }
-      
-      // Fallback to RPC authentication
-      console.log("Using RPC fallback authentication");
-      const { data: adminData, error: authError } = await supabase
-        .rpc('authenticate_superadmin', {
-          _username: values.username,
-          _password_raw: values.password
-        });
-
-      if (authError) throw authError;
-
-      if (!adminData || adminData.length === 0) {
-        // Authentification échouée - afficher un message générique pour la sécurité
-        toast({
-          variant: "destructive",
-          title: "Erreur de connexion",
-          description: "Nom d'utilisateur ou mot de passe incorrect",
-        });
-        return;
-      }
-
-      const superAdmin = adminData[0];
-      
-      // Vérifier que les données de l'admin sont valides
-      if (!superAdmin?.id) {
-        throw new Error("Données d'authentification invalides");
-      }
-      
-      const adminUser = {
-        id: superAdmin.id,
-        username: superAdmin.username,
-        name: superAdmin.name,
-        email: superAdmin.email,
-        status: superAdmin.status,
-        created_at: superAdmin.created_at,
-        last_login: superAdmin.last_login
-      };
-      
-      setAuth(adminUser, 'admin');
-
-      await supabase.rpc('update_superadmin_last_login', {
-        _username: values.username
-      });
-      
+      const { profile } = useAuthStore.getState();
       toast({
         title: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_GENERIC,
-        description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ADMIN(superAdmin.name),
+        description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ADMIN(profile?.name || ''),
       });
-
       navigate("/admin/dashboard");
 
     } catch (error: unknown) {
