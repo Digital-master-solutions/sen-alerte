@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { create, verify } from "https://deno.land/x/djwt@v2.8/mod.ts";
+import { create } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +20,7 @@ interface JWTPayload {
   userType: string;
   exp: number;
   iat: number;
+  [key: string]: unknown;
 }
 
 serve(async (req) => {
