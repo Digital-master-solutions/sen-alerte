@@ -21,6 +21,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const markersRef = useRef<L.Marker[]>([]);
   const { currentLocation, requestLocation } = useLocationStore();
 
+  const userMarkerRef = useRef<L.Marker | null>(null);
+
   useEffect(() => {
     // Request location if not available
     if (!currentLocation) {
@@ -29,34 +31,31 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   }, [currentLocation, requestLocation]);
 
   useEffect(() => {
-    if (!mapRef.current || !currentLocation) return;
+    if (!mapRef.current) return;
 
-    const userPosition: [number, number] = [currentLocation.latitude, currentLocation.longitude];
-
-    // Initialize map
+    // Initialize map only once
     if (!mapInstanceRef.current) {
+      // Start with a default center (Senegal)
+      const defaultCenter: [number, number] = [14.6937, -17.4441];
+      
       mapInstanceRef.current = L.map(mapRef.current, {
-        scrollWheelZoom: false, // Désactiver le zoom avec la molette
-        doubleClickZoom: false, // Désactiver le zoom au double clic
-        touchZoom: true, // Garder le zoom tactile
-        boxZoom: false, // Désactiver le zoom par sélection
-        keyboard: false // Désactiver les contrôles clavier
-      }).setView(userPosition, 15);
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: true,
+        boxZoom: false,
+        keyboard: false
+      }).setView(defaultCenter, 13);
 
-      // Add standard OpenStreetMap tile layer
-      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Add tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
         crossOrigin: true
-      });
+      }).addTo(mapInstanceRef.current);
 
-      tileLayer.addTo(mapInstanceRef.current);
-
-      // Add custom controls with recenter button
+      // Add custom recenter button
       const customControl = L.Control.extend({
-        options: {
-          position: 'topright'
-        },
+        options: { position: 'topright' },
         onAdd: function() {
           const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
           const button = L.DomUtil.create('a', 'leaflet-control-recenter', container);
@@ -64,64 +63,74 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           button.title = 'Recentrer sur ma position';
           button.onclick = function() {
             if (mapInstanceRef.current && currentLocation) {
-              mapInstanceRef.current.setView([currentLocation.latitude, currentLocation.longitude], 15);
+              mapInstanceRef.current.setView([currentLocation.latitude, currentLocation.longitude], 15, {
+                animate: true
+              });
             }
           }
           return container;
         }
       });
       
-      // Remove default zoom control and add custom control
       mapInstanceRef.current.zoomControl.remove();
       new customControl({ position: 'topright' }).addTo(mapInstanceRef.current);
     }
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => {
-      mapInstanceRef.current?.removeLayer(marker);
-    });
-    markersRef.current = [];
+    // Update marker when location changes
+    if (currentLocation && mapInstanceRef.current) {
+      const userPosition: [number, number] = [currentLocation.latitude, currentLocation.longitude];
 
-    // Add user location marker with custom icon
-    const userMarker = L.marker(userPosition, {
-      icon: L.divIcon({
-        className: 'current-location-marker',
-        html: `
-          <div style="
-            width: 20px;
-            height: 20px;
-            background: #22c55e;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            position: relative;
-          ">
-            <div style="
-              position: absolute;
-              top: -2px;
-              left: -2px;
-              width: 24px;
-              height: 24px;
-              background: rgba(34, 197, 94, 0.3);
-              border-radius: 50%;
-              animation: pulse 2s infinite;
-            "></div>
-          </div>
-        `,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      })
-    }).addTo(mapInstanceRef.current!);
-    
-    userMarker.bindPopup('<strong>Votre position actuelle</strong>');
-    markersRef.current.push(userMarker);
+      // Update or create user marker
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLatLng(userPosition);
+      } else {
+        userMarkerRef.current = L.marker(userPosition, {
+          icon: L.divIcon({
+            className: 'current-location-marker',
+            html: `
+              <div style="
+                width: 20px;
+                height: 20px;
+                background: #22c55e;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                position: relative;
+              ">
+                <div style="
+                  position: absolute;
+                  top: -2px;
+                  left: -2px;
+                  width: 24px;
+                  height: 24px;
+                  background: rgba(34, 197, 94, 0.3);
+                  border-radius: 50%;
+                  animation: pulse 2s infinite;
+                "></div>
+              </div>
+            `,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          })
+        }).addTo(mapInstanceRef.current);
+        
+        userMarkerRef.current.bindPopup('<strong>Votre position actuelle</strong>');
+        markersRef.current.push(userMarkerRef.current);
+      }
 
-    // Cleanup function
+      // Auto-center on first location or when location changes significantly
+      mapInstanceRef.current.setView(userPosition, 15, {
+        animate: true
+      });
+    }
+
+    // Cleanup only on unmount
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+      userMarkerRef.current = null;
     };
   }, [currentLocation]);
 
