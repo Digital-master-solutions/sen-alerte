@@ -112,7 +112,7 @@ export type Database = {
           admin_id: string | null
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string | null
           user_agent: string | null
@@ -122,7 +122,7 @@ export type Database = {
           admin_id?: string | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_agent?: string | null
@@ -132,7 +132,7 @@ export type Database = {
           admin_id?: string | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_agent?: string | null
@@ -255,7 +255,7 @@ export type Database = {
           created_at: string | null
           details: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           success: boolean | null
           user_agent: string | null
           user_id: string | null
@@ -266,7 +266,7 @@ export type Database = {
           created_at?: string | null
           details?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean | null
           user_agent?: string | null
           user_id?: string | null
@@ -277,7 +277,7 @@ export type Database = {
           created_at?: string | null
           details?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean | null
           user_agent?: string | null
           user_id?: string | null
@@ -407,7 +407,7 @@ export type Database = {
           created_at: string | null
           details: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           organization_id: string | null
           user_agent: string | null
         }
@@ -416,7 +416,7 @@ export type Database = {
           created_at?: string | null
           details?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           organization_id?: string | null
           user_agent?: string | null
         }
@@ -425,7 +425,7 @@ export type Database = {
           created_at?: string | null
           details?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           organization_id?: string | null
           user_agent?: string | null
         }
@@ -531,7 +531,7 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_revoked: boolean
           last_used_at: string | null
           token_hash: string
@@ -543,7 +543,7 @@ export type Database = {
           created_at?: string
           expires_at: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_revoked?: boolean
           last_used_at?: string | null
           token_hash: string
@@ -555,7 +555,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_revoked?: boolean
           last_used_at?: string | null
           token_hash?: string
@@ -605,7 +605,7 @@ export type Database = {
       }
       reports: {
         Row: {
-          actual_resolution_time: unknown | null
+          actual_resolution_time: unknown
           address: string | null
           anonymous_code: string | null
           anonymous_name: string | null
@@ -617,7 +617,7 @@ export type Database = {
           created_at: string | null
           department: string | null
           description: string
-          estimated_resolution_time: unknown | null
+          estimated_resolution_time: unknown
           id: string
           latitude: number | null
           longitude: number | null
@@ -630,7 +630,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          actual_resolution_time?: unknown | null
+          actual_resolution_time?: unknown
           address?: string | null
           anonymous_code?: string | null
           anonymous_name?: string | null
@@ -642,7 +642,7 @@ export type Database = {
           created_at?: string | null
           department?: string | null
           description: string
-          estimated_resolution_time?: unknown | null
+          estimated_resolution_time?: unknown
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -655,7 +655,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          actual_resolution_time?: unknown | null
+          actual_resolution_time?: unknown
           address?: string | null
           anonymous_code?: string | null
           anonymous_name?: string | null
@@ -667,7 +667,7 @@ export type Database = {
           created_at?: string | null
           department?: string | null
           description?: string
-          estimated_resolution_time?: unknown | null
+          estimated_resolution_time?: unknown
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -702,7 +702,7 @@ export type Database = {
           details: Json | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
           user_id: string | null
         }
@@ -711,7 +711,7 @@ export type Database = {
           details?: Json | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
@@ -720,7 +720,7 @@ export type Database = {
           details?: Json | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
@@ -866,7 +866,7 @@ export type Database = {
           device_info: Json | null
           expires_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_active: boolean
           last_activity_at: string
           refresh_token_id: string | null
@@ -880,7 +880,7 @@ export type Database = {
           device_info?: Json | null
           expires_at: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean
           last_activity_at?: string
           refresh_token_id?: string | null
@@ -894,7 +894,7 @@ export type Database = {
           device_info?: Json | null
           expires_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean
           last_activity_at?: string
           refresh_token_id?: string | null
@@ -931,7 +931,7 @@ export type Database = {
         Returns: boolean
       }
       admin_get_all_organizations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           address: string | null
           approved_at: string | null
@@ -949,6 +949,12 @@ export type Database = {
           supabase_user_id: string | null
           type: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_list_organizations: {
         Args: { _password_raw: string; _username: string }
@@ -969,6 +975,12 @@ export type Database = {
           supabase_user_id: string | null
           type: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_update_org_status: {
         Args: {
@@ -1002,16 +1014,10 @@ export type Database = {
           username: string
         }[]
       }
-      cleanup_expired_tokens: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_orphaned_files: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_tokens: { Args: never; Returns: undefined }
+      cleanup_orphaned_files: { Args: never; Returns: undefined }
       get_admin_users: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           active_count: number
           total_count: number
@@ -1020,7 +1026,7 @@ export type Database = {
         }[]
       }
       get_current_admin: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           email: string
           id: string
@@ -1029,7 +1035,7 @@ export type Database = {
         }[]
       }
       get_dashboard_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           avg_resolution_hours: number
           in_progress_reports: number
@@ -1042,7 +1048,7 @@ export type Database = {
         }[]
       }
       get_public_organizations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           city: string
           created_at: string
@@ -1054,7 +1060,7 @@ export type Database = {
         }[]
       }
       get_storage_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           avg_file_size: number
           bucket_name: string
@@ -1062,26 +1068,11 @@ export type Database = {
           total_size: number
         }[]
       }
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: string
-      }
-      hash_password: {
-        Args: { plain_password: string }
-        Returns: string
-      }
-      is_admin_or_superadmin: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
-      is_superadmin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      link_org_to_user: {
-        Args: { _org_name: string }
-        Returns: boolean
-      }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
+      hash_password: { Args: { plain_password: string }; Returns: string }
+      is_admin_or_superadmin: { Args: { _user_id: string }; Returns: boolean }
+      is_superadmin: { Args: never; Returns: boolean }
+      link_org_to_user: { Args: { _org_name: string }; Returns: boolean }
       log_admin_action: {
         Args: {
           _action: string
@@ -1094,18 +1085,9 @@ export type Database = {
         Args: { _details?: Json; _event_type: string }
         Returns: undefined
       }
-      migrate_admins_to_auth: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      migrate_organizations_to_auth: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      migrate_superadmins_to_auth: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      migrate_admins_to_auth: { Args: never; Returns: string }
+      migrate_organizations_to_auth: { Args: never; Returns: string }
+      migrate_superadmins_to_auth: { Args: never; Returns: string }
       revoke_all_user_tokens: {
         Args: { _user_id: string; _user_type: string }
         Returns: undefined
@@ -1131,10 +1113,7 @@ export type Database = {
         Args: { _username: string }
         Returns: undefined
       }
-      validate_admin_session: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      validate_admin_session: { Args: never; Returns: boolean }
       verify_password: {
         Args: { plain_password: string; stored_hash: string }
         Returns: boolean
