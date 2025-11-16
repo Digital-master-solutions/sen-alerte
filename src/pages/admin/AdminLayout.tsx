@@ -11,7 +11,7 @@ export default function AdminLayout() {
   useEffect(() => {
     // Check authentication with Supabase Auth
     if (!isAuthenticated || userType !== 'admin') {
-      navigate("/admin/login");
+      navigate("/securepass/login");
     }
   }, [navigate, isAuthenticated, userType]);
 

@@ -63,7 +63,7 @@ export default function AdminLogin() {
         title: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_GENERIC,
         description: AUTH_SUCCESS_MESSAGES.LOGIN_SUCCESS_ADMIN(profile?.name || ''),
       });
-      navigate("/admin/dashboard");
+      navigate("/securepass/dashboard");
 
     } catch (error: unknown) {
       console.error("Erreur de connexion:", error);
