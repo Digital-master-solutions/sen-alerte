@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore } from '@/stores/locationStore';
+import { useGPSCache } from '@/hooks/useGPSCache';
 
 // Fix for default markers - use local fallback for better reliability
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
@@ -21,6 +22,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const { currentLocation, setCurrentLocation } = useLocationStore();
+  const { cachedPosition, savePosition, isCacheValid, getCacheAge } = useGPSCache();
 
   // Fonction pour obtenir une position GPS unique
   const getSingleGPSPosition = (attempt: number, maxAttempts: number): Promise<GeolocationPosition> => {
@@ -62,15 +64,39 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     const newPosition = { lat: latitude, lng: longitude };
     setGpsPosition(newPosition);
     
+    // Sauvegarder dans le cache
+    savePosition(latitude, longitude, accuracy);
+    
     if (mapInstanceRef.current) {
       updateMapWithLocation(newPosition, true);
     }
-  }, [currentLocation, setCurrentLocation]);
+  }, [currentLocation, setCurrentLocation, savePosition]);
 
   // Fonction pour récupérer la position GPS exacte avec haute précision
   const getExactGPSPosition = useCallback(async () => {
     if (!navigator.geolocation) {
       return;
+    }
+
+    // Vérifier si on a une position en cache valide
+    if (isCacheValid() && cachedPosition) {
+      const cacheAge = getCacheAge();
+      console.log(`📦 Utilisation du cache GPS (${cacheAge}s, précision: ${cachedPosition.accuracy.toFixed(1)}m)`);
+      
+      updateLocationStore(
+        cachedPosition.latitude,
+        cachedPosition.longitude,
+        cachedPosition.accuracy
+      );
+      
+      // Si le cache est récent (< 1 minute), on n'actualise pas
+      if (cacheAge !== null && cacheAge < 60) {
+        console.log('✅ Cache récent, pas de nouvelle géolocalisation');
+        return;
+      }
+      
+      // Sinon, on améliore en arrière-plan
+      console.log('🔄 Cache utilisé, amélioration en arrière-plan...');
     }
 
     setIsLocating(true);
@@ -136,7 +162,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     } finally {
       setIsLocating(false);
     }
-  }, [updateLocationStore]);
+  }, [updateLocationStore, isCacheValid, cachedPosition, getCacheAge]);
 
   // Mettre à jour la carte avec la position (immédiat, sans animation)
   const updateMapWithLocation = (position: { lat: number; lng: number }, forceCenter = false) => {
