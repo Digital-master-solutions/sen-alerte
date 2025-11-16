@@ -118,6 +118,34 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     });
   }, []);
 
+  // Fonction pour mettre à jour la localisation dans le store
+  const updateLocationStore = useCallback((latitude: number, longitude: number, accuracy: number) => {
+    console.log(`📍 Mise à jour du store: lat=${latitude.toFixed(6)}, lng=${longitude.toFixed(6)}, précision=${accuracy.toFixed(1)}m`);
+    
+    const locationData = {
+      latitude,
+      longitude,
+      address: currentLocation?.address,
+      city: currentLocation?.city,
+      department: currentLocation?.department
+    };
+    setCurrentLocation(locationData);
+    
+    const newPosition = { lat: latitude, lng: longitude };
+    setGpsPosition(newPosition);
+    
+    // Si la carte est prête, afficher immédiatement
+    if (mapInstanceRef.current) {
+      console.log('✅ Carte prête - Affichage immédiat du marqueur');
+      updateMapWithLocation(newPosition, true);
+      setPendingPosition(null);
+    } else {
+      // Sinon, stocker pour affichage dès que la carte sera prête
+      console.log('⏳ Carte non prête - Position stockée pour affichage ultérieur');
+      setPendingPosition(newPosition);
+    }
+  }, [currentLocation, setCurrentLocation, updateMapWithLocation]);
+
   // Fonction pour récupérer la position GPS exacte avec haute précision
   const getExactGPSPosition = useCallback(async () => {
     if (!navigator.geolocation) {
@@ -201,35 +229,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         }
       }
     }
-  }, [updateLocationStore, updateMapWithLocation]);
-
-  // Fonction pour mettre à jour la localisation dans le store
-  const updateLocationStore = useCallback((latitude: number, longitude: number, accuracy: number) => {
-    console.log(`📍 Mise à jour du store: lat=${latitude.toFixed(6)}, lng=${longitude.toFixed(6)}, précision=${accuracy.toFixed(1)}m`);
-    
-    const locationData = {
-      latitude,
-      longitude,
-      address: currentLocation?.address,
-      city: currentLocation?.city,
-      department: currentLocation?.department
-    };
-    setCurrentLocation(locationData);
-    
-    const newPosition = { lat: latitude, lng: longitude };
-    setGpsPosition(newPosition);
-    
-    // Si la carte est prête, afficher immédiatement
-    if (mapInstanceRef.current) {
-      console.log('✅ Carte prête - Affichage immédiat du marqueur');
-      updateMapWithLocation(newPosition, true);
-      setPendingPosition(null);
-    } else {
-      // Sinon, stocker pour affichage dès que la carte sera prête
-      console.log('⏳ Carte non prête - Position stockée pour affichage ultérieur');
-      setPendingPosition(newPosition);
-    }
-  }, [currentLocation, setCurrentLocation, updateMapWithLocation]);
+  }, [updateLocationStore]);
 
   // Ajouter les contrôles personnalisés
   const addCustomControls = useCallback(() => {
