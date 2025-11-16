@@ -45,10 +45,7 @@ export default function AdminUsers() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    username: "",
-    department: "",
-    password: "",
-    organization_id: ""
+    password: ""
   });
   useEffect(() => {
     loadUsers();
@@ -102,43 +99,52 @@ export default function AdminUsers() {
   };
   const handleCreateUser = async () => {
     try {
-      // SECURITY FIX: Use proper password hashing via Supabase RPC
+      // Create Supabase Auth user first
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            user_type: 'admin'
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Erreur lors de la création de l'utilisateur");
+
+      // Hash password for superadmin table
       const { data: hashedPassword, error: hashError } = await supabase
         .rpc('hash_password', { plain_password: formData.password });
 
-      if (hashError) {
-        console.error('Password hashing error:', hashError);
-        toast({
-          title: "Erreur",
-          description: "Impossible de sécuriser le mot de passe",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (hashError) throw hashError;
 
-      const userData = {
-        name: formData.name,
-        email: formData.email,
-        username: formData.username,
-        password_hash: hashedPassword,
-        status: "active"
-      };
-      const {
-        error
-      } = await supabase.from("superadmin").insert(userData);
-      if (error) throw error;
+      // Create superadmin record linked to auth user
+      const { error: insertError } = await supabase
+        .from('superadmin')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          username: formData.email.split('@')[0],
+          password_hash: hashedPassword,
+          supabase_user_id: authData.user.id,
+          status: 'active'
+        });
+
+      if (insertError) throw insertError;
+
       toast({
-        title: "Utilisateur créé",
-        description: `L'${userType === "admin" ? "administrateur" : "super administrateur"} a été créé avec succès`
+        title: "Succès",
+        description: "Utilisateur créé avec succès"
       });
+
+      loadUsers();
       setNewUserOpen(false);
       setFormData({
         name: "",
         email: "",
-        username: "",
-        department: "",
-        password: "",
-        organization_id: ""
+        password: ""
       });
       loadUsers();
     } catch (error) {
@@ -220,38 +226,45 @@ export default function AdminUsers() {
               </div>
               <div>
                 <Label htmlFor="name">Nom complet</Label>
-                <Input id="name" value={formData.name} onChange={e => setFormData({
-                ...formData,
-                name: e.target.value
-              })} />
+                <Input 
+                  id="name" 
+                  value={formData.name} 
+                  onChange={e => setFormData({
+                    ...formData,
+                    name: e.target.value
+                  })} 
+                  placeholder="Ex: Jean Dupont"
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={formData.email} onChange={e => setFormData({
-                ...formData,
-                email: e.target.value
-              })} />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={formData.email} 
+                  onChange={e => setFormData({
+                    ...formData,
+                    email: e.target.value
+                  })} 
+                  placeholder="admin@example.com"
+                  required
+                />
               </div>
-              <div>
-                <Label htmlFor="username">Nom d'utilisateur</Label>
-                <Input id="username" value={formData.username} onChange={e => setFormData({
-                ...formData,
-                username: e.target.value
-              })} />
-              </div>
-              {userType === "admin" && <div>
-                  <Label htmlFor="department">Département</Label>
-                  <Input id="department" value={formData.department} onChange={e => setFormData({
-                ...formData,
-                department: e.target.value
-              })} />
-                </div>}
               <div>
                 <Label htmlFor="password">Mot de passe</Label>
-                <Input id="password" type="password" value={formData.password} onChange={e => setFormData({
-                ...formData,
-                password: e.target.value
-              })} />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={formData.password} 
+                  onChange={e => setFormData({
+                    ...formData,
+                    password: e.target.value
+                  })} 
+                  placeholder="Min. 8 caractères"
+                  required
+                  minLength={8}
+                />
               </div>
             </div>
             <DialogFooter>
