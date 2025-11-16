@@ -349,6 +349,9 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     // Exposer la fonction de géolocalisation globalement pour le popup
     (window as unknown as { getExactGPSPosition?: () => Promise<void> }).getExactGPSPosition = getExactGPSPosition;
 
+    // 🚀 Démarrer la géolocalisation IMMÉDIATEMENT (avant même l'initialisation de la carte)
+    getExactGPSPosition();
+
     // Initialiser la carte
     const map = L.map(mapRef.current, {
       center: [14.7167, -17.4677], // Dakar
@@ -369,9 +372,6 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     map.whenReady(() => {
       // Ajouter les contrôles personnalisés
       addCustomControls();
-      
-      // Demander la localisation automatiquement
-      getExactGPSPosition();
     });
 
     return () => {
