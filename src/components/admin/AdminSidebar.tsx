@@ -9,23 +9,23 @@ import { Logo } from "@/components/ui/logo";
 import { useAuthStore, AdminUser } from "@/stores";
 const mainItems = [{
   title: "Tableau de bord",
-  url: "/admin/dashboard",
+  url: "/securepass/dashboard",
   icon: LayoutDashboard
 }, {
   title: "Signalements",
-  url: "/admin/reports",
+  url: "/securepass/reports",
   icon: FileText
 }, {
   title: "Organisations",
-  url: "/admin/organizations",
+  url: "/securepass/organizations",
   icon: Building2
 }, {
   title: "Utilisateurs",
-  url: "/admin/users",
+  url: "/securepass/users",
   icon: Users
 }, {
   title: "Catégories",
-  url: "/admin/categories",
+  url: "/securepass/categories",
   icon: Tag
 }];
 export function AdminSidebar() {
@@ -49,7 +49,7 @@ export function AdminSidebar() {
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès"
     });
-    navigate("/admin/login");
+    navigate("/securepass/login");
   };
   const linkClasses = (active: boolean) => ["group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors", active ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-sidebar-primary"].join(" ");
   return <Sidebar className={collapsed ? "w-16 overflow-hidden border-r border-sidebar-border" : "w-64 overflow-hidden border-r border-sidebar-border"} collapsible="icon">

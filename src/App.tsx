@@ -52,9 +52,9 @@ const App = () => (
         <SEOHead />
         <SecurityHeaders />
         <Routes>
-          {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminLayout />}>
+          {/* Secure Admin Routes */}
+          <Route path="/securepass/login" element={<AdminLogin />} />
+          <Route path="/securepass" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="reports" element={<AdminReports />} />
             <Route path="organizations" element={<AdminOrganizations />} />
