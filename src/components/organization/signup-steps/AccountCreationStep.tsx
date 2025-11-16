@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Shield, CheckCircle, XCircle } from "lucide-react";
+import { Eye, EyeOff, Shield, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { SignupData } from "../OrganizationSignupStepper";
+import { usePasswordBreachCheck } from "@/hooks/usePasswordBreachCheck";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AccountCreationStepProps {
   data: SignupData;
@@ -14,12 +16,27 @@ interface AccountCreationStepProps {
 export function AccountCreationStep({ data, updateData }: AccountCreationStepProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [breachWarning, setBreachWarning] = useState<{ breached: boolean; count: number } | null>(null);
+  const { checkPassword, isChecking } = usePasswordBreachCheck();
 
   const passwordRequirements = [
-    { text: "Au moins 6 caractères", valid: data.password.length >= 6 },
-    { text: "Contient une lettre", valid: /[a-zA-Z]/.test(data.password) },
+    { text: "Au moins 12 caractères", valid: data.password.length >= 12 },
+    { text: "Contient une minuscule", valid: /[a-z]/.test(data.password) },
+    { text: "Contient une majuscule", valid: /[A-Z]/.test(data.password) },
     { text: "Contient un chiffre", valid: /\d/.test(data.password) },
+    { text: "Contient un caractère spécial", valid: /[!@#$%^&*(),.?":{}|<>]/.test(data.password) },
   ];
+
+  const handlePasswordChange = async (newPassword: string) => {
+    updateData({ password: newPassword });
+    
+    if (newPassword.length >= 8) {
+      const result = await checkPassword(newPassword);
+      setBreachWarning(result);
+    } else {
+      setBreachWarning(null);
+    }
+  };
 
   const passwordsMatch = data.password === confirmPassword && confirmPassword.length > 0;
 
@@ -41,7 +58,7 @@ export function AccountCreationStep({ data, updateData }: AccountCreationStepPro
               type={showPassword ? "text" : "password"}
               placeholder="Choisissez un mot de passe sécurisé"
               value={data.password}
-              onChange={(e) => updateData({ password: e.target.value })}
+              onChange={(e) => handlePasswordChange(e.target.value)}
               className="pr-10 transition-all duration-200 focus:scale-105"
             />
             <Button
@@ -84,6 +101,17 @@ export function AccountCreationStep({ data, updateData }: AccountCreationStepPro
           )}
         </div>
       </div>
+
+      {/* Alerte de compromission */}
+      {breachWarning && breachWarning.breached && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            ⚠️ Ce mot de passe a été compromis dans {breachWarning.count.toLocaleString()} fuites de données. 
+            Veuillez en choisir un autre pour votre sécurité.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Exigences du mot de passe */}
       <div className="space-y-3">
