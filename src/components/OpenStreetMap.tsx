@@ -19,6 +19,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const { currentLocation, setCurrentLocation } = useLocationStore();
 
   // Fonction pour obtenir une position GPS unique
@@ -29,7 +30,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         reject,
         {
           enableHighAccuracy: true,
-          timeout: attempt === 1 ? 20000 : 25000,
+          timeout: attempt === 1 ? 5000 : 15000, // Première tentative rapide (5s), puis augmenter
           maximumAge: 0,
         }
       );
@@ -72,6 +73,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       return;
     }
 
+    setIsLocating(true);
+    
     try {
       // Première tentative rapide pour affichage immédiat
       const firstPosition = await getSingleGPSPosition(1, 4);
@@ -130,6 +133,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       
     } catch (error) {
       console.error('❌ Erreur GPS:', error);
+    } finally {
+      setIsLocating(false);
     }
   }, [updateLocationStore]);
 
@@ -294,9 +299,9 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       return container;
     };
 
-    // Bouton de localisation avec belle icône
+    // Bouton de localisation avec belle icône et animation de chargement
     const locationButton = createSimpleControl(
-      '🎯',
+      isLocating ? '⌛' : '🎯',
       'Localiser ma position précisément',
       () => {
         console.log('🎯 Bouton de localisation cliqué');
@@ -374,13 +379,20 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       getExactGPSPosition();
     });
 
-    return () => {
+      return () => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
+      };
+    }, [getExactGPSPosition, addCustomControls]);
+
+    // Mettre à jour le bouton de localisation quand isLocating change
+    useEffect(() => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+        addCustomControls();
       }
-    };
-  }, [getExactGPSPosition, addCustomControls]);
+    }, [isLocating, addCustomControls]);
 
   // Mettre à jour la position si elle change dans le store (mise à jour automatique)
   useEffect(() => {
@@ -423,6 +435,15 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           font-size: 40px;
           text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
           filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        }
+        
+        @keyframes pulse-locate {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .leaflet-control-button:has(> span:contains('⌛')) {
+          animation: pulse-locate 1s ease-in-out infinite;
         }
         
         .leaflet-control-location,
