@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Shield, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "@/stores";
 import { AUTH_SUCCESS_MESSAGES, getAuthErrorInfo } from "@/utils/auth-messages";
+import { usePasswordBreachCheck } from "@/hooks/usePasswordBreachCheck";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Nom d'utilisateur requis"),
@@ -23,9 +25,11 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordWarning, setPasswordWarning] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setAuth } = useAuthStore();
+  const { checkPassword } = usePasswordBreachCheck();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,7 +41,19 @@ export default function AdminLogin() {
 
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
+    setPasswordWarning(null);
+    
     try {
+      // Check if password has been breached
+      const breachCheck = await checkPassword(values.password);
+      if (breachCheck.breached) {
+        setPasswordWarning(
+          `This password has been found in ${breachCheck.count.toLocaleString()} data breaches. Please use a different password for better security.`
+        );
+        setIsLoading(false);
+        return;
+      }
+      
       // Use Supabase Auth login
       const { loginWithSupabase } = useAuthStore.getState();
       await loginWithSupabase(values.username, values.password, 'admin');
@@ -137,7 +153,14 @@ export default function AdminLogin() {
                   )}
                 />
                 
-                <Button 
+                {passwordWarning && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{passwordWarning}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <Button
                   type="submit" 
                   className="w-full" 
                   disabled={isLoading}
