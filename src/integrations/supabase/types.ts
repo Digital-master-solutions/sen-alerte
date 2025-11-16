@@ -1026,6 +1026,15 @@ export type Database = {
       }
       cleanup_expired_tokens: { Args: never; Returns: undefined }
       cleanup_orphaned_files: { Args: never; Returns: undefined }
+      create_admin_with_auth: {
+        Args: {
+          _email: string
+          _name: string
+          _password: string
+          _username: string
+        }
+        Returns: Json
+      }
       create_supabase_auth_user_for_superadmin: {
         Args: { _email: string; _password: string; _superadmin_id: string }
         Returns: string
