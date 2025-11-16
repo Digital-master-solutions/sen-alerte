@@ -19,6 +19,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [pendingPosition, setPendingPosition] = useState<{ lat: number; lng: number } | null>(null);
   const { currentLocation, setCurrentLocation } = useLocationStore();
 
   // Fonction pour obtenir une position GPS unique
@@ -49,6 +50,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
   // Fonction pour mettre à jour la localisation dans le store
   const updateLocationStore = useCallback((latitude: number, longitude: number, accuracy: number) => {
+    console.log(`📍 Nouvelle position GPS reçue: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (précision: ${accuracy.toFixed(1)}m)`);
+    
     const locationData = {
       latitude,
       longitude,
@@ -61,8 +64,15 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     const newPosition = { lat: latitude, lng: longitude };
     setGpsPosition(newPosition);
     
+    // Si la carte est prête, afficher immédiatement
     if (mapInstanceRef.current) {
+      console.log('✅ Carte prête - Affichage immédiat du marqueur');
       updateMapWithLocation(newPosition, true);
+      setPendingPosition(null);
+    } else {
+      // Sinon, stocker pour affichage dès que la carte sera prête
+      console.log('⏳ Carte non prête - Position stockée en attente');
+      setPendingPosition(newPosition);
     }
   }, [currentLocation, setCurrentLocation]);
 
@@ -370,8 +380,17 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     // Attendre que la carte soit prête avant d'ajouter les contrôles
     map.whenReady(() => {
+      console.log('🗺️ Carte initialisée et prête');
+      
       // Ajouter les contrôles personnalisés
       addCustomControls();
+      
+      // Si on a déjà reçu une position GPS pendant le chargement, l'afficher maintenant
+      if (pendingPosition) {
+        console.log('📍 Affichage de la position GPS en attente:', pendingPosition);
+        updateMapWithLocation(pendingPosition, true);
+        setPendingPosition(null);
+      }
     });
 
     return () => {
