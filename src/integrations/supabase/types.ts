@@ -149,7 +149,6 @@ export type Database = {
       }
       auth_profiles: {
         Row: {
-          categories: string[] | null
           created_at: string | null
           email: string | null
           id: string
@@ -159,7 +158,6 @@ export type Database = {
           name: string
           organization_id: string | null
           original_id: string | null
-          permissions: string[] | null
           phone: string | null
           status: string | null
           updated_at: string | null
@@ -167,7 +165,6 @@ export type Database = {
           user_type: string
         }
         Insert: {
-          categories?: string[] | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -177,7 +174,6 @@ export type Database = {
           name: string
           organization_id?: string | null
           original_id?: string | null
-          permissions?: string[] | null
           phone?: string | null
           status?: string | null
           updated_at?: string | null
@@ -185,7 +181,6 @@ export type Database = {
           user_type: string
         }
         Update: {
-          categories?: string[] | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -195,7 +190,6 @@ export type Database = {
           name?: string
           organization_id?: string | null
           original_id?: string | null
-          permissions?: string[] | null
           phone?: string | null
           status?: string | null
           updated_at?: string | null
@@ -451,7 +445,6 @@ export type Database = {
           last_login: string | null
           name: string
           password_hash: string | null
-          permissions: string[] | null
           phone: string | null
           status: string | null
           supabase_user_id: string | null
@@ -468,7 +461,6 @@ export type Database = {
           last_login?: string | null
           name: string
           password_hash?: string | null
-          permissions?: string[] | null
           phone?: string | null
           status?: string | null
           supabase_user_id?: string | null
@@ -485,7 +477,6 @@ export type Database = {
           last_login?: string | null
           name?: string
           password_hash?: string | null
-          permissions?: string[] | null
           phone?: string | null
           status?: string | null
           supabase_user_id?: string | null
@@ -964,7 +955,6 @@ export type Database = {
           last_login: string | null
           name: string
           password_hash: string | null
-          permissions: string[] | null
           phone: string | null
           status: string | null
           supabase_user_id: string | null
@@ -990,7 +980,6 @@ export type Database = {
           last_login: string | null
           name: string
           password_hash: string | null
-          permissions: string[] | null
           phone: string | null
           status: string | null
           supabase_user_id: string | null
