@@ -48,46 +48,91 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     return { position: bestPosition, accuracy: bestAccuracy };
   };
 
-  // Fonction pour mettre à jour la localisation dans le store
-  const updateLocationStore = useCallback((latitude: number, longitude: number, accuracy: number) => {
-    console.log(`📍 Nouvelle position GPS reçue: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (précision: ${accuracy.toFixed(1)}m)`);
-    
-    const locationData = {
-      latitude,
-      longitude,
-      address: currentLocation?.address,
-      city: currentLocation?.city,
-      department: currentLocation?.department
-    };
-    setCurrentLocation(locationData);
-    
-    const newPosition = { lat: latitude, lng: longitude };
-    setGpsPosition(newPosition);
-    
-    // Si la carte est prête, afficher immédiatement
-    if (mapInstanceRef.current) {
-      console.log('✅ Carte prête - Affichage immédiat du marqueur');
-      updateMapWithLocation(newPosition, true);
-      setPendingPosition(null);
-    } else {
-      // Sinon, stocker pour affichage dès que la carte sera prête
-      console.log('⏳ Carte non prête - Position stockée en attente');
-      setPendingPosition(newPosition);
+  // Référence pour le marqueur GPS
+  const gpsMarkerRef = useRef<L.Marker | null>(null);
+
+  // Mettre à jour la carte avec la position (immédiat, sans animation)
+  const updateMapWithLocation = useCallback((position: { lat: number; lng: number }, forceCenter = false) => {
+    if (!mapInstanceRef.current) {
+      console.log('⚠️ Carte non disponible pour affichage');
+      return;
     }
-  }, [currentLocation, setCurrentLocation]);
+
+    // Valider les coordonnées avant de les utiliser
+    if (typeof position.lat !== 'number' || typeof position.lng !== 'number' || 
+        isNaN(position.lat) || isNaN(position.lng)) {
+      console.error('❌ Coordonnées invalides:', position);
+      return;
+    }
+
+    console.log('🗺️ Mise à jour de la carte avec position:', position.lat.toFixed(6), position.lng.toFixed(6));
+
+    const map = mapInstanceRef.current;
+    
+    // Toujours recentrer avec zoom 18 pour une vue précise
+    map.setView([position.lat, position.lng], 18, {
+      animate: false
+    });
+    console.log('✅ Carte centrée sur:', position.lat.toFixed(6), position.lng.toFixed(6), 'zoom:', map.getZoom());
+    
+    // Supprimer l'ancien marqueur s'il existe
+    if (gpsMarkerRef.current && map.hasLayer(gpsMarkerRef.current)) {
+      map.removeLayer(gpsMarkerRef.current);
+    }
+    
+    // Ajouter le nouveau marqueur GPS
+    gpsMarkerRef.current = L.marker([position.lat, position.lng], {
+      icon: L.divIcon({
+        className: 'custom-gps-marker',
+        html: '📍',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
+      })
+    }).addTo(map);
+
+    console.log('✅ Marqueur GPS ajouté à la position:', position.lat.toFixed(6), position.lng.toFixed(6));
+    
+    // Ajouter le popup au marqueur
+    gpsMarkerRef.current.bindPopup(`
+      <div class="p-4 text-center min-w-[320px]">
+        <div class="font-semibold text-green-600 mb-3 text-lg">Position GPS</div>
+        <div class="space-y-3 text-sm">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div class="font-medium text-gray-800 mb-2">Coordonnées GPS :</div>
+            <div class="font-mono text-xs text-gray-700 space-y-1">
+              <div class="flex justify-between">
+                <span class="font-medium">Latitude:</span>
+                <span class="text-green-600">${position.lat.toFixed(7)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Longitude:</span>
+                <span class="text-green-600">${position.lng.toFixed(7)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `, {
+      maxWidth: 350,
+      className: 'custom-popup'
+    });
+  }, []);
 
   // Fonction pour récupérer la position GPS exacte avec haute précision
   const getExactGPSPosition = useCallback(async () => {
     if (!navigator.geolocation) {
+      console.error('❌ Géolocalisation non disponible sur ce navigateur');
       return;
     }
+
+    console.log('🎯 Démarrage de la géolocalisation GPS...');
 
     try {
       // Première tentative rapide pour affichage immédiat
       const firstPosition = await getSingleGPSPosition(1, 4);
       const firstAccuracy = firstPosition.coords.accuracy;
       
-      console.log(`📍 Position initiale: ${firstAccuracy.toFixed(1)}m - Affichage immédiat`);
+      console.log(`📍 Position GPS obtenue: lat=${firstPosition.coords.latitude.toFixed(6)}, lng=${firstPosition.coords.longitude.toFixed(6)}, précision=${firstAccuracy.toFixed(1)}m`);
       
       // Affichage immédiat du marqueur avec la première position
       updateLocationStore(
@@ -98,7 +143,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       
       // Si la précision est déjà bonne, on arrête
       if (firstAccuracy < 50) {
-        console.log(`✅ Bonne précision dès le début (${firstAccuracy.toFixed(1)}m)`);
+        console.log(`✅ Bonne précision dès le début (${firstAccuracy.toFixed(1)}m) - Arrêt de l'amélioration`);
         return;
       }
 
@@ -119,6 +164,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
             bestPosition = result.position;
             bestAccuracy = result.accuracy;
             
+            console.log(`✅ Meilleure précision trouvée: ${bestAccuracy.toFixed(1)}m`);
+            
             // Mise à jour progressive en arrière-plan
             updateLocationStore(
               bestPosition.coords.latitude,
@@ -127,112 +174,62 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
             );
             
             if (bestAccuracy < 20) {
-              console.log(`✅ Excellente précision trouvée (${bestAccuracy.toFixed(1)}m)`);
+              console.log(`✅ Excellente précision atteinte (${bestAccuracy.toFixed(1)}m)`);
               break;
             }
           }
         } catch (err) {
-          console.log(`⚠️ Tentative ${attempt} ignorée`);
+          console.log(`⚠️ Tentative ${attempt} échouée`);
         }
       }
       
-      console.log(`✓ Position finale: précision ${bestAccuracy.toFixed(1)}m`);
+      console.log(`✓ Géolocalisation terminée avec précision de ${bestAccuracy.toFixed(1)}m`);
       
     } catch (error) {
-      console.error('❌ Erreur GPS:', error);
-    }
-  }, [updateLocationStore]);
-
-  // Mettre à jour la carte avec la position (immédiat, sans animation)
-  const updateMapWithLocation = (position: { lat: number; lng: number }, forceCenter = false) => {
-    if (!mapInstanceRef.current) return;
-
-    // Valider les coordonnées avant de les utiliser
-    if (typeof position.lat !== 'number' || typeof position.lng !== 'number' || 
-        isNaN(position.lat) || isNaN(position.lng)) {
-      console.error('Invalid coordinates provided to updateMapWithLocation:', position);
-      return;
-    }
-
-    const map = mapInstanceRef.current;
-    
-    // Si forceCenter est true, toujours recentrer avec zoom 18
-    if (forceCenter) {
-      console.log('🎯 Recentrage forcé sur:', position.lat.toFixed(6), position.lng.toFixed(6), 'avec zoom 18');
-      // Centrer la carte sur la position avec zoom proche (immédiat, sans animation)
-      map.setView([position.lat, position.lng], 18, {
-        animate: false
-      });
-      console.log('✅ Carte recentrée avec zoom:', map.getZoom());
-    } else {
-      // Vérifier si la carte est déjà centrée sur cette position (pour les mises à jour automatiques)
-      const currentCenter = map.getCenter();
-      const currentZoom = map.getZoom();
-      const isAlreadyCentered = 
-        Math.abs(currentCenter.lat - position.lat) < 0.0001 &&
-        Math.abs(currentCenter.lng - position.lng) < 0.0001 &&
-        currentZoom >= 17;
-
-      // Centrer seulement si pas déjà centré
-      if (!isAlreadyCentered) {
-        // Centrer la carte sur la position avec zoom proche (immédiat, sans animation)
-        map.setView([position.lat, position.lng], 18, {
-          animate: false
-        });
+      console.error('❌ Erreur lors de la géolocalisation:', error);
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            console.error('❌ Permission de géolocalisation refusée par l\'utilisateur');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            console.error('❌ Position GPS non disponible');
+            break;
+          case error.TIMEOUT:
+            console.error('❌ Délai d\'attente GPS dépassé');
+            break;
+        }
       }
     }
+  }, [updateLocationStore, updateMapWithLocation]);
+
+  // Fonction pour mettre à jour la localisation dans le store
+  const updateLocationStore = useCallback((latitude: number, longitude: number, accuracy: number) => {
+    console.log(`📍 Mise à jour du store: lat=${latitude.toFixed(6)}, lng=${longitude.toFixed(6)}, précision=${accuracy.toFixed(1)}m`);
     
-    // Ajouter ou mettre à jour le marqueur GPS
-    if (gpsMarkerRef.current && map.hasLayer(gpsMarkerRef.current)) {
-      map.removeLayer(gpsMarkerRef.current);
+    const locationData = {
+      latitude,
+      longitude,
+      address: currentLocation?.address,
+      city: currentLocation?.city,
+      department: currentLocation?.department
+    };
+    setCurrentLocation(locationData);
+    
+    const newPosition = { lat: latitude, lng: longitude };
+    setGpsPosition(newPosition);
+    
+    // Si la carte est prête, afficher immédiatement
+    if (mapInstanceRef.current) {
+      console.log('✅ Carte prête - Affichage immédiat du marqueur');
+      updateMapWithLocation(newPosition, true);
+      setPendingPosition(null);
+    } else {
+      // Sinon, stocker pour affichage dès que la carte sera prête
+      console.log('⏳ Carte non prête - Position stockée pour affichage ultérieur');
+      setPendingPosition(newPosition);
     }
-    
-    gpsMarkerRef.current = L.marker([position.lat, position.lng], {
-      icon: L.divIcon({
-        className: 'custom-gps-marker',
-        html: '📍',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
-      })
-    }).addTo(map);
-
-    
-    // Ajouter le popup au marqueur avec informations de précision
-    gpsMarkerRef.current.bindPopup(`
-      <div class="p-4 text-center min-w-[320px]">
-        <div class="font-semibold text-green-600 mb-3 text-lg">Position GPS</div>
-        <div class="space-y-3 text-sm">
-          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-            <div class="font-medium text-gray-800 mb-2">Coordonnées GPS :</div>
-            <div class="font-mono text-xs text-gray-700 space-y-1">
-              <div class="flex justify-between">
-                <span class="font-medium">Latitude:</span>
-                <span class="text-green-600">${position.lat.toFixed(7)}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="font-medium">Longitude:</span>
-                <span class="text-green-600">${position.lng.toFixed(7)}</span>
-              </div>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <div class="text-xs text-gray-600 font-medium">Actions rapides :</div>
-            <div class="grid grid-cols-1 gap-2">
-              <button onclick="window.location.href='/signaler'" class="px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-xs rounded-md transition-colors">
-                📝 Signaler
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `, {
-      maxWidth: 350,
-      className: 'custom-popup'
-    });
-  };
-
-  // Référence pour le marqueur GPS
-  const gpsMarkerRef = useRef<L.Marker | null>(null);
+  }, [currentLocation, setCurrentLocation, updateMapWithLocation]);
 
   // Ajouter les contrôles personnalisés
   const addCustomControls = useCallback(() => {
