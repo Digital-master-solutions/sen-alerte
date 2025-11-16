@@ -73,51 +73,63 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     }
 
     try {
-      let bestPosition: GeolocationPosition | null = null;
-      let bestAccuracy = Infinity;
-      const maxAttempts = 4;
-      const targetAccuracy = 10;
+      // Première tentative rapide pour affichage immédiat
+      const firstPosition = await getSingleGPSPosition(1, 4);
+      const firstAccuracy = firstPosition.coords.accuracy;
+      
+      console.log(`📍 Position initiale: ${firstAccuracy.toFixed(1)}m - Affichage immédiat`);
+      
+      // Affichage immédiat du marqueur avec la première position
+      updateLocationStore(
+        firstPosition.coords.latitude,
+        firstPosition.coords.longitude,
+        firstAccuracy
+      );
+      
+      // Si la précision est déjà bonne, on arrête
+      if (firstAccuracy < 50) {
+        console.log(`✅ Bonne précision dès le début (${firstAccuracy.toFixed(1)}m)`);
+        return;
+      }
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      // Amélioration de la précision en arrière-plan
+      console.log(`🔄 Amélioration de la précision en arrière-plan...`);
+      let bestPosition: GeolocationPosition = firstPosition;
+      let bestAccuracy = firstAccuracy;
+      const maxAttempts = 4;
+
+      for (let attempt = 2; attempt <= maxAttempts; attempt++) {
         try {
-          console.log(`🎯 Tentative GPS haute précision ${attempt}/${maxAttempts}...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           const position = await getSingleGPSPosition(attempt, maxAttempts);
           const result = processGPSPosition(position, attempt, bestPosition, bestAccuracy);
           
-          bestPosition = result.position;
-          bestAccuracy = result.accuracy;
-
-          if (result.accuracy <= targetAccuracy) {
-            console.log(`✅ Précision excellente atteinte: ${result.accuracy.toFixed(1)}m`);
-            break;
+          if (result.position && result.accuracy < bestAccuracy) {
+            bestPosition = result.position;
+            bestAccuracy = result.accuracy;
+            
+            // Mise à jour progressive en arrière-plan
+            updateLocationStore(
+              bestPosition.coords.latitude,
+              bestPosition.coords.longitude,
+              bestAccuracy
+            );
+            
+            if (bestAccuracy < 20) {
+              console.log(`✅ Excellente précision trouvée (${bestAccuracy.toFixed(1)}m)`);
+              break;
+            }
           }
-
-          if (attempt < maxAttempts) {
-            console.log(`⏳ Attente avant tentative ${attempt + 1}...`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          }
-
-        } catch (attemptError) {
-          console.log(`❌ Tentative ${attempt} échouée:`, attemptError);
-          if (attempt === maxAttempts) {
-            throw attemptError;
-          }
+        } catch (err) {
+          console.log(`⚠️ Tentative ${attempt} ignorée`);
         }
       }
-
-      if (!bestPosition) {
-        throw new Error('Impossible d\'obtenir une position GPS précise');
-      }
-
-      const { latitude, longitude, accuracy } = bestPosition.coords;
-      (window as unknown as { lastGpsAccuracy?: number }).lastGpsAccuracy = accuracy;
-      console.log(`Position finale: ${latitude}, ${longitude} (précision: ${accuracy}m)`);
       
-      updateLocationStore(latitude, longitude, accuracy);
+      console.log(`✓ Position finale: précision ${bestAccuracy.toFixed(1)}m`);
       
-    } catch (error: unknown) {
-      console.error('Erreur GPS:', error);
+    } catch (error) {
+      console.error('❌ Erreur GPS:', error);
     }
   }, [updateLocationStore]);
 
