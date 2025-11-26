@@ -19,12 +19,12 @@ import AdminUsers from "./pages/admin/Users";
 import AdminCategories from "./pages/admin/Categories";
 import OrganizationLayout from "./pages/organization/OrganizationLayout";
 import OrgLogin from "./pages/organization/Login";
-import OrgSignup from "./pages/organization/Signup";
 import AvailableReports from "./pages/organization/AvailableReports";
 import ManagedReports from "./pages/organization/ManagedReports";
 import OrgDashboard from "./pages/organization/Dashboard";
 import OrgNotifications from "./pages/organization/Notifications";
 import OrgSettings from "./pages/organization/Settings";
+import AdminFeedbacks from "./pages/admin/Feedbacks";
 
 
 const queryClient = new QueryClient();
@@ -59,14 +59,13 @@ const App = () => (
             <Route path="reports" element={<AdminReports />} />
             <Route path="organizations" element={<AdminOrganizations />} />
             <Route path="users" element={<AdminUsers />} />
-            
             <Route path="categories" element={<AdminCategories />} />
+            <Route path="feedbacks" element={<AdminFeedbacks />} />
             <Route index element={<AdminDashboard />} />
           </Route>
           
           {/* Organization Routes */}
           <Route path="/organization/login" element={<OrgLogin />} />
-          <Route path="/organization/signup" element={<OrgSignup />} />
           <Route path="/organization" element={<OrganizationLayout />}>
             <Route path="dashboard" element={<OrgDashboard />} />
             <Route path="available-reports" element={<AvailableReports />} />

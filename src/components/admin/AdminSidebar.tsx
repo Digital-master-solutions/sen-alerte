@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Building2, Users, LogOut, Shield, Tag, UserCog } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, Users, LogOut, Shield, Tag, UserCog, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -27,6 +27,10 @@ const mainItems = [{
   title: "Catégories",
   url: "/securepass/categories",
   icon: Tag
+}, {
+  title: "Feedbacks",
+  url: "/securepass/feedbacks",
+  icon: MessageSquare
 }];
 export function AdminSidebar() {
   const {

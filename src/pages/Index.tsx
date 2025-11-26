@@ -10,6 +10,7 @@ import { Menu, Plus, Home, Bell, Info, FileText, MapPin, Users, Settings, UserPl
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import { Logo } from "@/components/ui/logo";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 const Index = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
@@ -82,10 +83,6 @@ const Index = () => {
                       <Users className="h-5 w-5" />
                       <span className="font-medium">Connexion Organisation</span>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => navigate("/organization/signup")}>
-                      <UserPlus className="h-5 w-5" />
-                      <span className="font-medium">Inscription Organisation</span>
-                    </Button>
                   </nav>
                 </div>
                 <div className="mt-8 pt-6 border-t">
@@ -103,6 +100,7 @@ const Index = () => {
             <Logo size="md" className="sm:hidden" />
           </div>
           <div className="flex items-center gap-3">
+            <FeedbackDialog />
             <Button 
               variant="ghost" 
               size="icon" 

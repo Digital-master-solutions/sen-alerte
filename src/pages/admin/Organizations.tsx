@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,6 +22,7 @@ import {
   MapPin,
   Phone,
   Mail,
+  Plus,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -45,6 +47,17 @@ export default function AdminOrganizations() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newOrgData, setNewOrgData] = useState({
+    name: "",
+    type: "Mairie",
+    email: "",
+    password: "",
+    phone: "",
+    address: "",
+    city: "",
+  });
+  const [creatingOrg, setCreatingOrg] = useState(false);
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -175,6 +188,71 @@ useEffect(() => {
     }
   };
 
+  const createOrganization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingOrg(true);
+
+    try {
+      // Create Supabase Auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newOrgData.email,
+        password: newOrgData.password,
+        options: {
+          data: {
+            name: newOrgData.name,
+            user_type: 'organization'
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Échec de la création du compte");
+
+      // Create organization record
+      const { error: orgError } = await supabase.from("organizations").insert([
+        {
+          name: newOrgData.name,
+          type: newOrgData.type,
+          email: newOrgData.email,
+          phone: newOrgData.phone,
+          address: newOrgData.address,
+          city: newOrgData.city,
+          status: "approved",
+          is_active: true,
+          supabase_user_id: authData.user.id,
+        },
+      ]);
+
+      if (orgError) throw orgError;
+
+      toast({
+        title: "Organisation créée",
+        description: "L'organisation a été créée avec succès",
+      });
+
+      setNewOrgData({
+        name: "",
+        type: "Mairie",
+        email: "",
+        password: "",
+        phone: "",
+        address: "",
+        city: "",
+      });
+      setCreateDialogOpen(false);
+      loadOrganizations();
+    } catch (error: any) {
+      console.error("Error creating organization:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer l'organisation",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingOrg(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -190,11 +268,17 @@ useEffect(() => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Organisations</h1>
-        <p className="text-muted-foreground">
-          Gestion des organisations partenaires
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Organisations</h1>
+          <p className="text-muted-foreground">
+            Gestion des organisations partenaires
+          </p>
+        </div>
+        <Button onClick={() => setCreateDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Créer une organisation
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -454,6 +538,128 @@ useEffect(() => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Organization Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Créer une organisation</DialogTitle>
+            <DialogDescription>
+              Créer un nouveau compte organisation pour une mairie du Sénégal
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={createOrganization} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom de l'organisation *</Label>
+                <Input
+                  id="name"
+                  value={newOrgData.name}
+                  onChange={(e) => setNewOrgData({ ...newOrgData, name: e.target.value })}
+                  placeholder="Mairie de..."
+                  required
+                  disabled={creatingOrg}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type">Type *</Label>
+                <Select
+                  value={newOrgData.type}
+                  onValueChange={(value) => setNewOrgData({ ...newOrgData, type: value })}
+                  disabled={creatingOrg}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mairie">Mairie</SelectItem>
+                    <SelectItem value="Service technique">Service technique</SelectItem>
+                    <SelectItem value="Collectivité">Collectivité</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newOrgData.email}
+                  onChange={(e) => setNewOrgData({ ...newOrgData, email: e.target.value })}
+                  placeholder="contact@mairie.sn"
+                  required
+                  disabled={creatingOrg}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newOrgData.password}
+                  onChange={(e) => setNewOrgData({ ...newOrgData, password: e.target.value })}
+                  placeholder="Mot de passe sécurisé"
+                  required
+                  minLength={8}
+                  disabled={creatingOrg}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Téléphone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={newOrgData.phone}
+                  onChange={(e) => setNewOrgData({ ...newOrgData, phone: e.target.value })}
+                  placeholder="+221 XX XXX XX XX"
+                  disabled={creatingOrg}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">Ville *</Label>
+                <Input
+                  id="city"
+                  value={newOrgData.city}
+                  onChange={(e) => setNewOrgData({ ...newOrgData, city: e.target.value })}
+                  placeholder="Dakar"
+                  required
+                  disabled={creatingOrg}
+                />
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="address">Adresse</Label>
+                <Input
+                  id="address"
+                  value={newOrgData.address}
+                  onChange={(e) => setNewOrgData({ ...newOrgData, address: e.target.value })}
+                  placeholder="Adresse complète"
+                  disabled={creatingOrg}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateDialogOpen(false)}
+                disabled={creatingOrg}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" disabled={creatingOrg}>
+                {creatingOrg ? "Création..." : "Créer l'organisation"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
