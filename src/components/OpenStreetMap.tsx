@@ -21,6 +21,9 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [pendingPosition, setPendingPosition] = useState<{ lat: number; lng: number } | null>(null);
   const { currentLocation, setCurrentLocation } = useLocationStore();
+  
+  // Flag pour éviter les appels multiples de géolocalisation
+  const isGettingPositionRef = useRef(false);
 
   // Fonction pour obtenir une position GPS unique
   const getSingleGPSPosition = (attempt: number, maxAttempts: number): Promise<GeolocationPosition> => {
@@ -148,11 +151,18 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
   // Fonction pour récupérer la position GPS exacte avec haute précision
   const getExactGPSPosition = useCallback(async () => {
+    // Éviter les appels multiples simultanés
+    if (isGettingPositionRef.current) {
+      console.log('⚠️ Géolocalisation déjà en cours, appel ignoré');
+      return;
+    }
+    
     if (!navigator.geolocation) {
       console.error('❌ Géolocalisation non disponible sur ce navigateur');
       return;
     }
 
+    isGettingPositionRef.current = true;
     console.log('🎯 Démarrage de la géolocalisation GPS...');
 
     try {
@@ -228,163 +238,146 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
             break;
         }
       }
+    } finally {
+      // Toujours réinitialiser le flag à la fin
+      isGettingPositionRef.current = false;
     }
   }, [updateLocationStore]);
 
-  // Ajouter les contrôles personnalisés
-  const addCustomControls = useCallback(() => {
-    if (!mapInstanceRef.current) return;
-
-    const map = mapInstanceRef.current;
-    
-    // Supprimer les anciens contrôles s'ils existent
-    const existingControls = map.getContainer().querySelectorAll('.leaflet-control-custom');
-    existingControls.forEach(control => control.remove());
-
-    // Créer les contrôles manuellement sans utiliser L.Control.extend
-    const createSimpleControl = (html: string, title: string, onClick: () => void, color: string, top: string) => {
-      const container = document.createElement('div');
-      container.className = 'leaflet-control leaflet-control-custom';
-      container.style.cssText = `
-        position: absolute;
-        top: ${top};
-        right: 10px;
-        z-index: 1000;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 3px 12px rgba(0,0,0,0.15);
-        transition: all 0.2s ease;
-      `;
-      
-      const button = document.createElement('a');
-      button.className = 'leaflet-control-button';
-      button.innerHTML = html;
-      button.title = title;
-      button.href = '#';
-      button.style.cssText = `
-        display: block;
-        width: 44px;
-        height: 44px;
-        line-height: 44px;
-        text-align: center;
-        font-size: ${html === '+' || html === '−' ? '22px' : '20px'};
-        font-weight: ${html === '+' || html === '−' ? 'bold' : 'normal'};
-        background: white;
-        border: 2px solid rgba(0,0,0,0.1);
-        border-radius: 8px;
-        cursor: pointer;
-        color: ${color};
-        text-decoration: none;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      `;
-
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        onClick();
-      });
-
-      // Effets de survol
-      button.addEventListener('mouseenter', () => {
-        button.style.transform = 'scale(1.05)';
-        button.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
-        button.style.borderColor = color;
-      });
-
-      button.addEventListener('mouseleave', () => {
-        button.style.transform = 'scale(1)';
-        button.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-        button.style.borderColor = 'rgba(0,0,0,0.1)';
-      });
-
-      container.appendChild(button);
-      return container;
-    };
-
-    // Bouton de localisation avec belle icône
-    const locationButton = createSimpleControl(
-      '🎯',
-      'Localiser ma position précisément',
-      () => {
-        console.log('🎯 Bouton de localisation cliqué');
-        // Si on a déjà une position dans le store, centrer directement la carte
-        if (currentLocation && mapInstanceRef.current) {
-          console.log('📍 Recentrage sur position existante:', currentLocation);
-          updateMapWithLocation({ lat: currentLocation.latitude, lng: currentLocation.longitude }, true);
-        } else {
-          console.log('🔍 Récupération nouvelle position GPS');
-          // Sinon, récupérer la position GPS exacte
-        getExactGPSPosition();
-        }
-      },
-      '#22c55e',
-      '10px'
-    );
-
-    // Bouton zoom + (agrandir)
-    const zoomInButton = createSimpleControl(
-      '+',
-      'Zoomer (agrandir)',
-      () => {
-        map.zoomIn();
-      },
-      '#3b82f6',
-      '60px'
-    );
-
-    // Bouton zoom - (diminuer)
-    const zoomOutButton = createSimpleControl(
-      '−',
-      'Dézoomer (diminuer)',
-      () => {
-        map.zoomOut();
-      },
-      '#3b82f6',
-      '110px'
-    );
-
-    // Ajouter les contrôles au conteneur de la carte
-    const mapContainer = map.getContainer();
-    mapContainer.appendChild(locationButton);
-    mapContainer.appendChild(zoomInButton);
-    mapContainer.appendChild(zoomOutButton);
-  }, [currentLocation, getExactGPSPosition]);
-
+  // Initialisation de la carte (une seule fois)
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
-    
-    // Exposer la fonction de géolocalisation globalement pour le popup
-    (window as unknown as { getExactGPSPosition?: () => Promise<void> }).getExactGPSPosition = getExactGPSPosition;
 
-    // 🚀 Démarrer la géolocalisation IMMÉDIATEMENT (avant même l'initialisation de la carte)
-    getExactGPSPosition();
+    console.log('🗺️ Initialisation de la carte...');
 
     // Initialiser la carte
     const map = L.map(mapRef.current, {
       center: [14.7167, -17.4677], // Dakar
       zoom: 13,
-      zoomControl: false, // Enlever complètement les contrôles de zoom à gauche
+      zoomControl: false,
       attributionControl: true
     });
 
     mapInstanceRef.current = map;
 
-    // Ajouter la couche OpenStreetMap avec attribution complète
+    // Ajouter la couche OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(map);
 
-    // Attendre que la carte soit prête avant d'ajouter les contrôles
+    // Ajouter les contrôles personnalisés
+    const addControls = () => {
+      if (!mapInstanceRef.current) return;
+      const mapInstance = mapInstanceRef.current;
+      
+      const existingControls = mapInstance.getContainer().querySelectorAll('.leaflet-control-custom');
+      existingControls.forEach(control => control.remove());
+
+      const createSimpleControl = (html: string, title: string, onClick: () => void, color: string, top: string) => {
+        const container = document.createElement('div');
+        container.className = 'leaflet-control leaflet-control-custom';
+        container.style.cssText = `
+          position: absolute;
+          top: ${top};
+          right: 10px;
+          z-index: 1000;
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+          transition: all 0.2s ease;
+        `;
+        
+        const button = document.createElement('a');
+        button.className = 'leaflet-control-button';
+        button.innerHTML = html;
+        button.title = title;
+        button.href = '#';
+        button.style.cssText = `
+          display: block;
+          width: 44px;
+          height: 44px;
+          line-height: 44px;
+          text-align: center;
+          font-size: ${html === '+' || html === '−' ? '22px' : '20px'};
+          font-weight: ${html === '+' || html === '−' ? 'bold' : 'normal'};
+          background: white;
+          border: 2px solid rgba(0,0,0,0.1);
+          border-radius: 8px;
+          cursor: pointer;
+          color: ${color};
+          text-decoration: none;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        `;
+
+        button.addEventListener('click', (e) => {
+          e.preventDefault();
+          onClick();
+        });
+
+        button.addEventListener('mouseenter', () => {
+          button.style.transform = 'scale(1.05)';
+          button.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+          button.style.borderColor = color;
+        });
+
+        button.addEventListener('mouseleave', () => {
+          button.style.transform = 'scale(1)';
+          button.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+          button.style.borderColor = 'rgba(0,0,0,0.1)';
+        });
+
+        container.appendChild(button);
+        return container;
+      };
+
+      const locationButton = createSimpleControl(
+        '🎯',
+        'Localiser ma position précisément',
+        () => {
+          console.log('🎯 Bouton de localisation cliqué');
+          getExactGPSPosition();
+        },
+        '#22c55e',
+        '10px'
+      );
+
+      const zoomInButton = createSimpleControl(
+        '+',
+        'Zoomer (agrandir)',
+        () => mapInstance.zoomIn(),
+        '#3b82f6',
+        '60px'
+      );
+
+      const zoomOutButton = createSimpleControl(
+        '−',
+        'Dézoomer (diminuer)',
+        () => mapInstance.zoomOut(),
+        '#3b82f6',
+        '110px'
+      );
+
+      const mapContainer = mapInstance.getContainer();
+      mapContainer.appendChild(locationButton);
+      mapContainer.appendChild(zoomInButton);
+      mapContainer.appendChild(zoomOutButton);
+    };
+
+    // Attendre que la carte soit prête
     map.whenReady(() => {
       console.log('🗺️ Carte initialisée et prête');
+      addControls();
       
-      // Ajouter les contrôles personnalisés
-      addCustomControls();
+      // Lancer la géolocalisation UNE SEULE FOIS
+      if (!isGettingPositionRef.current) {
+        getExactGPSPosition();
+      }
       
-      // Si on a déjà reçu une position GPS pendant le chargement, l'afficher maintenant
+      // Afficher position en attente si elle existe
       if (pendingPosition) {
-        console.log('📍 Affichage de la position GPS en attente:', pendingPosition);
+        console.log('📍 Affichage de la position GPS en attente');
         updateMapWithLocation(pendingPosition, true);
         setPendingPosition(null);
       }
@@ -396,35 +389,33 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [getExactGPSPosition, addCustomControls]);
+  }, []); // ✅ Aucune dépendance = exécution unique
 
-  // Mettre à jour la position si elle change dans le store (mise à jour automatique)
+  // Mettre à jour le marqueur quand currentLocation change
   useEffect(() => {
-    if (currentLocation) {
-      // Convertir le format du store (latitude/longitude) vers le format attendu (lat/lng)
-      const position = {
-        lat: currentLocation.latitude,
-        lng: currentLocation.longitude
-      };
-      
-      // Vérifier que les coordonnées sont valides
-      if (typeof position.lat === 'number' && typeof position.lng === 'number' && 
-          !isNaN(position.lat) && !isNaN(position.lng)) {
-        
-        // Vérifier si la position a vraiment changé
-        if (!gpsPosition || 
-            Math.abs(gpsPosition.lat - position.lat) > 0.00001 ||
-            Math.abs(gpsPosition.lng - position.lng) > 0.00001) {
-          
-        setGpsPosition(position);
-        if (mapInstanceRef.current) {
-            // Mise à jour automatique
-          updateMapWithLocation(position);
-          }
-        }
-      }
+    if (!currentLocation || !mapInstanceRef.current) return;
+    
+    const position = {
+      lat: currentLocation.latitude,
+      lng: currentLocation.longitude
+    };
+    
+    // Vérifier validité des coordonnées
+    if (typeof position.lat !== 'number' || typeof position.lng !== 'number' || 
+        isNaN(position.lat) || isNaN(position.lng)) {
+      return;
     }
-  }, [currentLocation, gpsPosition]);
+    
+    // Vérifier si vraiment changé
+    if (!gpsPosition || 
+        Math.abs(gpsPosition.lat - position.lat) > 0.00001 ||
+        Math.abs(gpsPosition.lng - position.lng) > 0.00001) {
+      
+      console.log('🔄 Mise à jour du marqueur depuis currentLocation');
+      setGpsPosition(position);
+      updateMapWithLocation(position);
+    }
+  }, [currentLocation]);
 
 
   return (
