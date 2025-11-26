@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, AlertCircle } from 'lucide-react';
+import { useMobileOptimization } from '@/hooks/use-mobile';
 
 interface Report {
   id: string;
@@ -17,6 +18,7 @@ interface Report {
 const IncidentsSection = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isMobile, mobileClasses } = useMobileOptimization();
 
   useEffect(() => {
     const loadReports = async () => {
@@ -71,48 +73,48 @@ const IncidentsSection = () => {
 
   if (loading) {
     return (
-      <section className="py-16 bg-secondary/20">
-        <div className="container">
-          <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <AlertCircle className="h-8 w-8 text-primary" />
-              <h2 className="text-4xl font-bold text-foreground">
+      <section className={`${isMobile ? 'py-8' : 'py-16'} bg-secondary/20`}>
+        <div className={`container ${mobileClasses.container}`}>
+          <div className={`text-center ${isMobile ? 'mb-6' : 'mb-12'}`}>
+            <div className={`flex items-center justify-center ${isMobile ? 'gap-2 mb-3' : 'gap-3 mb-4'}`}>
+              <AlertCircle className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-primary`} />
+              <h2 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold text-foreground`}>
                 Incidents récents
               </h2>
             </div>
-            <p className="text-xl text-muted-foreground">
+            <p className={`${isMobile ? 'text-base' : 'text-xl'} text-muted-foreground`}>
               Chargement des signalements...
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={`grid ${mobileClasses.grid}`}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i} className="bg-white/90 backdrop-blur-sm border-0 shadow-md">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <div className="h-5 w-5 bg-muted animate-pulse rounded" />
+              <Card key={i} className={`bg-white/90 backdrop-blur-sm border-0 shadow-md ${mobileClasses.card}`}>
+                <CardHeader className={isMobile ? 'pb-2' : 'pb-4'}>
+                  <div className={`flex items-start justify-between ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                    <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                      <div className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-primary/10`}>
+                        <div className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} bg-muted animate-pulse rounded`} />
                       </div>
-                      <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+                      <div className={`${isMobile ? 'h-5 w-24' : 'h-6 w-32'} bg-muted animate-pulse rounded`} />
                     </div>
-                    <div className="h-6 w-20 bg-muted animate-pulse rounded-full" />
+                    <div className={`${isMobile ? 'h-5 w-16' : 'h-6 w-20'} bg-muted animate-pulse rounded-full`} />
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
+                <CardContent className={mobileClasses.spacing}>
+                  <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                     <div className="h-4 w-full bg-muted animate-pulse rounded" />
                     <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                     <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 bg-muted animate-pulse rounded" />
-                      <div className="h-4 w-40 bg-muted animate-pulse rounded" />
+                      <div className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} bg-muted animate-pulse rounded`} />
+                      <div className={`${isMobile ? 'h-3.5 w-32' : 'h-4 w-40'} bg-muted animate-pulse rounded`} />
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 bg-muted animate-pulse rounded" />
-                      <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                      <div className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} bg-muted animate-pulse rounded`} />
+                      <div className={`${isMobile ? 'h-3.5 w-20' : 'h-4 w-24'} bg-muted animate-pulse rounded`} />
                     </div>
                   </div>
                 </CardContent>
@@ -126,12 +128,12 @@ const IncidentsSection = () => {
 
   if (reports.length === 0) {
     return (
-      <section className="py-12 bg-secondary/20">
-        <div className="container">
-          <div className="text-center space-y-4">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h2 className="text-2xl font-bold text-foreground">Aucun incident signalé</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
+      <section className={`${isMobile ? 'py-8' : 'py-12'} bg-secondary/20`}>
+        <div className={`container ${mobileClasses.container}`}>
+          <div className={`text-center ${mobileClasses.spacing}`}>
+            <AlertCircle className={`${isMobile ? 'h-10 w-10' : 'h-12 w-12'} text-muted-foreground mx-auto`} />
+            <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-foreground`}>Aucun incident signalé</h2>
+            <p className={`${isMobile ? 'text-sm' : 'text-base'} text-muted-foreground max-w-md mx-auto`}>
               Soyez le premier à signaler un problème !
             </p>
           </div>
@@ -141,53 +143,53 @@ const IncidentsSection = () => {
   }
 
   return (
-    <section className="pt-8 pb-16 bg-secondary/20">
-      <div className="container">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <AlertCircle className="h-8 w-8 text-primary" />
-            <h2 className="text-4xl font-bold text-foreground">
+    <section className={`${isMobile ? 'pt-6 pb-12' : 'pt-8 pb-16'} bg-secondary/20`}>
+      <div className={`container ${mobileClasses.container}`}>
+        <div className={`text-center ${isMobile ? 'mb-6' : 'mb-12'}`}>
+          <div className={`flex items-center justify-center ${isMobile ? 'gap-2 mb-3' : 'gap-3 mb-4'}`}>
+            <AlertCircle className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-primary`} />
+            <h2 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold text-foreground`}>
               Incidents récents
             </h2>
           </div>
-          <p className="text-xl text-muted-foreground">
+          <p className={`${isMobile ? 'text-base' : 'text-xl'} text-muted-foreground`}>
             {reports.length} signalement{reports.length > 1 ? 's' : ''} récent{reports.length > 1 ? 's' : ''}
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className={`grid ${mobileClasses.grid}`}>
           {reports.map((report) => (
-            <Card key={report.id} className="bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:scale-105">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <AlertCircle className="h-5 w-5 text-primary" />
+            <Card key={report.id} className={`bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 border-0 shadow-md ${!isMobile && 'hover:scale-105'} ${mobileClasses.card}`}>
+              <CardHeader className={isMobile ? 'pb-2' : 'pb-4'}>
+                <div className={`flex items-start justify-between ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                  <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                    <div className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-primary/10`}>
+                      <AlertCircle className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
                     </div>
-                    <CardTitle className="text-lg font-bold text-foreground leading-tight">
+                    <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-foreground leading-tight`}>
                       {report.type}
                     </CardTitle>
                   </div>
-                  <Badge className={`text-white font-medium px-3 py-1 ${getStatusColor(report.status)}`}>
+                  <Badge className={`text-white font-medium ${isMobile ? 'px-2 py-0.5 text-xs' : 'px-3 py-1'} ${getStatusColor(report.status)}`}>
                     {getStatusText(report.status)}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground leading-relaxed line-clamp-3">
+              <CardContent className={mobileClasses.spacing}>
+                <p className={`text-muted-foreground leading-relaxed line-clamp-3 ${isMobile ? 'text-sm' : 'text-base'}`}>
                   {report.description}
                 </p>
                 
-                <div className="space-y-2">
+                <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                   {report.address && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+                      <MapPin className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} flex-shrink-0`} />
                       <span className="truncate">{report.address}</span>
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4 flex-shrink-0" />
+                  <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+                    <Clock className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} flex-shrink-0`} />
                     <span>
                       {new Date(report.created_at).toLocaleDateString('fr-FR', {
                         day: 'numeric',
