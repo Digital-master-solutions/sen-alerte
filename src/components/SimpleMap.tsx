@@ -49,13 +49,18 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         fadeAnimation: true
       }).setView(defaultCenter, 13);
 
-      // Add tile layer with loading optimization
+      // Add tile layer with loading optimization and cache support
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
         crossOrigin: true,
         updateWhenIdle: true, // Charge les tuiles uniquement quand l'utilisateur arrête de bouger
-        keepBuffer: 2 // Garde en cache les tuiles pour un chargement plus rapide
+        keepBuffer: 2, // Garde en cache les tuiles pour un chargement plus rapide
+        maxNativeZoom: 19,
+        minZoom: 3,
+        // Options pour améliorer le cache
+        updateWhenZooming: false,
+        updateInterval: 200
       }).addTo(mapInstanceRef.current);
 
       // Add custom recenter button
