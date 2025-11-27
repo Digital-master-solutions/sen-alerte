@@ -125,7 +125,7 @@ export default function AdminUsers() {
       const { data: newAdminId, error: rpcError } = await supabase.rpc('admin_create_superadmin', {
         _name: formData.name,
         _email: formData.email,
-        _username: formData.email.split('@')[0],
+        _username: formData.email, // Use email as username for consistency with login
         _password_hash: hashedPassword,
         _supabase_user_id: authData.user.id
       });
