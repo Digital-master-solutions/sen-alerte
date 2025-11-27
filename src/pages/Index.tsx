@@ -165,7 +165,7 @@ const Index = () => {
               <Logo size="xl" className="text-white" />
               <div className="space-y-4 text-footer-foreground/90 leading-relaxed">
                 <p className="text-base">
-                  SenAlert est la plateforme officielle de signalement citoyen qui facilite la communication entre les citoyens et les services municipaux au Sénégal.
+                  SenAlert est une plateforme de signalement citoyen qui facilite la communication entre les citoyens et les services municipaux au Sénégal.
                 </p>
                 <p className="text-sm">
                   Notre mission est de créer des villes plus intelligentes et plus réactives en permettant aux citoyens de signaler rapidement les problèmes urbains et de suivre leur résolution en temps réel.
