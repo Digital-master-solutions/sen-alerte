@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
         
         if (cachedResponse) {
           // Vérifier si le cache n'est pas expiré
-          const dateHeader = cachedResponse.headers.get('sw-cache-date');
+          const dateHeader = cachedResponse.headers.get('date');
           if (dateHeader) {
             const cacheDate = new Date(dateHeader).getTime();
             const now = Date.now();
@@ -53,27 +53,19 @@ self.addEventListener('fetch', (event) => {
             if (now - cacheDate < TILE_CACHE_DURATION) {
               return cachedResponse;
             }
+          } else {
+            // Si pas de header date, retourner le cache quand même
+            return cachedResponse;
           }
         }
 
         // Sinon, faire une requête réseau
         const networkResponse = await fetch(request);
         
-        // Cloner la réponse car elle ne peut être utilisée qu'une fois
-        const responseToCache = networkResponse.clone();
-        
-        // Ajouter un header personnalisé avec la date de mise en cache
-        const headers = new Headers(responseToCache.headers);
-        headers.append('sw-cache-date', new Date().toISOString());
-        
-        const modifiedResponse = new Response(responseToCache.body, {
-          status: responseToCache.status,
-          statusText: responseToCache.statusText,
-          headers: headers
-        });
-        
-        // Mettre en cache la réponse
-        cache.put(request, modifiedResponse);
+        // Mettre en cache la réponse originale (sans modification)
+        if (networkResponse.ok) {
+          cache.put(request, networkResponse.clone());
+        }
         
         return networkResponse;
       } catch (error) {
@@ -82,6 +74,7 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) {
           return cachedResponse;
         }
+        // Si pas de cache disponible, laisser l'erreur se propager
         throw error;
       }
     })
