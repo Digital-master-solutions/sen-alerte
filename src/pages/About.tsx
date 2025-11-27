@@ -31,7 +31,7 @@ const About = () => {
           </div>
           <h2 className="text-4xl font-bold mb-4">SenAlert</h2>
           <p className="text-xl mb-8 opacity-90">
-            Plateforme citoyenne pour le Sénégal
+            Votre partenaire digital pour améliorer votre cadre de vie
           </p>
           <div className="flex flex-wrap justify-center gap-8 text-sm">
             <div className="flex items-center gap-2">
@@ -62,13 +62,13 @@ const About = () => {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 leading-relaxed mb-4">
-                SenAlert est conçu pour permettre à toute la population du Sénégal de signaler 
-                facilement les incidents et problèmes rencontrés dans leur environnement quotidien.
+                SenAlert transforme la relation entre les citoyens et les services municipaux en offrant 
+                une plateforme moderne, accessible et efficace pour signaler les problèmes urbains du quotidien.
               </p>
               <p className="text-gray-700 leading-relaxed">
-                Notre objectif est de renforcer la participation citoyenne et d'améliorer la qualité 
-                de vie de tous, partout au Sénégal, en créant un pont direct entre les citoyens et 
-                les services publics.
+                Notre mission est de faciliter la participation citoyenne active dans l'amélioration continue 
+                des infrastructures et services publics, en garantissant un traitement rapide et transparent 
+                de chaque signalement.
               </p>
             </CardContent>
           </Card>
@@ -84,12 +84,14 @@ const About = () => {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 leading-relaxed mb-4">
-                Nous aspirons à créer un Sénégal où chaque citoyen peut contribuer activement 
-                à l'amélioration de son cadre de vie.
+                Nous aspirons à bâtir des villes intelligentes où chaque citoyen devient acteur 
+                du changement et participe activement à la construction d'un environnement urbain 
+                de qualité.
               </p>
               <p className="text-gray-700 leading-relaxed">
-                Une société où la technologie facilite la communication entre les habitants et 
-                les autorités, pour un développement durable et inclusif.
+                Notre vision est celle d'un Sénégal où la technologie rapproche les citoyens 
+                des décideurs, accélère la résolution des problèmes urbains et instaure une 
+                culture de transparence et de redevabilité.
               </p>
             </CardContent>
           </Card>
@@ -108,8 +110,8 @@ const About = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm leading-relaxed">
-                  Une plateforme participative pour tous les citoyens sénégalais, 
-                  favorisant l'engagement collectif
+                  Nous croyons en la force de l'action collective et encourageons 
+                  chaque citoyen à devenir un acteur du changement positif dans sa communauté
                 </p>
               </CardContent>
             </Card>
@@ -123,7 +125,8 @@ const About = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm leading-relaxed">
-                  Signalement sécurisé et traitement transparent pour une confiance mutuelle
+                  Chaque signalement est traité avec rigueur dans un processus transparent 
+                  qui garantit la confiance entre citoyens et autorités
                 </p>
               </CardContent>
             </Card>
@@ -137,7 +140,8 @@ const About = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 text-sm leading-relaxed">
-                  Utilisation des technologies modernes pour un service public plus efficace
+                  Nous exploitons les technologies de pointe pour optimiser la gestion 
+                  urbaine et améliorer l'efficacité des services publics
                 </p>
               </CardContent>
             </Card>
@@ -208,9 +212,10 @@ const About = () => {
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-2xl font-bold mb-4">Prêt à contribuer ?</h3>
+          <h3 className="text-2xl font-bold mb-4">Devenez acteur du changement</h3>
           <p className="text-lg mb-6 opacity-90">
-            Rejoignez la communauté SenAlert et participez à l'amélioration de votre environnement
+            Rejoignez des milliers de citoyens engagés et contribuez activement à l'amélioration 
+            de votre cadre de vie
           </p>
           <Button 
             onClick={() => navigate('/signaler')}
@@ -223,7 +228,7 @@ const About = () => {
         {/* Footer */}
         <div className="text-center py-8 border-t">
           <p className="text-gray-600 text-sm">
-            Cette plateforme est développée pour la population du Sénégal.
+            Une initiative citoyenne pour un Sénégal moderne et connecté
           </p>
           <p className="text-gray-500 text-xs mt-2">
             Version 1.0 - © 2025 SenAlert - Tous droits réservés

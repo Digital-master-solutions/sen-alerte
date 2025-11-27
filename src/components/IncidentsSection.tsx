@@ -170,7 +170,7 @@ const IncidentsSection = () => {
                       {report.type}
                     </CardTitle>
                   </div>
-                  <Badge className={`text-white font-medium ${isMobile ? 'px-2 py-0.5 text-xs' : 'px-3 py-1'} ${getStatusColor(report.status)}`}>
+                  <Badge className={`text-white font-medium whitespace-nowrap ${isMobile ? 'px-3 py-1 text-xs' : 'px-4 py-1.5'} ${getStatusColor(report.status)}`}>
                     {getStatusText(report.status)}
                   </Badge>
                 </div>
