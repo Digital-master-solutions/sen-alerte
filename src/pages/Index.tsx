@@ -163,15 +163,19 @@ const Index = () => {
             {/* Logo et description */}
             <div className="space-y-6">
               <Logo size="xl" className="text-white" />
-              <div className="space-y-3 text-footer-foreground/90 leading-relaxed">
-                <p>Plateforme de signalement citoyen pour le Sénégal.</p>
-                <p>Connectons les citoyens aux services publics pour une ville plus intelligente et plus réactive.</p>
+              <div className="space-y-4 text-footer-foreground/90 leading-relaxed">
+                <p className="text-base">
+                  SenAlert est la plateforme officielle de signalement citoyen qui facilite la communication entre les citoyens et les services municipaux au Sénégal.
+                </p>
+                <p className="text-sm">
+                  Notre mission est de créer des villes plus intelligentes et plus réactives en permettant aux citoyens de signaler rapidement les problèmes urbains et de suivre leur résolution en temps réel.
+                </p>
               </div>
             </div>
 
             {/* Navigation rapide */}
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-white">Navigation</h3>
+              <h3 className="text-lg font-semibold text-white">Navigation Rapide</h3>
               <nav className="space-y-3">
                 <button 
                   onClick={() => navigate("/")} 
@@ -206,28 +210,41 @@ const Index = () => {
               </nav>
             </div>
 
-            {/* Contact et crédits */}
+            {/* Contact et informations */}
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-white">Contact</h3>
-              <div className="space-y-3 text-footer-foreground/90">
-                <p>Département de Dakar</p>
-                <p>Région de Dakar, Sénégal</p>
-                <p>digitalmsolution2025@gmail.com</p>
-              </div>
-              <div className="pt-4 border-t border-footer-foreground/20">
-                <div className="flex items-center gap-2 text-sm mb-2">
-                  <span className="text-footer-foreground/80">Fièrement développé par</span>
+              <h3 className="text-lg font-semibold text-white">Nous Contacter</h3>
+              <div className="space-y-4 text-footer-foreground/90">
+                <div>
+                  <p className="font-medium text-white mb-1">Zone de couverture</p>
+                  <p className="text-sm">Département de Dakar</p>
+                  <p className="text-sm">Région de Dakar, Sénégal</p>
+                </div>
+                <div>
+                  <p className="font-medium text-white mb-1">Support technique</p>
                   <a 
-                    href="https://dms-sn.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-yellow-400 font-semibold hover:text-yellow-300 transition-colors"
+                    href="mailto:digitalmsolution2025@gmail.com"
+                    className="text-sm hover:text-white transition-colors"
                   >
-                    Digital Master Solution
+                    digitalmsolution2025@gmail.com
                   </a>
                 </div>
-                <div className="text-sm text-footer-foreground/70">
-                  © {new Date().getFullYear()} SenAlert. Tous droits réservés.
+              </div>
+              <div className="pt-6 border-t border-footer-foreground/20">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-footer-foreground/80">Développé par</span>
+                    <a 
+                      href="https://dms-sn.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-yellow-400 font-semibold hover:text-yellow-300 transition-colors"
+                    >
+                      Digital Master Solution
+                    </a>
+                  </div>
+                  <div className="text-sm text-footer-foreground/70">
+                    © {new Date().getFullYear()} SenAlert. Tous droits réservés.
+                  </div>
                 </div>
               </div>
             </div>
