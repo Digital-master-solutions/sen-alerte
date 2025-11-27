@@ -104,6 +104,7 @@ export default function AdminUsers() {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/securepass/login`,
           data: {
             name: formData.name,
             user_type: 'admin'
@@ -120,26 +121,22 @@ export default function AdminUsers() {
 
       if (hashError) throw hashError;
 
-      // Create superadmin record linked to auth user
-      const { error: insertError } = await supabase
-        .from('superadmin')
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          username: formData.email.split('@')[0],
-          password_hash: hashedPassword,
-          supabase_user_id: authData.user.id,
-          status: 'active'
-        });
+      // Create superadmin record using RPC function
+      const { data: newAdminId, error: rpcError } = await supabase.rpc('admin_create_superadmin', {
+        _name: formData.name,
+        _email: formData.email,
+        _username: formData.email.split('@')[0],
+        _password_hash: hashedPassword,
+        _supabase_user_id: authData.user.id
+      });
 
-      if (insertError) throw insertError;
+      if (rpcError) throw rpcError;
 
       toast({
         title: "Succès",
         description: "Utilisateur créé avec succès"
       });
 
-      loadUsers();
       setNewUserOpen(false);
       setFormData({
         name: "",
@@ -147,11 +144,11 @@ export default function AdminUsers() {
         password: ""
       });
       loadUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer l'utilisateur",
+        description: error.message || "Impossible de créer l'utilisateur",
         variant: "destructive"
       });
     }

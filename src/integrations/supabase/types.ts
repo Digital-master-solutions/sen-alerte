@@ -978,6 +978,16 @@ export type Database = {
         Args: { _population_id: string; _user_id: string }
         Returns: boolean
       }
+      admin_create_superadmin: {
+        Args: {
+          _email: string
+          _name: string
+          _password_hash: string
+          _supabase_user_id: string
+          _username: string
+        }
+        Returns: string
+      }
       admin_get_all_organizations: {
         Args: never
         Returns: {
