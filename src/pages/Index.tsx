@@ -73,6 +73,17 @@ const Index = () => {
                     <Info className="h-5 w-5" />
                     <span className="font-medium">À propos</span>
                   </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start gap-3 h-12" 
+                    onClick={() => {
+                      const feedbackButton = document.querySelector('[aria-label="Feedback"]') as HTMLButtonElement;
+                      feedbackButton?.click();
+                    }}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <span className="font-medium">Feedback</span>
+                  </Button>
                 </nav>
                 
                 {/* Section Organisation */}
@@ -206,6 +217,15 @@ const Index = () => {
                   className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
                 >
                   À propos
+                </button>
+                <button 
+                  onClick={() => {
+                    const feedbackButton = document.querySelector('[aria-label="Feedback"]') as HTMLButtonElement;
+                    feedbackButton?.click();
+                  }} 
+                  className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
+                >
+                  Feedback
                 </button>
               </nav>
             </div>
