@@ -43,14 +43,19 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         doubleClickZoom: false,
         touchZoom: true,
         boxZoom: false,
-        keyboard: false
+        keyboard: false,
+        preferCanvas: true, // Améliore les performances
+        zoomAnimation: true,
+        fadeAnimation: true
       }).setView(defaultCenter, 13);
 
-      // Add tile layer
+      // Add tile layer with loading optimization
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
-        crossOrigin: true
+        crossOrigin: true,
+        updateWhenIdle: true, // Charge les tuiles uniquement quand l'utilisateur arrête de bouger
+        keepBuffer: 2 // Garde en cache les tuiles pour un chargement plus rapide
       }).addTo(mapInstanceRef.current);
 
       // Add custom recenter button
@@ -136,10 +141,14 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
   if (!currentLocation) {
     return (
-      <div className={`flex items-center justify-center bg-muted ${className}`} style={{ height: '100%', minHeight: '400px' }}>
+      <div className={`flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5 ${className}`} style={{ height: '100%', minHeight: '400px' }}>
         <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-muted-foreground/20 border-t-primary rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Chargement de la carte...</p>
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
+            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-primary/40 rounded-full animate-spin mx-auto" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+          </div>
+          <p className="text-muted-foreground font-medium">Chargement de la carte...</p>
+          <p className="text-xs text-muted-foreground/70">Autorisation de localisation requise</p>
         </div>
       </div>
     );
