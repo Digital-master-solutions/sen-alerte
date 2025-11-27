@@ -16,7 +16,7 @@ import { usePasswordBreachCheck } from "@/hooks/usePasswordBreachCheck";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Nom d'utilisateur requis"),
+  email: z.string().email("Email invalide").min(1, "Email requis"),
   password: z.string().min(1, "Mot de passe requis"),
 });
 
@@ -34,7 +34,7 @@ export default function AdminLogin() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -56,7 +56,7 @@ export default function AdminLogin() {
       
       // Use Supabase Auth login
       const { loginWithSupabase } = useAuthStore.getState();
-      await loginWithSupabase(values.username, values.password, 'admin');
+      await loginWithSupabase(values.email, values.password, 'admin');
       
       const { profile } = useAuthStore.getState();
       toast({
@@ -102,13 +102,14 @@ export default function AdminLogin() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nom d'utilisateur</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="admin"
+                          type="email"
+                          placeholder="admin@example.com"
                           {...field}
                           disabled={isLoading}
                         />
