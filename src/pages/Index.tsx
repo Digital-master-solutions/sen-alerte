@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
-import OpenStreetMap from "@/components/OpenStreetMap";
 import IncidentsSection from "@/components/IncidentsSection";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
+import LoadingSpinner from "@/components/LoadingSpinner";
+
+const OpenStreetMap = lazy(() => import("@/components/OpenStreetMap"));
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -136,7 +138,13 @@ const Index = () => {
         {/* Carte interactive - Largest Contentful Paint element */}
         <section className="relative h-[50vh] min-h-[400px] z-0">
           <ErrorBoundary>
-          <OpenStreetMap className="absolute inset-0" />
+            <Suspense fallback={
+              <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                <LoadingSpinner size="lg" text="Chargement de la carte..." />
+              </div>
+            }>
+              <OpenStreetMap className="absolute inset-0" />
+            </Suspense>
           </ErrorBoundary>
           
           {/* Compteur d'incidents superposé */}
