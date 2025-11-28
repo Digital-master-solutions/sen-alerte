@@ -22,9 +22,42 @@ serve(async (req) => {
   }
 
   try {
-    const { name, type, email, phone, address, city, password }: CreateOrganizationRequest = await req.json();
+    // Verify admin authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error("Non autorisé - authentification requise");
+    }
 
-    console.log("Creating organization account for:", email);
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    );
+
+    // Check if user is superadmin
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      throw new Error("Non autorisé");
+    }
+
+    const { data: superadminData, error: superadminError } = await supabaseClient
+      .from('superadmin')
+      .select('id, status')
+      .eq('supabase_user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (superadminError || !superadminData) {
+      throw new Error("Accès refusé - seuls les super administrateurs peuvent créer des organisations");
+    }
+
+    console.log("Superadmin verified, creating organization for:", email);
+
+    const { name, type, email, phone, address, city, password }: CreateOrganizationRequest = await req.json();
 
     // Admin client with service role key
     const supabaseAdmin = createClient(
@@ -79,8 +112,8 @@ serve(async (req) => {
         city,
         password_hash: hashedPassword,
         supabase_user_id: authData.user.id,
-        status: 'pending',
-        is_active: false
+        status: 'approved', // Admin-created orgs are auto-approved
+        is_active: true // Admin-created orgs are immediately active
       })
       .select()
       .single();
