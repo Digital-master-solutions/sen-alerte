@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Search, Filter, Eye, Trash2, CheckCircle, Mail, Phone } from "lucide-react";
@@ -24,13 +24,13 @@ interface Feedback {
 }
 
 export default function AdminFeedbacks() {
+  const navigate = useNavigate();
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [filteredFeedbacks, setFilteredFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -127,7 +127,6 @@ export default function AdminFeedbacks() {
       });
 
       loadFeedbacks();
-      setSelectedFeedback(null);
     } catch (error) {
       console.error("Error deleting feedback:", error);
       toast({
@@ -308,12 +307,12 @@ export default function AdminFeedbacks() {
                           ? `${feedback.message.substring(0, 50)}...` 
                           : feedback.message}
                       </span>
-                      {feedback.message.length > 50 && (
+                       {feedback.message.length > 50 && (
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className="h-6 w-6 p-0 shrink-0"
-                          onClick={() => setSelectedFeedback(feedback)}
+                          onClick={() => navigate(`/securepass/feedbacks/${feedback.id}`)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -346,7 +345,7 @@ export default function AdminFeedbacks() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setSelectedFeedback(feedback)}>
+                        <DropdownMenuItem onClick={() => navigate(`/securepass/feedbacks/${feedback.id}`)}>
                           <Eye className="mr-2 h-4 w-4" />
                           Voir détails
                         </DropdownMenuItem>
@@ -395,77 +394,6 @@ export default function AdminFeedbacks() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Feedback Details Dialog */}
-      <Dialog open={!!selectedFeedback} onOpenChange={() => setSelectedFeedback(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Détails du feedback</DialogTitle>
-            <DialogDescription>
-              Informations complètes sur le feedback
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedFeedback && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Date</label>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(selectedFeedback.created_at).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Type</label>
-                  <div className="mt-1">{getTypeBadge(selectedFeedback.type)}</div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Nom</label>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedFeedback.name || "Non renseigné"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedFeedback.email || "Non renseigné"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Téléphone</label>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedFeedback.phone || "Non renseigné"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Statut</label>
-                  <div className="mt-1">{getStatusBadge(selectedFeedback.status)}</div>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-sm font-medium">Message</label>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-2">
-                    {selectedFeedback.message}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                {selectedFeedback.status !== "traité" && (
-                  <Button onClick={() => updateStatus(selectedFeedback.id, "traité")}>
-                    Marquer comme traité
-                  </Button>
-                )}
-                <Button
-                  variant="destructive"
-                  onClick={() => deleteFeedback(selectedFeedback.id)}
-                >
-                  Supprimer
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

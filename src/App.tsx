@@ -15,8 +15,9 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminReports from "./pages/admin/Reports";
 import AdminOrganizations from "./pages/admin/Organizations";
 import AdminUsers from "./pages/admin/Users";
-
 import AdminCategories from "./pages/admin/Categories";
+import AdminFeedbacks from "./pages/admin/Feedbacks";
+import AdminFeedbackDetail from "./pages/admin/FeedbackDetail";
 import OrganizationLayout from "./pages/organization/OrganizationLayout";
 import OrgLogin from "./pages/organization/Login";
 import AvailableReports from "./pages/organization/AvailableReports";
@@ -24,7 +25,6 @@ import ManagedReports from "./pages/organization/ManagedReports";
 import OrgDashboard from "./pages/organization/Dashboard";
 import OrgNotifications from "./pages/organization/Notifications";
 import OrgSettings from "./pages/organization/Settings";
-import AdminFeedbacks from "./pages/admin/Feedbacks";
 
 
 const queryClient = new QueryClient();
@@ -61,6 +61,7 @@ const App = () => (
             <Route path="users" element={<AdminUsers />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="feedbacks" element={<AdminFeedbacks />} />
+            <Route path="feedbacks/:id" element={<AdminFeedbackDetail />} />
             <Route index element={<AdminDashboard />} />
           </Route>
           
