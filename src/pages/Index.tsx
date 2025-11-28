@@ -241,21 +241,13 @@ const Index = () => {
             {/* Contact et informations */}
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-white">Nous Contacter</h3>
-              <div className="space-y-4 text-footer-foreground/90">
-                <div>
-                  <p className="font-medium text-white mb-1">Zone de couverture</p>
-                  <p className="text-sm">Département de Dakar</p>
-                  <p className="text-sm">Région de Dakar, Sénégal</p>
-                </div>
-                <div>
-                  <p className="font-medium text-white mb-1">Support technique</p>
-                  <a 
-                    href="mailto:digitalmsolution2025@gmail.com"
-                    className="text-sm hover:text-white transition-colors"
-                  >
-                    digitalmsolution2025@gmail.com
-                  </a>
-                </div>
+              <div className="text-footer-foreground/90">
+                <a 
+                  href="mailto:digitalmsolution2025@gmail.com"
+                  className="text-sm hover:text-white transition-colors"
+                >
+                  digitalmsolution2025@gmail.com
+                </a>
               </div>
               <div className="pt-6 border-t border-footer-foreground/20">
                 <div className="space-y-3">
