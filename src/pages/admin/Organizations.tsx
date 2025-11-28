@@ -193,41 +193,25 @@ useEffect(() => {
     setCreatingOrg(true);
 
     try {
-      // Create Supabase Auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newOrgData.email,
-        password: newOrgData.password,
-        options: {
-          data: {
-            name: newOrgData.name,
-            user_type: 'organization'
-          }
-        }
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Échec de la création du compte");
-
-      // Create organization record
-      const { error: orgError } = await supabase.from("organizations").insert([
-        {
+      // Call edge function to create organization with admin verification
+      const { data, error } = await supabase.functions.invoke('create-organization-account', {
+        body: {
           name: newOrgData.name,
           type: newOrgData.type,
           email: newOrgData.email,
           phone: newOrgData.phone,
           address: newOrgData.address,
           city: newOrgData.city,
-          status: "approved",
-          is_active: true,
-          supabase_user_id: authData.user.id,
-        },
-      ]);
+          password: newOrgData.password
+        }
+      });
 
-      if (orgError) throw orgError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Organisation créée",
-        description: "L'organisation a été créée avec succès",
+        description: "L'organisation a été créée avec succès et est activée",
       });
 
       setNewOrgData({
