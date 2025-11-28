@@ -78,42 +78,26 @@ export function OrganizationSignupStepper() {
     
     setLoading(true);
     try {
-      // Hash the password
-      const { data: hashedPassword, error: hashError } = await supabase
-        .rpc('hash_password', { plain_password: signupData.password });
-
-      if (hashError) {
-        throw new Error("Erreur lors du traitement du mot de passe");
-      }
-
-      // Create organization with hashed password
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
+      // Call edge function to create organization with auto-confirmed email
+      const { data, error } = await supabase.functions.invoke('create-organization-account', {
+        body: {
           name: signupData.name,
           type: signupData.type,
           email: signupData.email,
           phone: signupData.phone,
           address: signupData.address,
           city: signupData.city,
-          password_hash: hashedPassword,
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (orgError) {
-        // Handle unique constraint violation for email
-        if (orgError.code === '23505' && orgError.message.includes('organizations_email_unique')) {
-          throw new Error("Cette adresse email est déjà utilisée par une autre organisation.");
+          password: signupData.password
         }
-        throw orgError;
-      }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setIsCompleted(true);
       toast({
         title: "Inscription réussie !",
-        description: "Votre demande a été envoyée. Elle sera examinée par les administrateurs.",
+        description: "Votre compte a été créé. En attente d'approbation par les administrateurs.",
       });
 
       // Redirection après animation
@@ -125,16 +109,10 @@ export function OrganizationSignupStepper() {
       console.error("Erreur d'inscription:", err);
       let errorMessage = "Une erreur est survenue";
       
-      if (err.message.includes('duplicate') || err.message.includes('already exists')) {
+      if (err.message.includes('duplicate') || err.message.includes('déjà utilisée') || err.message.includes('already exists')) {
         errorMessage = "Cette adresse email est déjà utilisée.";
       } else if (err.message.includes('network')) {
         errorMessage = "Erreur de connexion. Vérifiez votre internet.";
-      } else if (err.message.includes('violates check constraint "organizations_type_check"')) {
-        errorMessage = "Type d'organisation non valide. Veuillez sélectionner un type dans la liste.";
-      } else if (err.message.includes('Bad Request') || err.message.includes('400')) {
-        errorMessage = "Données invalides. Vérifiez que tous les champs sont correctement remplis.";
-      } else if (err.message.includes('violates row-level security')) {
-        errorMessage = "Erreur de permissions. Veuillez réessayer dans quelques instants.";
       } else if (err.message) {
         errorMessage = err.message;
       }

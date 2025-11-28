@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.geocode-reverse]
 verify_jwt = false
+
+[functions.create-organization-account]
+verify_jwt = false
