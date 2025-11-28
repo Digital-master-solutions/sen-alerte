@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { useEffect } from 'react';
 
 // Types for unified authentication
 export interface AdminUser {
@@ -95,17 +96,33 @@ export const useAuthStore = create<AuthState>()(
         try {
           set((state) => { state.isLoading = true; });
 
+          // First check if we have persisted state
+          const currentState = get();
+          
           const { data: { session } } = await supabase.auth.getSession();
           
           if (!session) {
+            // No valid session - clear everything
             set((state) => {
-              state.isLoading = false;
+              state.user = null;
+              state.session = null;
+              state.profile = null;
+              state.userType = null;
               state.isAuthenticated = false;
+              state.isLoading = false;
             });
             return;
           }
 
-          // Get user profile from database
+          // Session exists - if we have persisted profile, use it temporarily
+          if (currentState.profile && currentState.isAuthenticated) {
+            set((state) => {
+              state.session = session;
+              state.isLoading = false;
+            });
+          }
+
+          // Get fresh user profile from database
           const { data: profileData } = await supabase
             .rpc('get_user_profile_by_auth_id', {
               _auth_user_id: session.user.id
@@ -145,8 +162,12 @@ export const useAuthStore = create<AuthState>()(
             // Session exists but no profile - sign out
             await supabase.auth.signOut();
             set((state) => {
-              state.isLoading = false;
+              state.user = null;
+              state.session = null;
+              state.profile = null;
+              state.userType = null;
               state.isAuthenticated = false;
+              state.isLoading = false;
             });
           }
         } catch (error) {
@@ -304,8 +325,10 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        // Only persist essential data, session is managed by Supabase
         userType: state.userType,
+        profile: state.profile,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )
@@ -315,25 +338,33 @@ export const useAuthStore = create<AuthState>()(
 export const useAuthInit = () => {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   
-  // Set up auth state listener
-  supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed:', event);
-    
-    if (event === 'SIGNED_IN' && session) {
-      initializeAuth();
-    } else if (event === 'SIGNED_OUT') {
-      useAuthStore.setState({
-        user: null,
-        session: null,
-        profile: null,
-        userType: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-    } else if (event === 'TOKEN_REFRESHED' && session) {
-      useAuthStore.setState({ session });
-    }
-  });
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event);
+        
+        if (event === 'SIGNED_IN' && session) {
+          // Use setTimeout to avoid deadlock
+          setTimeout(() => initializeAuth(), 0);
+        } else if (event === 'SIGNED_OUT') {
+          useAuthStore.setState({
+            user: null,
+            session: null,
+            profile: null,
+            userType: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          useAuthStore.setState({ session });
+        }
+      }
+    );
 
-  return initializeAuth;
+    // THEN check for existing session
+    initializeAuth();
+
+    return () => subscription.unsubscribe();
+  }, [initializeAuth]);
 };

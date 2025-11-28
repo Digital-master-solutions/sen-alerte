@@ -6,14 +6,23 @@ import { useAuthStore } from "@/stores";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const { isAuthenticated, userType } = useAuthStore();
+  const { isAuthenticated, userType, isLoading } = useAuthStore();
 
   useEffect(() => {
-    // Check authentication with Supabase Auth
-    if (!isAuthenticated || userType !== 'admin') {
+    // Wait for auth to initialize before redirecting
+    if (!isLoading && (!isAuthenticated || userType !== 'admin')) {
       navigate("/securepass/login");
     }
-  }, [navigate, isAuthenticated, userType]);
+  }, [navigate, isAuthenticated, userType, isLoading]);
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
