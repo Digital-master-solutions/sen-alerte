@@ -103,8 +103,6 @@ export const useLocationStore = create<LocationState>()(
       },
 
       // Demander la géolocalisation du navigateur avec haute précision
-
-      // Demander la géolocalisation du navigateur avec haute précision
       requestLocation: async () => {
         const { setLocationLoading, setCurrentLocation, setLocationError } = get();
         
@@ -116,7 +114,9 @@ export const useLocationStore = create<LocationState>()(
             throw new Error('Géolocalisation non supportée par ce navigateur');
           }
 
-          const bestPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
+          console.log('📍 Demande de géolocalisation après autorisation...');
+          
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
               resolve,
               reject,
@@ -127,12 +127,18 @@ export const useLocationStore = create<LocationState>()(
               }
             );
           });
-          const finalAccuracy = bestPosition.coords.accuracy;
-          console.log(`🎯 Meilleure précision obtenue: ${finalAccuracy.toFixed(1)}m`);
+          
+          const accuracy = position.coords.accuracy;
+          console.log(`✅ Position GPS obtenue - Précision: ${accuracy.toFixed(1)}m`, {
+            latitude: position.coords.latitude.toFixed(6),
+            longitude: position.coords.longitude.toFixed(6),
+            altitude: position.coords.altitude,
+            speed: position.coords.speed
+          });
 
           const location: Location = {
-            latitude: bestPosition.coords.latitude,
-            longitude: bestPosition.coords.longitude,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
           };
 
           // Essayer de récupérer l'adresse
@@ -143,6 +149,8 @@ export const useLocationStore = create<LocationState>()(
 
           const finalLocation = locationWithAddress || location;
           setCurrentLocation(finalLocation);
+          
+          console.log('🎯 Géolocalisation finalisée:', finalLocation.address);
           return finalLocation;
 
         } catch (error) {
@@ -151,7 +159,7 @@ export const useLocationStore = create<LocationState>()(
             : 'Erreur lors de la géolocalisation';
           
           setLocationError(errorMessage);
-          console.error('Erreur géolocalisation:', error);
+          console.error('❌ Erreur géolocalisation:', error);
           
           // Retourner la position par défaut du Sénégal
           setCurrentLocation(SENEGAL_DEFAULT_LOCATION);
@@ -256,11 +264,13 @@ export const useLocationStore = create<LocationState>()(
 
         const accuracy = position.coords.accuracy;
         
-        // Filtrer les positions selon leur précision (accepter seulement si précision <= 20m)
-        if (accuracy > 20) {
-          console.log(`Position rejetée: précision de ${accuracy.toFixed(1)}m (trop imprécise)`);
+        // Filtrer les positions selon leur précision (accepter jusqu'à 50m - précision GPS mobile typique)
+        if (accuracy > 50) {
+          console.log(`⚠️ Position rejetée: précision de ${accuracy.toFixed(1)}m (seuil: 50m)`);
           return;
         }
+        
+        console.log(`📡 Position acceptée: précision de ${accuracy.toFixed(1)}m`);
 
         const newLocation: Location = {
           latitude: position.coords.latitude,
