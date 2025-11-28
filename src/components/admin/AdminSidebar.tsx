@@ -66,13 +66,6 @@ export function AdminSidebar() {
               showText={!collapsed}
               className={collapsed ? "justify-center" : ""}
             />
-            {!collapsed && adminUser && (
-              <div className="ml-auto">
-                <div className="text-xs text-sidebar-foreground/60">
-                  Admin: {adminUser.name ? String(adminUser.name) : String(adminUser.username)}
-                </div>
-              </div>
-            )}
           </div>
         </SidebarHeader>
 
@@ -102,6 +95,29 @@ export function AdminSidebar() {
 
         {/* Pied avec déconnexion */}
         <SidebarFooter className="sticky bottom-0 bg-sidebar-background border-t border-sidebar-border p-3">
+          {/* Informations utilisateur connecté */}
+          {adminUser && (
+            <div className={`mb-3 px-2 ${collapsed ? "flex justify-center" : ""}`}>
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    {adminUser.name ? String(adminUser.name).charAt(0).toUpperCase() : "A"}
+                  </AvatarFallback>
+                </Avatar>
+                {!collapsed && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-sidebar-foreground truncate">
+                      Utilisateur connecté
+                    </p>
+                    <p className="text-xs text-sidebar-foreground/60 truncate">
+                      {adminUser.name ? String(adminUser.name) : String(adminUser.username)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           <Button onClick={handleLogout} variant="ghost" className={`w-full ${collapsed ? "justify-center" : "justify-start"} text-destructive hover:text-destructive hover:bg-destructive/10`}>
             <LogOut className={`h-4 w-4 ${collapsed ? "" : "mr-2"}`} />
             {!collapsed && <span className="font-medium">Déconnexion</span>}

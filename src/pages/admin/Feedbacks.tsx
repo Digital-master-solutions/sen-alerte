@@ -301,8 +301,24 @@ export default function AdminFeedbacks() {
                     {new Date(feedback.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>{getTypeBadge(feedback.type)}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {feedback.message}
+                  <TableCell className="max-w-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate flex-1">
+                        {feedback.message.length > 50 
+                          ? `${feedback.message.substring(0, 50)}...` 
+                          : feedback.message}
+                      </span>
+                      {feedback.message.length > 50 && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0 shrink-0"
+                          onClick={() => setSelectedFeedback(feedback)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-sm">
