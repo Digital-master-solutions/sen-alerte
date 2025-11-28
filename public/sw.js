@@ -37,46 +37,17 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      try {
-        // Chercher dans le cache
-        const cachedResponse = await cache.match(request);
-        
-        if (cachedResponse) {
-          // Vérifier si le cache n'est pas expiré
-          const dateHeader = cachedResponse.headers.get('date');
-          if (dateHeader) {
-            const cacheDate = new Date(dateHeader).getTime();
-            const now = Date.now();
-            
-            // Si le cache est encore valide, le retourner
-            if (now - cacheDate < TILE_CACHE_DURATION) {
-              return cachedResponse;
-            }
-          } else {
-            // Si pas de header date, retourner le cache quand même
-            return cachedResponse;
-          }
-        }
-
-        // Sinon, faire une requête réseau
-        const networkResponse = await fetch(request);
-        
-        // Mettre en cache la réponse originale (sans modification)
-        if (networkResponse.ok) {
-          cache.put(request, networkResponse.clone());
-        }
-        
-        return networkResponse;
-      } catch (error) {
-        // En cas d'erreur réseau, retourner le cache même s'il est expiré
-        const cachedResponse = await cache.match(request);
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        // Si pas de cache disponible, laisser l'erreur se propager
-        throw error;
+    fetch(request).then((response) => {
+      // Mettre en cache uniquement si la réponse est valide
+      if (response.ok) {
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, response.clone());
+        });
       }
+      return response;
+    }).catch(() => {
+      // En cas d'échec réseau, utiliser le cache
+      return caches.match(request);
     })
   );
 });
