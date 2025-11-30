@@ -8,11 +8,10 @@ const OpenStreetMap = lazy(() => import("@/components/OpenStreetMap"));
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Plus, Home, Bell, Info, FileText, MapPin, Users, Settings, UserPlus } from "lucide-react";
+import { Menu, Home, Bell, Info, FileText, MapPin, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import { Logo } from "@/components/ui/logo";
-import { FeedbackDialog } from "@/components/FeedbackDialog";
 const Index = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
@@ -78,10 +77,7 @@ const Index = () => {
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start gap-3 h-12" 
-                    onClick={() => {
-                      const feedbackButton = document.querySelector('[aria-label="Feedback"]') as HTMLButtonElement;
-                      feedbackButton?.click();
-                    }}
+                    onClick={() => navigate("/feedback")}
                   >
                     <FileText className="h-5 w-5" />
                     <span className="font-medium">Feedback</span>
@@ -113,7 +109,14 @@ const Index = () => {
             <Logo size="md" className="sm:hidden" />
           </div>
           <div className="flex items-center gap-3">
-            <FeedbackDialog />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              aria-label="Feedback"
+              onClick={() => navigate('/feedback')}
+            >
+              <FileText className="h-5 w-5" />
+            </Button>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -227,10 +230,7 @@ const Index = () => {
                   À propos
                 </button>
                 <button 
-                  onClick={() => {
-                    const feedbackButton = document.querySelector('[aria-label="Feedback"]') as HTMLButtonElement;
-                    feedbackButton?.click();
-                  }} 
+                  onClick={() => navigate("/feedback")} 
                   className="block text-left text-footer-foreground/80 hover:text-white transition-colors cursor-pointer"
                 >
                   Feedback
