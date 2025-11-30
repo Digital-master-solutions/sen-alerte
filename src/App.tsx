@@ -33,6 +33,7 @@ const ReportPage = lazy(() => import("./pages/Report"));
 const MyReportsPage = lazy(() => import("./pages/MyReports"));
 const NotificationsPage = lazy(() => import("./pages/Notifications"));
 const AboutPage = lazy(() => import("./pages/About"));
+const FeedbackPage = lazy(() => import("./pages/Feedback"));
 const NotFoundPage = lazy(() => import("./pages/NotFound"));
 
 const AppInitializer = () => {
@@ -107,6 +108,14 @@ const App = () => (
             element={
               <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
                 <AboutPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
+                <FeedbackPage />
               </Suspense>
             }
           />
