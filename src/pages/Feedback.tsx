@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, MessageSquare, Mail, Phone, User, FileText, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -126,7 +126,8 @@ export default function Feedback() {
             {/* Récapitulatif */}
             <div className="w-full bg-card border rounded-lg p-6 text-left space-y-4 shadow-sm">
               <div className="flex items-center gap-2 pb-3 border-b">
-                <span className="text-lg font-semibold">📋 Récapitulatif</span>
+                <FileText className="w-5 h-5 text-primary" />
+                <span className="text-lg font-semibold">Récapitulatif</span>
               </div>
 
               <div className="space-y-3">
@@ -214,9 +215,16 @@ export default function Feedback() {
 
           {/* En-tête */}
           <div className="space-y-3">
-            <h1 className="text-3xl font-bold text-foreground">
-              📝 Envoyer un feedback
-            </h1>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                  Envoyer un feedback
+                </h1>
+              </div>
+            </div>
             <p className="text-lg text-muted-foreground">
               Partagez vos suggestions, signalez des bugs ou proposez des améliorations pour SenAlert.
             </p>
@@ -225,7 +233,10 @@ export default function Feedback() {
           {/* Formulaire */}
           <form onSubmit={handleSubmit} className="space-y-6 bg-card border rounded-lg p-6 shadow-sm">
             <div className="space-y-2">
-              <Label htmlFor="name">Nom (optionnel)</Label>
+              <Label htmlFor="name" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Nom (optionnel)
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -236,7 +247,10 @@ export default function Feedback() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email (optionnel)</Label>
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Email (optionnel)
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -248,7 +262,10 @@ export default function Feedback() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone (optionnel)</Label>
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                Téléphone (optionnel)
+              </Label>
               <Input
                 id="phone"
                 type="tel"
@@ -279,7 +296,10 @@ export default function Feedback() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Message *</Label>
+              <Label htmlFor="message" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Message *
+              </Label>
               <Textarea
                 id="message"
                 value={formData.message}
@@ -291,7 +311,8 @@ export default function Feedback() {
               />
             </div>
 
-            <Button type="submit" disabled={loading} size="lg" className="w-full">
+            <Button type="submit" disabled={loading} size="lg" className="w-full gap-2">
+              <Send className="w-4 h-4" />
               {loading ? "Envoi..." : "Envoyer"}
             </Button>
           </form>
