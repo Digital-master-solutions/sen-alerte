@@ -117,21 +117,26 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     console.log('✅ Marqueur GPS ajouté à la position:', position.lat.toFixed(6), position.lng.toFixed(6));
     
-    // Ajouter le popup au marqueur
+    // Ajouter le popup au marqueur avec support du mode sombre
+    const popupBgClass = isDarkMode ? 'bg-gray-800' : 'bg-gray-50';
+    const popupBorderClass = isDarkMode ? 'border-gray-600' : 'border-gray-200';
+    const popupTextClass = isDarkMode ? 'text-gray-100' : 'text-gray-800';
+    const popupSubTextClass = isDarkMode ? 'text-gray-300' : 'text-gray-700';
+    
     gpsMarkerRef.current.bindPopup(`
-      <div class="p-4 text-center min-w-[320px]">
-        <div class="font-semibold text-green-600 mb-3 text-lg">Position GPS</div>
+      <div class="p-4 text-center min-w-[320px] ${isDarkMode ? 'dark-popup' : ''}">
+        <div class="font-semibold text-green-500 mb-3 text-lg">📍 Position GPS</div>
         <div class="space-y-3 text-sm">
-          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-            <div class="font-medium text-gray-800 mb-2">Coordonnées GPS :</div>
-            <div class="font-mono text-xs text-gray-700 space-y-1">
+          <div class="${popupBgClass} border ${popupBorderClass} rounded-lg p-3">
+            <div class="font-medium ${popupTextClass} mb-2">Coordonnées GPS :</div>
+            <div class="font-mono text-xs ${popupSubTextClass} space-y-1">
               <div class="flex justify-between">
                 <span class="font-medium">Latitude:</span>
-                <span class="text-green-600">${position.lat.toFixed(7)}</span>
+                <span class="text-green-500">${position.lat.toFixed(7)}</span>
               </div>
               <div class="flex justify-between">
                 <span class="font-medium">Longitude:</span>
-                <span class="text-green-600">${position.lng.toFixed(7)}</span>
+                <span class="text-green-500">${position.lng.toFixed(7)}</span>
               </div>
             </div>
           </div>
@@ -141,7 +146,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       maxWidth: 350,
       className: 'custom-popup'
     });
-  }, []);
+  }, [isDarkMode]);
 
   // Fonction pour mettre à jour la localisation dans le store
   const updateLocationStore = useCallback((latitude: number, longitude: number, accuracy: number) => {
@@ -475,17 +480,25 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
   return (
     <div className={`relative w-full h-full ${className}`}>
-      <div ref={mapRef} className="w-full h-full rounded-lg shadow-lg" />
-      
-      {/* Indicateur de chargement GPS */}
-      {isLocating && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1001] bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm font-medium text-foreground">
-            Recherche de votre position...
-          </span>
+      {/* Overlay de chargement qui masque la carte tant que la position n'est pas obtenue */}
+      {isLocating && !gpsPosition && (
+        <div className="absolute inset-0 z-[1002] bg-background flex flex-col items-center justify-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-primary/20 rounded-full"></div>
+            <div className="absolute inset-0 w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-lg font-semibold text-foreground">
+              Localisation en cours...
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Veuillez patienter pendant que nous recherchons votre position GPS
+            </p>
+          </div>
         </div>
       )}
+      
+      <div ref={mapRef} className="w-full h-full rounded-lg shadow-lg" />
       
       {/* Styles pour les marqueurs et contrôles */}
       <style>{`
@@ -514,6 +527,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           border-radius: 12px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.15);
           border: 1px solid rgba(0,0,0,0.1);
+          background: white;
         }
         
         .custom-popup .leaflet-popup-content {
@@ -528,18 +542,22 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         
         /* Mode sombre pour les popups */
         .dark .custom-popup .leaflet-popup-content-wrapper {
-          background: #1f2937;
-          color: white;
-          border-color: rgba(255,255,255,0.1);
+          background: #1f2937 !important;
+          color: #f3f4f6 !important;
+          border-color: rgba(255,255,255,0.15) !important;
         }
         
         .dark .custom-popup .leaflet-popup-tip {
-          background: #1f2937;
-          border-color: rgba(255,255,255,0.1);
+          background: #1f2937 !important;
+          border-color: rgba(255,255,255,0.15) !important;
         }
         
         .dark .custom-popup .leaflet-popup-close-button {
-          color: white;
+          color: #f3f4f6 !important;
+        }
+        
+        .dark .custom-popup .leaflet-popup-close-button:hover {
+          color: white !important;
         }
         
         /* S'assurer qu'aucun contrôle par défaut n'apparaît à gauche */
@@ -562,12 +580,29 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         
         /* Attribution en mode sombre */
         .dark .leaflet-control-attribution {
-          background: rgba(31, 41, 55, 0.9) !important;
+          background: rgba(17, 24, 39, 0.95) !important;
           color: rgba(255, 255, 255, 0.7) !important;
         }
         
         .dark .leaflet-control-attribution a {
-          color: rgba(255, 255, 255, 0.8) !important;
+          color: rgba(167, 243, 208, 0.9) !important;
+        }
+        
+        /* Amélioration des couleurs du popup en mode sombre */
+        .dark-popup .bg-gray-800 {
+          background-color: #374151 !important;
+        }
+        
+        .dark-popup .text-gray-100 {
+          color: #f3f4f6 !important;
+        }
+        
+        .dark-popup .text-gray-300 {
+          color: #d1d5db !important;
+        }
+        
+        .dark-popup .border-gray-600 {
+          border-color: #4b5563 !important;
         }
       `}</style>
     </div>
