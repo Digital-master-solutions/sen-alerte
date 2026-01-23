@@ -6,12 +6,12 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 
 const OpenStreetMap = lazy(() => import("@/components/OpenStreetMap"));
 import { useNavigate } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Home, Bell, Info, FileText, MapPin, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import { Logo } from "@/components/ui/logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 const Index = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
@@ -108,7 +108,8 @@ const Index = () => {
             <Logo size="lg" className="hidden sm:flex" />
             <Logo size="md" className="sm:hidden" />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button 
               variant="ghost" 
               size="icon" 
