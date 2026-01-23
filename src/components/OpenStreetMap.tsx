@@ -2,6 +2,19 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore } from '@/stores/locationStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+
+// Configuration des tuiles selon le thème
+const TILE_LAYERS = {
+  light: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+  }
+};
 
 // Fix for default markers - use local fallback for better reliability
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
@@ -18,9 +31,18 @@ interface OpenStreetMapProps {
 const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [pendingPosition, setPendingPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const { currentLocation, setCurrentLocation } = useLocationStore();
+  const [isLocating, setIsLocating] = useState(true);
+  const { currentLocation, setCurrentLocation, lastUpdateTime } = useLocationStore();
+  const { display } = useSettingsStore();
+  
+  // Déterminer si on est en mode sombre
+  const isDarkMode = display.theme === 'dark' || 
+    (display.theme === 'system' && 
+     typeof window !== 'undefined' && 
+     window.matchMedia('(prefers-color-scheme: dark)').matches);
   
   // Flag pour éviter les appels multiples de géolocalisation
   const isGettingPositionRef = useRef(false);
@@ -159,10 +181,12 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     
     if (!navigator.geolocation) {
       console.error('❌ Géolocalisation non disponible sur ce navigateur');
+      setIsLocating(false);
       return;
     }
 
     isGettingPositionRef.current = true;
+    setIsLocating(true);
     console.log('🎯 Démarrage de la géolocalisation GPS...');
 
     try {
@@ -178,6 +202,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         firstPosition.coords.longitude,
         firstAccuracy
       );
+      
+      setIsLocating(false);
       
       // Si la précision est déjà bonne, on arrête
       if (firstAccuracy < 50) {
@@ -225,6 +251,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       
     } catch (error) {
       console.error('❌ Erreur lors de la géolocalisation:', error);
+      setIsLocating(false);
       if (error instanceof GeolocationPositionError) {
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -260,9 +287,10 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     mapInstanceRef.current = map;
 
-    // Ajouter la couche OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    // Ajouter la couche de tuiles selon le thème actuel
+    const tileConfig = isDarkMode ? TILE_LAYERS.dark : TILE_LAYERS.light;
+    tileLayerRef.current = L.tileLayer(tileConfig.url, {
+      attribution: tileConfig.attribution,
       maxZoom: 19
     }).addTo(map);
 
@@ -277,14 +305,18 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       const createSimpleControl = (html: string, title: string, onClick: () => void, color: string, top: string) => {
         const container = document.createElement('div');
         container.className = 'leaflet-control leaflet-control-custom';
+        const controlBgColor = isDarkMode ? '#1f2937' : 'white';
+        const controlBorderColor = isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+        const controlShadowColor = isDarkMode ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.15)';
+        
         container.style.cssText = `
           position: absolute;
           top: ${top};
           right: 10px;
           z-index: 1000;
-          background: white;
+          background: ${controlBgColor};
           border-radius: 8px;
-          box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+          box-shadow: 0 3px 12px ${controlShadowColor};
           transition: all 0.2s ease;
         `;
         
@@ -293,6 +325,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         button.innerHTML = html;
         button.title = title;
         button.href = '#';
+        
         button.style.cssText = `
           display: block;
           width: 44px;
@@ -301,14 +334,14 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           text-align: center;
           font-size: ${html === '+' || html === '−' ? '22px' : '20px'};
           font-weight: ${html === '+' || html === '−' ? 'bold' : 'normal'};
-          background: white;
-          border: 2px solid rgba(0,0,0,0.1);
+          background: ${controlBgColor};
+          border: 2px solid ${controlBorderColor};
           border-radius: 8px;
           cursor: pointer;
           color: ${color};
           text-decoration: none;
           transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 12px ${controlShadowColor};
         `;
 
         button.addEventListener('click', (e) => {
@@ -417,10 +450,42 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     }
   }, [currentLocation]);
 
+  // Changer les tuiles quand le thème change
+  useEffect(() => {
+    if (!mapInstanceRef.current || !tileLayerRef.current) return;
+    
+    const map = mapInstanceRef.current;
+    const tileConfig = isDarkMode ? TILE_LAYERS.dark : TILE_LAYERS.light;
+    
+    // Supprimer l'ancienne couche et ajouter la nouvelle
+    map.removeLayer(tileLayerRef.current);
+    tileLayerRef.current = L.tileLayer(tileConfig.url, {
+      attribution: tileConfig.attribution,
+      maxZoom: 19
+    }).addTo(map);
+    
+    // Recréer les contrôles avec les bonnes couleurs
+    const existingControls = map.getContainer().querySelectorAll('.leaflet-control-custom');
+    existingControls.forEach(control => control.remove());
+    
+    // Reconstruire les contrôles avec le bon thème (simplifié - les recréer au prochain render suffit)
+    console.log('🎨 Thème changé, tuiles mises à jour:', isDarkMode ? 'sombre' : 'clair');
+  }, [isDarkMode]);
+
 
   return (
     <div className={`relative w-full h-full ${className}`}>
       <div ref={mapRef} className="w-full h-full rounded-lg shadow-lg" />
+      
+      {/* Indicateur de chargement GPS */}
+      {isLocating && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1001] bg-background/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-medium text-foreground">
+            Recherche de votre position...
+          </span>
+        </div>
+      )}
       
       {/* Styles pour les marqueurs et contrôles */}
       <style>{`
@@ -461,6 +526,22 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           border: 1px solid rgba(0,0,0,0.1);
         }
         
+        /* Mode sombre pour les popups */
+        .dark .custom-popup .leaflet-popup-content-wrapper {
+          background: #1f2937;
+          color: white;
+          border-color: rgba(255,255,255,0.1);
+        }
+        
+        .dark .custom-popup .leaflet-popup-tip {
+          background: #1f2937;
+          border-color: rgba(255,255,255,0.1);
+        }
+        
+        .dark .custom-popup .leaflet-popup-close-button {
+          color: white;
+        }
+        
         /* S'assurer qu'aucun contrôle par défaut n'apparaît à gauche */
         .leaflet-control-zoom {
           display: none !important;
@@ -477,6 +558,16 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         /* Cacher tous les contrôles à gauche */
         .leaflet-left {
           display: none !important;
+        }
+        
+        /* Attribution en mode sombre */
+        .dark .leaflet-control-attribution {
+          background: rgba(31, 41, 55, 0.9) !important;
+          color: rgba(255, 255, 255, 0.7) !important;
+        }
+        
+        .dark .leaflet-control-attribution a {
+          color: rgba(255, 255, 255, 0.8) !important;
         }
       `}</style>
     </div>
