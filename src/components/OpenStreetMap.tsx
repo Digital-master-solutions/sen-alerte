@@ -11,8 +11,9 @@ const TILE_LAYERS = {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   },
   dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+    // Stadia Alidade Smooth Dark - palette gris/bleu élégante, moins noire
+    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    attribution: '© <a href="https://stadiamaps.com/">Stadia Maps</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }
 };
 
@@ -310,9 +311,13 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       const createSimpleControl = (html: string, title: string, onClick: () => void, color: string, top: string) => {
         const container = document.createElement('div');
         container.className = 'leaflet-control leaflet-control-custom';
-        const controlBgColor = isDarkMode ? '#1f2937' : 'white';
-        const controlBorderColor = isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
-        const controlShadowColor = isDarkMode ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.15)';
+        
+        // Couleurs pour mode sombre plus visibles (gris clair, pas noir)
+        const controlBgColor = isDarkMode ? '#374151' : 'white';
+        const controlTextColor = isDarkMode ? '#f3f4f6' : color;
+        const controlBorderColor = isDarkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)';
+        const controlShadowColor = isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)';
+        const controlHoverBorderColor = isDarkMode ? '#60a5fa' : color;
         
         container.style.cssText = `
           position: absolute;
@@ -320,8 +325,8 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           right: 10px;
           z-index: 1000;
           background: ${controlBgColor};
-          border-radius: 8px;
-          box-shadow: 0 3px 12px ${controlShadowColor};
+          border-radius: 10px;
+          box-shadow: 0 4px 14px ${controlShadowColor};
           transition: all 0.2s ease;
         `;
         
@@ -333,17 +338,17 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         
         button.style.cssText = `
           display: block;
-          width: 44px;
-          height: 44px;
-          line-height: 44px;
+          width: 46px;
+          height: 46px;
+          line-height: 46px;
           text-align: center;
-          font-size: ${html === '+' || html === '−' ? '22px' : '20px'};
+          font-size: ${html === '+' || html === '−' ? '24px' : '22px'};
           font-weight: ${html === '+' || html === '−' ? 'bold' : 'normal'};
           background: ${controlBgColor};
           border: 2px solid ${controlBorderColor};
-          border-radius: 8px;
+          border-radius: 10px;
           cursor: pointer;
-          color: ${color};
+          color: ${controlTextColor};
           text-decoration: none;
           transition: all 0.2s ease;
           box-shadow: 0 4px 12px ${controlShadowColor};
@@ -355,15 +360,17 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         });
 
         button.addEventListener('mouseenter', () => {
-          button.style.transform = 'scale(1.05)';
-          button.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
-          button.style.borderColor = color;
+          button.style.transform = 'scale(1.08)';
+          button.style.boxShadow = `0 6px 18px ${controlShadowColor}`;
+          button.style.borderColor = controlHoverBorderColor;
+          button.style.background = isDarkMode ? '#4b5563' : '#f8fafc';
         });
 
         button.addEventListener('mouseleave', () => {
           button.style.transform = 'scale(1)';
-          button.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-          button.style.borderColor = 'rgba(0,0,0,0.1)';
+          button.style.boxShadow = `0 4px 12px ${controlShadowColor}`;
+          button.style.borderColor = controlBorderColor;
+          button.style.background = controlBgColor;
         });
 
         container.appendChild(button);
