@@ -283,12 +283,17 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     console.log('🗺️ Initialisation de la carte...');
 
-    // Initialiser la carte
+    // Initialiser la carte avec interactions zoom désactivées (sauf boutons)
     const map = L.map(mapRef.current, {
       center: [14.7167, -17.4677], // Dakar
       zoom: 13,
       zoomControl: false,
-      attributionControl: true
+      attributionControl: true,
+      scrollWheelZoom: false,     // Désactiver zoom molette
+      doubleClickZoom: false,     // Désactiver zoom double-clic
+      touchZoom: false,           // Désactiver zoom pincement mobile
+      boxZoom: false,             // Désactiver zoom par sélection
+      keyboard: false             // Désactiver zoom clavier (+/- keys)
     });
 
     mapInstanceRef.current = map;
@@ -308,13 +313,31 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       const existingControls = mapInstance.getContainer().querySelectorAll('.leaflet-control-custom');
       existingControls.forEach(control => control.remove());
 
-      const createSimpleControl = (html: string, title: string, onClick: () => void, color: string, top: string) => {
+      // Icônes SVG pour les boutons
+      const svgIcons = {
+        zoomIn: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>`,
+        zoomOut: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>`,
+        locate: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="2" x2="12" y2="6"/>
+          <line x1="12" y1="18" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="6" y2="12"/>
+          <line x1="18" y1="12" x2="22" y2="12"/>
+        </svg>`
+      };
+
+      const createSimpleControl = (svgIcon: string, title: string, onClick: () => void, color: string, top: string) => {
         const container = document.createElement('div');
         container.className = 'leaflet-control leaflet-control-custom';
         
         // Couleurs pour mode sombre plus visibles (gris clair, pas noir)
         const controlBgColor = isDarkMode ? '#374151' : 'white';
-        const controlTextColor = isDarkMode ? '#f3f4f6' : color;
+        const controlIconColor = isDarkMode ? '#f3f4f6' : color;
         const controlBorderColor = isDarkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)';
         const controlShadowColor = isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)';
         const controlHoverBorderColor = isDarkMode ? '#60a5fa' : color;
@@ -332,23 +355,21 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         
         const button = document.createElement('a');
         button.className = 'leaflet-control-button';
-        button.innerHTML = html;
+        button.innerHTML = svgIcon;
         button.title = title;
         button.href = '#';
         
         button.style.cssText = `
-          display: block;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           width: 46px;
           height: 46px;
-          line-height: 46px;
-          text-align: center;
-          font-size: ${html === '+' || html === '−' ? '24px' : '22px'};
-          font-weight: ${html === '+' || html === '−' ? 'bold' : 'normal'};
           background: ${controlBgColor};
           border: 2px solid ${controlBorderColor};
           border-radius: 10px;
           cursor: pointer;
-          color: ${controlTextColor};
+          color: ${controlIconColor};
           text-decoration: none;
           transition: all 0.2s ease;
           box-shadow: 0 4px 12px ${controlShadowColor};
@@ -378,7 +399,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       };
 
       const locationButton = createSimpleControl(
-        '🎯',
+        svgIcons.locate,
         'Localiser ma position précisément',
         () => {
           console.log('🎯 Bouton de localisation cliqué');
@@ -389,7 +410,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       );
 
       const zoomInButton = createSimpleControl(
-        '+',
+        svgIcons.zoomIn,
         'Zoomer (agrandir)',
         () => mapInstance.zoomIn(),
         '#3b82f6',
@@ -397,7 +418,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       );
 
       const zoomOutButton = createSimpleControl(
-        '−',
+        svgIcons.zoomOut,
         'Dézoomer (diminuer)',
         () => mapInstance.zoomOut(),
         '#3b82f6',
