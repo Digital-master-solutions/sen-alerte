@@ -313,16 +313,25 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       const existingControls = mapInstance.getContainer().querySelectorAll('.leaflet-control-custom');
       existingControls.forEach(control => control.remove());
 
-      // Icônes SVG pour les boutons
+      // Couleurs pour mode sombre plus visibles
+      const controlBgColor = isDarkMode ? '#374151' : 'white';
+      const controlBorderColor = isDarkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)';
+      const controlShadowColor = isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)';
+      
+      // Couleurs des icônes selon le thème
+      const zoomIconColor = isDarkMode ? '#f3f4f6' : '#3b82f6';
+      const locateIconColor = isDarkMode ? '#f3f4f6' : '#22c55e';
+
+      // Icônes SVG avec couleurs explicites
       const svgIcons = {
-        zoomIn: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        zoomIn: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${zoomIconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/>
           <line x1="5" y1="12" x2="19" y2="12"/>
         </svg>`,
-        zoomOut: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        zoomOut: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${zoomIconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="5" y1="12" x2="19" y2="12"/>
         </svg>`,
-        locate: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        locate: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${locateIconColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="4"/>
           <line x1="12" y1="2" x2="12" y2="6"/>
           <line x1="12" y1="18" x2="12" y2="22"/>
@@ -331,16 +340,10 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
         </svg>`
       };
 
-      const createSimpleControl = (svgIcon: string, title: string, onClick: () => void, color: string, top: string) => {
+      const createSimpleControl = (svgIcon: string, title: string, onClick: () => void, hoverColor: string, top: string) => {
         const container = document.createElement('div');
         container.className = 'leaflet-control leaflet-control-custom';
-        
-        // Couleurs pour mode sombre plus visibles (gris clair, pas noir)
-        const controlBgColor = isDarkMode ? '#374151' : 'white';
-        const controlIconColor = isDarkMode ? '#f3f4f6' : color;
-        const controlBorderColor = isDarkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)';
-        const controlShadowColor = isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)';
-        const controlHoverBorderColor = isDarkMode ? '#60a5fa' : color;
+        const controlHoverBorderColor = isDarkMode ? '#60a5fa' : hoverColor;
         
         container.style.cssText = `
           position: absolute;
@@ -369,7 +372,6 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
           border: 2px solid ${controlBorderColor};
           border-radius: 10px;
           cursor: pointer;
-          color: ${controlIconColor};
           text-decoration: none;
           transition: all 0.2s ease;
           box-shadow: 0 4px 12px ${controlShadowColor};
