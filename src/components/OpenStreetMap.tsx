@@ -277,6 +277,141 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     }
   }, [updateLocationStore]);
 
+  // Fonction pour ajouter les contrôles personnalisés (extraite pour réutilisation)
+  const addControlsToMap = useCallback((mapInstance: L.Map, darkMode: boolean) => {
+    if (!mapInstance) return;
+    
+    // Supprimer les anciens contrôles
+    const existingControls = mapInstance.getContainer().querySelectorAll('.leaflet-control-custom');
+    existingControls.forEach(control => control.remove());
+
+    console.log('🎛️ Création des contrôles de carte (thème:', darkMode ? 'sombre' : 'clair', ')');
+
+    // Couleurs pour mode sombre plus visibles
+    const controlBgColor = darkMode ? '#374151' : 'white';
+    const controlBorderColor = darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)';
+    const controlShadowColor = darkMode ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)';
+    
+    // Couleurs des icônes selon le thème
+    const zoomIconColor = darkMode ? '#f3f4f6' : '#3b82f6';
+    const locateIconColor = darkMode ? '#f3f4f6' : '#22c55e';
+
+    // Icônes SVG avec couleurs explicites
+    const svgIcons = {
+      zoomIn: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${zoomIconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>`,
+      zoomOut: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${zoomIconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>`,
+      locate: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${locateIconColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <line x1="12" y1="2" x2="12" y2="6"/>
+        <line x1="12" y1="18" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="6" y2="12"/>
+        <line x1="18" y1="12" x2="22" y2="12"/>
+      </svg>`
+    };
+
+    const createSimpleControl = (svgIcon: string, title: string, onClick: () => void, hoverColor: string, top: string) => {
+      const container = document.createElement('div');
+      container.className = 'leaflet-control leaflet-control-custom';
+      const controlHoverBorderColor = darkMode ? '#60a5fa' : hoverColor;
+      
+      container.style.cssText = `
+        position: absolute;
+        top: ${top};
+        right: 10px;
+        z-index: 1010;
+        background: ${controlBgColor};
+        border-radius: 10px;
+        box-shadow: 0 4px 14px ${controlShadowColor};
+        transition: all 0.2s ease;
+        pointer-events: auto;
+      `;
+      
+      const button = document.createElement('a');
+      button.className = 'leaflet-control-button';
+      button.innerHTML = svgIcon;
+      button.title = title;
+      button.href = '#';
+      
+      button.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        background: ${controlBgColor};
+        border: 2px solid ${controlBorderColor};
+        border-radius: 10px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px ${controlShadowColor};
+        pointer-events: auto;
+      `;
+
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      });
+
+      button.addEventListener('mouseenter', () => {
+        button.style.transform = 'scale(1.08)';
+        button.style.boxShadow = `0 6px 18px ${controlShadowColor}`;
+        button.style.borderColor = controlHoverBorderColor;
+        button.style.background = darkMode ? '#4b5563' : '#f8fafc';
+      });
+
+      button.addEventListener('mouseleave', () => {
+        button.style.transform = 'scale(1)';
+        button.style.boxShadow = `0 4px 12px ${controlShadowColor}`;
+        button.style.borderColor = controlBorderColor;
+        button.style.background = controlBgColor;
+      });
+
+      container.appendChild(button);
+      return container;
+    };
+
+    const locationButton = createSimpleControl(
+      svgIcons.locate,
+      'Localiser ma position précisément',
+      () => {
+        console.log('🎯 Bouton de localisation cliqué');
+        getExactGPSPosition();
+      },
+      '#22c55e',
+      '10px'
+    );
+
+    const zoomInButton = createSimpleControl(
+      svgIcons.zoomIn,
+      'Zoomer (agrandir)',
+      () => mapInstance.zoomIn(),
+      '#3b82f6',
+      '60px'
+    );
+
+    const zoomOutButton = createSimpleControl(
+      svgIcons.zoomOut,
+      'Dézoomer (diminuer)',
+      () => mapInstance.zoomOut(),
+      '#3b82f6',
+      '110px'
+    );
+
+    const mapContainer = mapInstance.getContainer();
+    mapContainer.appendChild(locationButton);
+    mapContainer.appendChild(zoomInButton);
+    mapContainer.appendChild(zoomOutButton);
+    
+    console.log('✅ Contrôles ajoutés à la carte');
+  }, [getExactGPSPosition]);
+
   // Initialisation de la carte (une seule fois)
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -305,138 +440,10 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
       maxZoom: 19
     }).addTo(map);
 
-    // Ajouter les contrôles personnalisés
-    const addControls = () => {
-      if (!mapInstanceRef.current) return;
-      const mapInstance = mapInstanceRef.current;
-      
-      const existingControls = mapInstance.getContainer().querySelectorAll('.leaflet-control-custom');
-      existingControls.forEach(control => control.remove());
-
-      // Couleurs pour mode sombre plus visibles
-      const controlBgColor = isDarkMode ? '#374151' : 'white';
-      const controlBorderColor = isDarkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)';
-      const controlShadowColor = isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)';
-      
-      // Couleurs des icônes selon le thème
-      const zoomIconColor = isDarkMode ? '#f3f4f6' : '#3b82f6';
-      const locateIconColor = isDarkMode ? '#f3f4f6' : '#22c55e';
-
-      // Icônes SVG avec couleurs explicites
-      const svgIcons = {
-        zoomIn: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${zoomIconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>`,
-        zoomOut: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${zoomIconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>`,
-        locate: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${locateIconColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"/>
-          <line x1="12" y1="2" x2="12" y2="6"/>
-          <line x1="12" y1="18" x2="12" y2="22"/>
-          <line x1="2" y1="12" x2="6" y2="12"/>
-          <line x1="18" y1="12" x2="22" y2="12"/>
-        </svg>`
-      };
-
-      const createSimpleControl = (svgIcon: string, title: string, onClick: () => void, hoverColor: string, top: string) => {
-        const container = document.createElement('div');
-        container.className = 'leaflet-control leaflet-control-custom';
-        const controlHoverBorderColor = isDarkMode ? '#60a5fa' : hoverColor;
-        
-        container.style.cssText = `
-          position: absolute;
-          top: ${top};
-          right: 10px;
-          z-index: 1000;
-          background: ${controlBgColor};
-          border-radius: 10px;
-          box-shadow: 0 4px 14px ${controlShadowColor};
-          transition: all 0.2s ease;
-        `;
-        
-        const button = document.createElement('a');
-        button.className = 'leaflet-control-button';
-        button.innerHTML = svgIcon;
-        button.title = title;
-        button.href = '#';
-        
-        button.style.cssText = `
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 46px;
-          height: 46px;
-          background: ${controlBgColor};
-          border: 2px solid ${controlBorderColor};
-          border-radius: 10px;
-          cursor: pointer;
-          text-decoration: none;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 12px ${controlShadowColor};
-        `;
-
-        button.addEventListener('click', (e) => {
-          e.preventDefault();
-          onClick();
-        });
-
-        button.addEventListener('mouseenter', () => {
-          button.style.transform = 'scale(1.08)';
-          button.style.boxShadow = `0 6px 18px ${controlShadowColor}`;
-          button.style.borderColor = controlHoverBorderColor;
-          button.style.background = isDarkMode ? '#4b5563' : '#f8fafc';
-        });
-
-        button.addEventListener('mouseleave', () => {
-          button.style.transform = 'scale(1)';
-          button.style.boxShadow = `0 4px 12px ${controlShadowColor}`;
-          button.style.borderColor = controlBorderColor;
-          button.style.background = controlBgColor;
-        });
-
-        container.appendChild(button);
-        return container;
-      };
-
-      const locationButton = createSimpleControl(
-        svgIcons.locate,
-        'Localiser ma position précisément',
-        () => {
-          console.log('🎯 Bouton de localisation cliqué');
-          getExactGPSPosition();
-        },
-        '#22c55e',
-        '10px'
-      );
-
-      const zoomInButton = createSimpleControl(
-        svgIcons.zoomIn,
-        'Zoomer (agrandir)',
-        () => mapInstance.zoomIn(),
-        '#3b82f6',
-        '60px'
-      );
-
-      const zoomOutButton = createSimpleControl(
-        svgIcons.zoomOut,
-        'Dézoomer (diminuer)',
-        () => mapInstance.zoomOut(),
-        '#3b82f6',
-        '110px'
-      );
-
-      const mapContainer = mapInstance.getContainer();
-      mapContainer.appendChild(locationButton);
-      mapContainer.appendChild(zoomInButton);
-      mapContainer.appendChild(zoomOutButton);
-    };
-
     // Attendre que la carte soit prête
     map.whenReady(() => {
       console.log('🗺️ Carte initialisée et prête');
-      addControls();
+      addControlsToMap(map, isDarkMode);
       
       // Lancer la géolocalisation UNE SEULE FOIS
       if (!isGettingPositionRef.current) {
@@ -500,12 +507,10 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     }).addTo(map);
     
     // Recréer les contrôles avec les bonnes couleurs
-    const existingControls = map.getContainer().querySelectorAll('.leaflet-control-custom');
-    existingControls.forEach(control => control.remove());
+    addControlsToMap(map, isDarkMode);
     
-    // Reconstruire les contrôles avec le bon thème (simplifié - les recréer au prochain render suffit)
-    console.log('🎨 Thème changé, tuiles mises à jour:', isDarkMode ? 'sombre' : 'clair');
-  }, [isDarkMode]);
+    console.log('🎨 Thème changé, tuiles et contrôles mis à jour:', isDarkMode ? 'sombre' : 'clair');
+  }, [isDarkMode, addControlsToMap]);
 
 
   return (
