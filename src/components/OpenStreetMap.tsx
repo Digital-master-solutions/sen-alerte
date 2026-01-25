@@ -278,7 +278,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   }, [updateLocationStore]);
 
   // Fonction pour ajouter les contrôles personnalisés (extraite pour réutilisation)
-  const addControlsToMap = useCallback((mapInstance: L.Map, darkMode: boolean) => {
+  const addControlsToMap = useCallback((mapInstance: L.Map, darkMode: boolean, currentGpsPosition: { lat: number; lng: number } | null) => {
     if (!mapInstance) return;
     
     // Supprimer les anciens contrôles
@@ -379,10 +379,18 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     const locationButton = createSimpleControl(
       svgIcons.locate,
-      'Localiser ma position précisément',
+      'Recentrer sur ma position',
       () => {
-        console.log('🎯 Bouton de localisation cliqué');
-        getExactGPSPosition();
+        console.log('🎯 Bouton de recentrage cliqué');
+        // Si on a une position GPS, recentrer directement sur elle
+        if (currentGpsPosition) {
+          console.log('📍 Recentrage sur position existante:', currentGpsPosition.lat.toFixed(6), currentGpsPosition.lng.toFixed(6));
+          mapInstance.setView([currentGpsPosition.lat, currentGpsPosition.lng], 16, { animate: true });
+        } else {
+          // Sinon, lancer une nouvelle géolocalisation
+          console.log('📍 Aucune position GPS - lancement géolocalisation');
+          getExactGPSPosition();
+        }
       },
       '#22c55e',
       '10px'
@@ -443,7 +451,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     // Attendre que la carte soit prête
     map.whenReady(() => {
       console.log('🗺️ Carte initialisée et prête');
-      addControlsToMap(map, isDarkMode);
+      addControlsToMap(map, isDarkMode, gpsPosition);
       
       // Lancer la géolocalisation UNE SEULE FOIS
       if (!isGettingPositionRef.current) {
@@ -507,10 +515,10 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     }).addTo(map);
     
     // Recréer les contrôles avec les bonnes couleurs
-    addControlsToMap(map, isDarkMode);
+    addControlsToMap(map, isDarkMode, gpsPosition);
     
     console.log('🎨 Thème changé, tuiles et contrôles mis à jour:', isDarkMode ? 'sombre' : 'clair');
-  }, [isDarkMode, addControlsToMap]);
+  }, [isDarkMode, addControlsToMap, gpsPosition]);
 
 
   return (
