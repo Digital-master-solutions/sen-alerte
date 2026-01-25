@@ -36,6 +36,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   const [gpsPosition, setGpsPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [pendingPosition, setPendingPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(true);
+  const [hasValidPosition, setHasValidPosition] = useState(false); // Position précise obtenue
   const { currentLocation, setCurrentLocation, lastUpdateTime } = useLocationStore();
   const { display } = useSettingsStore();
   
@@ -195,26 +196,35 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
     setIsLocating(true);
     console.log('🎯 Démarrage de la géolocalisation GPS...');
 
+    // Seuil de précision acceptable pour afficher le marqueur (100m)
+    const DISPLAY_THRESHOLD = 100;
+    
     try {
-      // Première tentative rapide pour affichage immédiat
+      // Première tentative rapide
       const firstPosition = await getSingleGPSPosition(1, 4);
       const firstAccuracy = firstPosition.coords.accuracy;
       
       console.log(`📍 Position GPS obtenue: lat=${firstPosition.coords.latitude.toFixed(6)}, lng=${firstPosition.coords.longitude.toFixed(6)}, précision=${firstAccuracy.toFixed(1)}m`);
       
-      // Affichage immédiat du marqueur avec la première position
-      updateLocationStore(
-        firstPosition.coords.latitude,
-        firstPosition.coords.longitude,
-        firstAccuracy
-      );
-      
-      setIsLocating(false);
-      
-      // Si la précision est déjà bonne, on arrête
-      if (firstAccuracy < 50) {
-        console.log(`✅ Bonne précision dès le début (${firstAccuracy.toFixed(1)}m) - Arrêt de l'amélioration`);
-        return;
+      // Vérifier si la précision est suffisante pour afficher le marqueur
+      if (firstAccuracy <= DISPLAY_THRESHOLD) {
+        console.log(`✅ Précision acceptable (${firstAccuracy.toFixed(1)}m ≤ ${DISPLAY_THRESHOLD}m) - Affichage du marqueur`);
+        setHasValidPosition(true);
+        updateLocationStore(
+          firstPosition.coords.latitude,
+          firstPosition.coords.longitude,
+          firstAccuracy
+        );
+        setIsLocating(false);
+        
+        // Si la précision est déjà très bonne, on arrête
+        if (firstAccuracy < 50) {
+          console.log(`✅ Excellente précision (${firstAccuracy.toFixed(1)}m) - Arrêt de l'amélioration`);
+          return;
+        }
+      } else {
+        console.log(`⚠️ Précision insuffisante (${firstAccuracy.toFixed(1)}m > ${DISPLAY_THRESHOLD}m) - En attente d'amélioration`);
+        // Ne pas afficher le marqueur, continuer à chercher
       }
 
       // Amélioration de la précision en arrière-plan
@@ -236,12 +246,21 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
             
             console.log(`✅ Meilleure précision trouvée: ${bestAccuracy.toFixed(1)}m`);
             
-            // Mise à jour progressive en arrière-plan
-            updateLocationStore(
-              bestPosition.coords.latitude,
-              bestPosition.coords.longitude,
-              bestAccuracy
-            );
+            // Si on atteint le seuil pour la première fois, afficher le marqueur
+            if (bestAccuracy <= DISPLAY_THRESHOLD && !hasValidPosition) {
+              console.log(`✅ Seuil de précision atteint - Affichage du marqueur`);
+              setHasValidPosition(true);
+              setIsLocating(false);
+            }
+            
+            // Mise à jour progressive en arrière-plan (seulement si position valide)
+            if (bestAccuracy <= DISPLAY_THRESHOLD) {
+              updateLocationStore(
+                bestPosition.coords.latitude,
+                bestPosition.coords.longitude,
+                bestAccuracy
+              );
+            }
             
             if (bestAccuracy < 20) {
               console.log(`✅ Excellente précision atteinte (${bestAccuracy.toFixed(1)}m)`);
@@ -426,10 +445,10 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
 
     console.log('🗺️ Initialisation de la carte...');
 
-    // Initialiser la carte avec interactions zoom désactivées (sauf boutons)
+    // Initialiser la carte avec vue sur le Sénégal entier (pas de marqueur au début)
     const map = L.map(mapRef.current, {
-      center: [14.7167, -17.4677], // Dakar
-      zoom: 13,
+      center: [14.4974, -14.4524], // Centre du Sénégal
+      zoom: 7, // Vue large du pays
       zoomControl: false,
       attributionControl: true,
       scrollWheelZoom: false,     // Désactiver zoom molette
@@ -524,7 +543,7 @@ const OpenStreetMap: React.FC<OpenStreetMapProps> = ({ className }) => {
   return (
     <div className={`relative w-full h-full ${className}`}>
       {/* Overlay de chargement qui masque la carte tant que la position n'est pas obtenue */}
-      {isLocating && !gpsPosition && (
+      {isLocating && !hasValidPosition && (
         <div className="absolute inset-0 z-[1002] bg-background flex flex-col items-center justify-center gap-4">
           <div className="relative">
             <div className="w-16 h-16 border-4 border-primary/20 rounded-full"></div>
