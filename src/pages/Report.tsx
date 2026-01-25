@@ -313,14 +313,14 @@ export default function Report() {
             </CardHeader>
             <CardContent className="space-y-8">
               {/* Conseils section */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
                   <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                     <span className="text-yellow-800 text-sm font-bold">💡</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Conseils pour un bon signalement</h3>
-                    <ul className="space-y-1 text-sm text-gray-700">
+                    <h3 className="font-semibold text-foreground mb-2">Conseils pour un bon signalement</h3>
+                    <ul className="space-y-1 text-sm text-muted-foreground">
                       <li>• Soyez précis dans votre description</li>
                       <li>• Ajoutez une photo si possible</li>
                       <li>• Vérifiez l'adresse de l'incident</li>
@@ -331,7 +331,7 @@ export default function Report() {
 
               {/* Type d'incident */}
               <div className="space-y-3">
-                <label htmlFor="type-select" className="text-base font-medium text-gray-900">Type d'incident *</label>
+                <label htmlFor="type-select" className="text-base font-medium text-foreground">Type d'incident *</label>
                 <Select onValueChange={(v) => form.setValue("type", v)}>
                   <SelectTrigger id="type-select" className="h-12">
                     <SelectValue placeholder="Sélectionnez la catégorie" />
@@ -349,7 +349,7 @@ export default function Report() {
 
               {/* Informations personnelles */}
               <div className="space-y-4">
-                <h3 className="text-base font-medium text-gray-900">Informations personnelles *</h3>
+                <h3 className="text-base font-medium text-foreground">Informations personnelles *</h3>
                 <div className="grid gap-4">
                   <div className="space-y-2">
                     <Input
@@ -378,10 +378,10 @@ export default function Report() {
               {/* Localisation */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-medium text-gray-900">Localisation</h3>
+                  <h3 className="text-base font-medium text-foreground">Localisation</h3>
                   {isWatchingLocation && (
-                    <div className="flex items-center space-x-2 text-xs text-gray-500">
-                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <div className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full"></div>
                       <span>GPS actif</span>
                     </div>
                   )}
@@ -389,26 +389,26 @@ export default function Report() {
                 
                 <div className="space-y-3">
                   {/* Affichage principal de la localisation */}
-                  <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start space-x-3 p-4 bg-muted rounded-lg">
                     <MapPin className="h-5 w-5 text-yellow-600 mt-0.5" />
                     <div className="flex-1">
                       {currentLocation ? (
                         <div className="space-y-1">
-                          <div className="text-gray-900 font-medium">
+                          <div className="text-foreground font-medium">
                             {currentLocation.address || `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`}
                           </div>
                           {currentLocation.city && (
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-muted-foreground">
                               {currentLocation.city}
                               {currentLocation.department && `, ${currentLocation.department}`}
                             </div>
                           )}
-                          <div className="text-xs text-gray-500 font-mono">
+                          <div className="text-xs text-muted-foreground font-mono">
                             Coordonnées GPS: {currentLocation.latitude.toFixed(7)}, {currentLocation.longitude.toFixed(7)}
                           </div>
                         </div>
                       ) : (
-                        <div className="text-gray-700">
+                        <div className="text-muted-foreground">
                           {isLocationLoading ? "Localisation en cours..." : "Localisation non disponible"}
                         </div>
                       )}
@@ -417,8 +417,8 @@ export default function Report() {
 
                   {/* Message d'erreur */}
                   {locationError && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="text-sm text-red-700">
+                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg">
+                      <div className="text-sm text-red-700 dark:text-red-400">
                         ⚠️ {locationError}
                       </div>
                     </div>
@@ -428,7 +428,7 @@ export default function Report() {
                   {/* Coordonnées manuelles (fallback) */}
                   {!currentLocation && (
                     <div className="space-y-3">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         Ou saisissez manuellement les coordonnées :
                       </div>
                       <div className="grid sm:grid-cols-2 gap-3">
@@ -454,7 +454,7 @@ export default function Report() {
 
               {/* Description */}
               <div className="space-y-3">
-                <label htmlFor="description-textarea" className="text-base font-medium text-gray-900">Description *</label>
+                <label htmlFor="description-textarea" className="text-base font-medium text-foreground">Description *</label>
                 <Textarea
                   id="description-textarea"
                   rows={5}
@@ -469,7 +469,7 @@ export default function Report() {
 
               {/* Photo */}
               <div className="space-y-4">
-                <h3 className="text-base font-medium text-gray-900">Photo (optionnel)</h3>
+                <h3 className="text-base font-medium text-foreground">Photo (optionnel)</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {/* Bouton Caméra */}
                   <Button
@@ -547,7 +547,7 @@ export default function Report() {
 
               {/* Message vocal */}
               <div className="space-y-4">
-                <h3 className="text-base font-medium text-gray-900">Message vocal (optionnel)</h3>
+                <h3 className="text-base font-medium text-foreground">Message vocal (optionnel)</h3>
                 
                  {!isRecording && !recordedAudio && (
                   <Button
@@ -603,10 +603,7 @@ export default function Report() {
                   {isSubmitting ? (
                     <LoadingSpinner size="sm" text="Envoi en cours..." />
                   ) : (
-                    <div className="flex items-center space-x-2">
-                      <span>✈️</span>
-                      <span>Envoyer le signalement</span>
-                    </div>
+                    <span>Envoyer le signalement</span>
                   )}
                 </Button>
               </div>
